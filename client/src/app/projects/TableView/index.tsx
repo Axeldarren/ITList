@@ -1,7 +1,9 @@
 import { useAppSelector } from '@/app/redux';
 import Header from '@/components/Header';
+import { dataGridSxStyles } from '@/lib/utils';
 import { useGetTasksQuery } from '@/state/api';
 import { DataGrid } from '@mui/x-data-grid';
+import { Plus } from 'lucide-react';
 import React from 'react'
 
 type Props = {
@@ -54,13 +56,13 @@ const columns: GridColDef[] = [
     field: "author",
     headerName: "Author",
     width: 150,
-    renderCell: (params) => params.value?.author || "Unknown",
+    renderCell: (params) => params.value?.username || "Unknown",
   },
   {
     field: "assignee",
     headerName: "Assignee",
     width: 150,
-    renderCell: (params) => params.value?.assignee || "Unassigned",
+    renderCell: (params) => params.value?.username || "Unassigned",
   },
 ];
 
@@ -78,11 +80,24 @@ const TableView = ({ id, setIsModalNewTaskOpen }: Props) => {
   return (
     <div className='h-[540px] w-full px-4 pb-8 xl:px-6'>
         <div className='pt-5'>
-            <Header name='Table' isSmallText />
+            <Header
+                name="Table"
+                buttonComponent={
+                    <button
+                        className="flex items-center rounded bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
+                        onClick={() => setIsModalNewTaskOpen(true)}
+                    >
+                        <Plus size={18} />
+                        Add Task
+                    </button>
+                }
+                isSmallText
+            />
         </div>
         <DataGrid
             rows={tasks || []}
             columns={columns}
+            sx={dataGridSxStyles(isDarkMode)}
         />
     </div>
   )

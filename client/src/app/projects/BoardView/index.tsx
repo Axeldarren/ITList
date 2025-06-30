@@ -6,6 +6,7 @@ import { Task as TaskType } from '@/state/api';
 import { EllipsisVertical, MessageSquareMore, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import BoardViewSkeleton from './BoardViewSkeleton';
 
 type BoardProps = {
     id: string;
@@ -26,12 +27,12 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
     updateTaskStatus({ taskId, status: toStatus })
   }
 
-  if (isLoading) return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading Tasks...</div>;
+  if (isLoading) return <BoardViewSkeleton />;
   if (error) return <div className="p-6 text-center text-red-500">An error occurred while fetching tasks.</div>;
 
   return (
     <DndProvider backend={HTML5Backend}>
-        <div className='grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4'>
+        <div className='grid grid-cols-2 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4'>
             {taskStatus.map((status) => (
                 <TaskColumn
                     key={status}

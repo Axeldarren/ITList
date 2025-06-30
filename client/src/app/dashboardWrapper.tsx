@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import StoreProvider, { useAppSelector } from "./redux";
+import { Toaster } from "react-hot-toast";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const isSidebarCollapsed = useAppSelector(
@@ -22,6 +23,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
     return (
     <div className="flex min-h-screen w-full bg-gray-50 text-gray-900">
+      <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: isDarkMode ? '#3b3d40' : '#ffffff',
+              color: isDarkMode ? '#ffffff' : '#101214',
+            },
+          }}
+      />
       <Sidebar />
       <main
         className={`flex w-full flex-col bg-gray-50 dark:bg-dark-bg ${
