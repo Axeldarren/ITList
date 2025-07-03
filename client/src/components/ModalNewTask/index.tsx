@@ -1,8 +1,9 @@
 import Modal from "@/components/Modal";
-import { Priority, Status, useCreateTaskMutation } from "@/state/api";
-import React, { useState } from "react";
+import { Priority, Status, useCreateTaskMutation, useGetProjectUsersQuery, useGetUsersQuery } from "@/state/api";
+import React, { useEffect, useState } from "react";
 import { formatISO } from "date-fns";
 import toast from 'react-hot-toast';
+import Select from "../Select";
 
 type Props = {
   isOpen: boolean;
@@ -19,9 +20,25 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [tags, setTags] = useState("");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [authorUserId, setAuthorUserId] = useState("");
-  const [assignedUserId, setAssignedUserId] = useState("");
-  const [projectId, setProjectId] = useState("");
+  const [authorUserId, setAuthorUserId] = useState<string | null>(null);
+  const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState(id || "");
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  const { data: allUsers, isLoading: isLoadingAllUsers } = useGetUsersQuery();
+  
+  const { data: teamUsers, isLoading: isLoadingTeamUsers } = useGetProjectUsersQuery(Number(projectId), {
+    skip: !projectId,
+  });
+
+  useEffect(() => {
+    if (id) {
+      setProjectId(id);
+    }
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [id, isOpen]);
 
   const resetForm = () => {
     setTitle("");
@@ -31,20 +48,22 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     setTags("");
     setStartDate("");
     setDueDate("");
-    setAuthorUserId("");
-    setAssignedUserId("");
-    setProjectId("");
+    setAuthorUserId(null);
+    setAssignedUserId(null);
+    if (!id) {
+        setProjectId("");
+    }
+  };
+
+  const handleDropdownToggle = (dropdownName: string) => {
+    setOpenDropdown(openDropdown === dropdownName ? null : dropdownName);
   };
 
   const handleSubmit = async () => {
-    if (!title || !authorUserId || !(id !== null || projectId)) return;
+    if (!title || !authorUserId || !assignedUserId || !projectId) return;
 
-    const formattedStartDate = formatISO(new Date(startDate), {
-      representation: "complete",
-    });
-    const formattedDueDate = formatISO(new Date(dueDate), {
-      representation: "complete",
-    });
+    const formattedStartDate = startDate ? formatISO(new Date(startDate), { representation: "complete" }) : undefined;
+    const formattedDueDate = dueDate ? formatISO(new Date(dueDate), { representation: "complete" }) : undefined;
 
     const promise = createTask({
         title,
@@ -56,10 +75,9 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         dueDate: formattedDueDate,
         authorUserId: parseInt(authorUserId),
         assignedUserId: parseInt(assignedUserId),
-        projectId: id !== null ? Number(id) : Number(projectId),
+        projectId: Number(projectId),
     }).unwrap();
 
-    // 2. Use toast.promise to handle all states
     toast.promise(promise, {
         loading: 'Creating task...',
         success: (data) => {
@@ -72,14 +90,11 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   };
 
   const isFormValid = () => {
-    return title && authorUserId && (id !== null || projectId);
+    return title && authorUserId && assignedUserId && projectId;
   };
 
-  const selectStyles =
-    "mb-4 block w-full rounded border border-gray-300 px-3 py-2 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
-
-  const inputStyles =
-    "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
+  const selectStyles = "mb-4 block w-full rounded border border-gray-300 px-3 py-2 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
+  const inputStyles = "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} name="Create New Task">
@@ -154,20 +169,29 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             onChange={(e) => setDueDate(e.target.value)}
           />
         </div>
-        <input
-          type="text"
-          className={inputStyles}
-          placeholder="Author User ID"
-          value={authorUserId}
-          onChange={(e) => setAuthorUserId(e.target.value)}
+        
+        <Select
+            value={authorUserId}
+            onChange={setAuthorUserId}
+            options={allUsers?.map(user => ({ label: user.username, value: user.userId!.toString() })) || []}
+            placeholder="Select Author"
+            loading={isLoadingAllUsers}
+            isOpen={openDropdown === 'author'}
+            onToggle={() => handleDropdownToggle('author')}
         />
-        <input
-          type="text"
-          className={inputStyles}
-          placeholder="Assigned User ID"
-          value={assignedUserId}
-          onChange={(e) => setAssignedUserId(e.target.value)}
+        
+        <Select
+            value={assignedUserId}
+            onChange={setAssignedUserId}
+            options={teamUsers?.map(user => ({ label: user.username, value: user.userId!.toString() })) || []}
+            placeholder="Select Assignee"
+            loading={isLoadingTeamUsers}
+            disabled={!projectId}
+            key={projectId}
+            isOpen={openDropdown === 'assignee'}
+            onToggle={() => handleDropdownToggle('assignee')}
         />
+
         {id === null && (
           <input
             type="text"

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserTasks = exports.updateTaskStatus = exports.createTask = exports.getTasks = void 0;
+exports.deleteTask = exports.getUserTasks = exports.updateTaskStatus = exports.createTask = exports.getTasks = void 0;
 const client_1 = require("@prisma/client");
 const Prisma = new client_1.PrismaClient();
 const getTasks = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -116,3 +116,19 @@ const getUserTasks = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.getUserTasks = getUserTasks;
+const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { taskId } = req.params;
+    try {
+        yield Prisma.$transaction([
+            Prisma.comment.deleteMany({ where: { taskId: Number(taskId) } }),
+            Prisma.attachment.deleteMany({ where: { taskId: Number(taskId) } }),
+            Prisma.taskAssignment.deleteMany({ where: { taskId: Number(taskId) } }),
+            Prisma.task.delete({ where: { id: Number(taskId) } }),
+        ]);
+        res.status(200).json({ message: `Task with ID ${taskId} deleted successfully.` });
+    }
+    catch (error) {
+        res.status(500).json({ message: `Error deleting task: ${error}` });
+    }
+});
+exports.deleteTask = deleteTask;

@@ -18,6 +18,7 @@ model User {
   NIK                  Int         @unique // Added NIK (Employee Identification Number) field
   profilePictureUrl    String?        // Kept this field if you still need it
   teamId               Int?
+  isAdmin              Boolean        @default(false) // Added isAdmin field
 
   authoredTasks        Task[]         @relation("TaskAuthor")
   assignedTasks        Task[]         @relation("TaskAssignee")
