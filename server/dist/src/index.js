@@ -1,4 +1,5 @@
 "use strict";
+// server/src/index.ts
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -9,22 +10,30 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
+const path_1 = __importDefault(require("path"));
 // Route Import
 const projectRoutes_1 = __importDefault(require("./routes/projectRoutes"));
 const taskRoutes_1 = __importDefault(require("./routes/taskRoutes"));
 const searchRoutes_1 = __importDefault(require("./routes/searchRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
+const attachmentRoutes_1 = __importDefault(require("./routes/attachmentRoutes"));
+const commentRoutes_1 = __importDefault(require("./routes/commentRoutes"));
 // Configurations
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+const corsOptions = {
+    origin: 'http://localhost:3000', // Your frontend's address
+    optionsSuccessStatus: 200
+};
+app.use((0, cors_1.default)(corsOptions)); // Use the new options
 app.use(express_1.default.json());
 app.use((0, helmet_1.default)());
 app.use(helmet_1.default.crossOriginResourcePolicy({ policy: "cross-origin" }));
 app.use((0, morgan_1.default)('common'));
 app.use(body_parser_1.default.json());
-app.use(body_parser_1.default.urlencoded({ extended: false }));
-app.use((0, cors_1.default)());
+app.use(body_parser_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
 // Routes
 app.get('/', (req, res) => {
     res.send('Welcome to the Project Management API');
@@ -34,6 +43,8 @@ app.use('/tasks', taskRoutes_1.default);
 app.use('/search', searchRoutes_1.default);
 app.use('/users', userRoutes_1.default);
 app.use('/teams', teamRoutes_1.default);
+app.use('/attachments', attachmentRoutes_1.default);
+app.use('/comments', commentRoutes_1.default);
 // Server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

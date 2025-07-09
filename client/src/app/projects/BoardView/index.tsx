@@ -3,12 +3,13 @@ import React, { useState, MouseEvent } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Task as TaskType } from '@/state/api';
-import { EllipsisVertical, MessageSquareMore, MoreVertical, Plus, Trash2 } from 'lucide-react';
+import { MessageSquareMore, MoreVertical, Plus, Trash2, Edit } from 'lucide-react'; // <-- Import Edit icon
 import { format } from 'date-fns';
 import Image from 'next/image';
 import BoardViewSkeleton from './BoardViewSkeleton';
 import toast from 'react-hot-toast';
 import ModalConfirm from '@/components/ModalConfirm';
+import ModalEditTask from '@/components/ModalEditTask'; // <-- Import the edit modal
 
 type BoardProps = {
     id: string;
@@ -139,6 +140,7 @@ type TaskProps = {
 const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [isEditModalOpen, setEditModalOpen] = useState(false); // <-- State for the edit modal
 
     const [{ isDragging }, drag] = useDrag(() => ({
         type: 'task',
@@ -148,6 +150,21 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
         }),
     }));
 
+    // --- Handlers for opening and closing the modal ---
+    const handleCardClick = () => {
+        setEditModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setEditModalOpen(false);
+    };
+
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent card click
+        onMenuToggle(task.id); // Close the kebab menu
+        setEditModalOpen(true); // Open the edit modal
+    };
+    
     const handleDeleteClick = (e: MouseEvent) => {
         e.stopPropagation();
         onMenuToggle(task.id);
@@ -186,6 +203,10 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
 
     return (
         <>
+            {/* --- Render Modals --- */}
+            {isEditModalOpen && (
+                <ModalEditTask taskId={task.id} onClose={handleCloseModal} />
+            )}
             <ModalConfirm
                 isOpen={isConfirmModalOpen}
                 onClose={() => setConfirmModalOpen(false)}
@@ -198,17 +219,10 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
                 ref={(instance) => {
                     drag(instance);
                 }}
-                className={`mb-4 rounded-md bg-white shadow dark:bg-dark-secondary hover:shadow-xl`}
+                onClick={handleCardClick} // <-- Open modal on card click
+                className={`mb-4 cursor-pointer rounded-md bg-white shadow dark:bg-dark-secondary hover:shadow-xl ${isDragging ? 'opacity-50' : 'opacity-100'}`}
             >
-                {task.attachments && task.attachments.length > 0 && (
-                    <Image
-                        src={`/${task.attachments[0].fileURL}`}
-                        alt={task.attachments[0].fileName}
-                        width={400}
-                        height={200}
-                        className='h-auto w-full rounded-t-md'
-                    />
-                )}
+                {/* ... existing task content ... */}
                 <div className='p-4 md:p-6'>
                     <div className='flex items-start justify-between'>
                         <div className='flex flex-1 flex-wrap items-center gap-2'>
@@ -233,11 +247,21 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
                                 <MoreVertical size={20} />
                             </button>
                             {openMenuId === task.id && (
-                                <div className="absolute right-0 mt-2 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-tertiary">
+                                <div className="absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-tertiary">
                                     <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                        {/* --- Edit Button --- */}
+                                        <button
+                                            onClick={handleEditClick}
+                                            className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                                            role="menuitem"
+                                        >
+                                            <Edit className="mr-3 h-5 w-5" />
+                                            <span>Edit</span>
+                                        </button>
+                                        {/* --- Delete Button --- */}
                                         <button
                                             onClick={handleDeleteClick}
-                                            className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                                            className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
                                             role="menuitem"
                                         >
                                             <Trash2 className="mr-3 h-5 w-5" />

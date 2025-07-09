@@ -19,7 +19,8 @@ const Modal = ({
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
-    <div className='fixed inset-0 flex h-full w-full items-center justify-center overflow-y-auto bg-gray-600 bg-opacity-50 p-4'>
+    // --- UPDATED: Changed items-center to items-start and added padding-top ---
+    <div className='fixed inset-0 flex h-full w-full items-start justify-center overflow-y-auto bg-gray-600 bg-opacity-50 p-4 pt-24'>
         <div className='w-full max-w-2xl rounded-lg bg-white p-4 shadow-lg dark:bg-dark-secondary'>
             <Header 
                 name={name}
@@ -40,4 +41,4 @@ const Modal = ({
   );
 };
 
-export default Modal
+export default Modal;

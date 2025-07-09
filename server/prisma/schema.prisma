@@ -92,7 +92,7 @@ model TaskAssignment {
 
 model Attachment {
   id           Int      @id @default(autoincrement())
-  fileURL      String
+  fileURL      String   @db.Text
   fileName     String?
   taskId       Int
   uploadedById Int

@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsSidebarCollapsed } from '@/state';
 import { useGetProjectsQuery, useDeleteProjectMutation, Project } from '@/state/api'; 
-import { AlertCircle, AlertOctagon, AlertTriangle, Briefcase, ChevronDown, ChevronUp, HomeIcon, Layers3, LockIcon, LucideIcon, Search, Settings, ShieldAlert, User, Users, X } from 'lucide-react';
+import { AlertCircle, AlertOctagon, AlertTriangle, Briefcase, ChevronDown, ChevronUp, Delete, HomeIcon, Layers3, LockIcon, LucideIcon, Search, Settings, ShieldAlert, Trash2, User, Users, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -25,9 +25,10 @@ const ContextMenu = ({ x, y, onDismiss, onDelete }) => {
                     e.stopPropagation(); 
                     onDelete();
                 }}
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
             >
-                Delete Project
+                <Trash2 className="mr-3 h-5 w-5" />
+                <span>Delete</span>
             </a>
         </div>,
         document.body

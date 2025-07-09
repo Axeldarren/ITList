@@ -1,5 +1,5 @@
 import Header from '@/components/Header';
-import { Clock, Filter, GitBranch, Grid3X3, List, PlusSquare, Share2, Table } from 'lucide-react';
+import { Clock, Edit, Filter, GitBranch, Grid3X3, List, PlusSquare, Share2, Table } from 'lucide-react';
 import React, { useState } from 'react';
 import ModalNewProject from './ModalNewProject';
 
@@ -7,12 +7,12 @@ type Props = {
     activeTab: string;
     setActiveTab: (tabName: string) => void;
     projectName: string;
-    // --- NEW: Add description and version props ---
     description: string | undefined;
     version: number | undefined;
+    onEdit: () => void; // Prop to handle the edit click
 }
 
-const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, version }: Props) => {
+const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, version, onEdit }: Props) => {
     const [isModalNewProjectOpen, setIsModalNewProjectOpen] = useState(false);
   
     return (
@@ -24,15 +24,22 @@ const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, vers
             <div className='pb-6 pt-6 lg:pb-4 lg:pt-8'>
                 <Header name={projectName}
                     buttonComponent={
-                        <button
-                            className='flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600'
-                            onClick={() => setIsModalNewProjectOpen(true)}
-                        >
-                            <PlusSquare className='mr-2 size-5' /> New Board
-                        </button>
+                        <div className="flex space-x-2">
+                            <button
+                                className='flex items-center rounded-md bg-gray-500 px-3 py-2 text-white hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600'
+                                onClick={onEdit}
+                            >
+                                <Edit className='mr-2 size-5' /> Edit
+                            </button>
+                            <button
+                                className='flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600'
+                                onClick={() => setIsModalNewProjectOpen(true)}
+                            >
+                                <PlusSquare className='mr-2 size-5' /> New Board
+                            </button>
+                        </div>
                     }
                 />
-                {/* --- NEW: Display project description and version --- */}
                 <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                     <p className='max-w-2xl'>{description || "No description available."}</p>
                     {version && (

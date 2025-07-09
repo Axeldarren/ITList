@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { get } from 'lodash';
 
+// Define all interfaces for your data
 export interface Project {
     id: number;
     name: string;
@@ -8,6 +8,7 @@ export interface Project {
     startDate?: string;
     endDate?: string;
     version: number;
+    teamId?: number; 
 }
 
 export enum Priority {
@@ -29,7 +30,7 @@ export interface User {
     userId?: number;
     username: string;
     email: string;
-    password: string;
+    password?: string;
     NIK?: number;
     profilePictureUrl?: string;
     teamId?: number;
@@ -57,7 +58,6 @@ export interface Task {
     authorUserId?: number;
     assignedUserId?: number;
     version: number;
-
     author?: User;
     assignee?: User;
     comments?: Comment[];
@@ -71,10 +71,17 @@ export interface SearchResults {
 }
 
 export interface Team {
-    teamId: number;
+    id: number;
     teamName: string;
     productOwnerUserId?: number;
     projectManagerUserId?: number;
+}
+
+export interface AddAttachmentPayload {
+    taskId: number;
+    fileURL: string;
+    fileName: string;
+    uploadedById: number;
 }
 
 export const api = createApi({
@@ -84,7 +91,13 @@ export const api = createApi({
     endpoints: (build) => ({
         getProjects: build.query<Project[], void>({
             query: () => 'projects',
-            providesTags: ["Projects"],
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'Projects' as const, id })),
+                        { type: 'Projects', id: 'LIST' },
+                      ]
+                    : [{ type: 'Projects', id: 'LIST' }],
         }),
         createProject: build.mutation<Project, Partial<Project>>({
             query: (project) => ({
@@ -92,28 +105,41 @@ export const api = createApi({
                 method: 'POST',
                 body: project
             }),
-            invalidatesTags: ["Projects"],
+            invalidatesTags: [{ type: 'Projects', id: 'LIST' }],
         }),
         deleteProject: build.mutation<{ message: string }, number>({
             query: (projectId) => ({
                 url: `projects/${projectId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: ["Projects"],
+            invalidatesTags: [{ type: 'Projects', id: 'LIST' }],
         }),
+        updateProject: build.mutation<Project, Partial<Project> & { id: number }>({
+            query: ({ id, ...patch }) => ({
+                url: `projects/${id}`,
+                method: 'PATCH',
+                body: patch,
+            }),
+            // --- UPDATED: Invalidates both the project and its user list ---
+            invalidatesTags: (result, error, { id }) => [
+                { type: "Projects", id },
+                { type: 'Users', id: `PROJECT_${id}` }
+            ],
+        }),
+
         getTasks: build.query<Task[], { projectId: number }>({
             query: ({ projectId }) => `tasks?projectId=${projectId}`,
-            providesTags: (result) => 
-                result 
-                    ? result.map(({ id }) => ({ type: 'Tasks' as const, id })) 
-                    : [{ type: "Tasks" as const}],
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'Tasks' as const, id })),
+                        { type: 'Tasks', id: 'LIST' },
+                      ]
+                    : [{ type: 'Tasks', id: 'LIST' }],
         }),
-        getTasksByUser: build.query<Task[], number>({
-        query: (userId) => `tasks/user/${userId}`,
-        providesTags: (result, error, userId) =>
-            result
-            ? result.map(({ id }) => ({ type: "Tasks", id }))
-            : [{ type: "Tasks", id: userId }],
+        getTaskById: build.query<Task, number>({
+            query: (taskId) => `tasks/${taskId}`,
+            providesTags: (result, error, id) => [{ type: 'Tasks', id }],
         }),
         createTask: build.mutation<Task, Partial<Task>>({
             query: (task) => ({
@@ -121,14 +147,14 @@ export const api = createApi({
                 method: 'POST',
                 body: task
             }),
-            invalidatesTags: ["Tasks"],
+            invalidatesTags: [{ type: 'Tasks', id: 'LIST' }],
         }),
         deleteTask: build.mutation<{ message: string }, number>({
             query: (taskId) => ({
                 url: `tasks/${taskId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: () => [{ type: "Tasks" }],
+            invalidatesTags: [{ type: 'Tasks', id: 'LIST' }],
         }),
         updateTaskStatus: build.mutation<Task, {taskId: number; status: string}>({
             query: ({ taskId, status }) => ({
@@ -136,18 +162,23 @@ export const api = createApi({
                 method: 'PATCH',
                 body: { status }
             }),
-            invalidatesTags: (result, error, {taskId}) => [
-                { type: "Tasks", id: taskId }
-            ],
+            invalidatesTags: (result, error, {taskId}) => [{ type: "Tasks", id: taskId }],
+        }),
+        
+        // Other endpoints
+        getTasksByUser: build.query<Task[], number>({
+            query: (userId) => `tasks/user/${userId}`,
+            providesTags: (result, error, userId) =>
+                result
+                ? result.map(({ id }) => ({ type: "Tasks", id }))
+                : [{ type: "Tasks", id: userId }],
         }),
         incrementProjectVersion: build.mutation<Project, { projectId: number }>({
             query: ({ projectId }) => ({
                 url: `projects/${projectId}/version`,
                 method: 'PATCH',
             }),
-            invalidatesTags: (result, error, { projectId }) => [
-                { type: "Projects", id: projectId }
-            ],
+            invalidatesTags: (result, error, { projectId }) => [{ type: "Projects", id: projectId }],
         }),
         getProjectUsers: build.query<User[], number>({
             query: (projectId) => `projects/${projectId}/users`,
@@ -164,21 +195,78 @@ export const api = createApi({
             query: () => 'teams',
             providesTags: ["Teams"]
         }),
+        updateTask: build.mutation<Task, Partial<Task> & { id: number }>({
+            query: ({ id, ...patch }) => ({
+                url: `tasks/${id}`,
+                method: 'PATCH',
+                body: patch,
+            }),
+            invalidatesTags: (result, error, { id }) => [{ type: 'Tasks', id }, { type: 'Tasks', id: 'LIST' }],
+        }),
+        createComment: build.mutation<Comment, Partial<Comment>>({
+            query: (comment) => ({
+                url: 'comments',
+                method: 'POST',
+                body: comment,
+            }),
+            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }],
+        }),
+        updateComment: build.mutation<Comment, { id: number; text: string }>({
+            query: ({ id, ...patch }) => ({
+                url: `comments/${id}`,
+                method: 'PATCH',
+                body: patch,
+            }),
+            invalidatesTags: (result, error, { id }) => [{ type: 'Tasks' }], // Refetch the task to show updated comment
+        }),
+
+        deleteComment: build.mutation<{ message: string }, number>({
+            query: (commentId) => ({
+                url: `comments/${commentId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: [{ type: 'Tasks' }], // Refetch the task
+        }),
+
+        addAttachment: build.mutation<Attachment, FormData>({
+            query: (formData) => ({
+                url: `attachments`,
+                method: 'POST',
+                body: formData, 
+            }),
+            invalidatesTags: (result, error) => [{ type: 'Tasks' }],
+        }),
+        deleteAttachment: build.mutation<{ message: string }, number>({
+            query: (attachmentId) => ({
+                url: `attachments/${attachmentId}`,
+                method: 'DELETE',
+            }),
+            // Invalidate all tasks to refetch and update the UI
+            invalidatesTags: (result, error, attachmentId) => [{ type: 'Tasks' }],
+        }),
     }),
 });
 
 export const {
     useGetProjectsQuery,
     useCreateProjectMutation,
+    useDeleteProjectMutation,
+    useUpdateProjectMutation,
     useGetTasksQuery,
+    useGetTaskByIdQuery,
+    useGetTasksByUserQuery,
     useCreateTaskMutation,
+    useDeleteTaskMutation,
     useUpdateTaskStatusMutation,
     useIncrementProjectVersionMutation,
+    useGetProjectUsersQuery,
     useSearchQuery,
     useGetUsersQuery,
     useGetTeamsQuery,
-    useGetTasksByUserQuery,
-    useDeleteTaskMutation,
-    useGetProjectUsersQuery,
-    useDeleteProjectMutation,
+    useUpdateTaskMutation,
+    useCreateCommentMutation,
+    useUpdateCommentMutation,
+    useDeleteCommentMutation,
+    useAddAttachmentMutation,
+    useDeleteAttachmentMutation,
 } = api;

@@ -151,3 +151,80 @@ export const deleteTask = async (
         res.status(500).json({ message: `Error deleting task: ${error}` });
     }
 };
+
+export const getTaskById = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    const { taskId } = req.params;
+    try {
+        const task = await Prisma.task.findUnique({
+            where: {
+                id: Number(taskId),
+            },
+            include: {
+                author: true,
+                assignee: true,
+                comments: {
+                    include: {
+                        user: true, // Also include user details for comments
+                    },
+                },
+                attachments: true,
+            },
+        });
+
+        if (task) {
+            res.json(task);
+        } else {
+            res.status(404).json({ message: "Task not found." });
+        }
+    } catch (error) {
+        res.status(500).json({ message: `Error retrieving task: ${error}` });
+    }
+};
+
+export const updateTask = async (req: Request, res: Response): Promise<void> => {
+    const { taskId } = req.params;
+    const {
+        title,
+        description,
+        status,
+        priority,
+        tags,
+        startDate, 
+        dueDate, 
+        points,
+        assignedUserId,
+    } = req.body;
+
+    try {
+        // --- FIX: Convert date strings to Date objects if they exist ---
+        const data: any = {
+            title,
+            description,
+            status,
+            priority,
+            tags,
+            points: Number(points) || null, // Ensure points is a number or null
+            assignedUserId: assignedUserId ? Number(assignedUserId) : null,
+        };
+
+        if (startDate) {
+            data.startDate = new Date(startDate);
+        }
+        if (dueDate) {
+            data.dueDate = new Date(dueDate);
+        }
+        
+        const updatedTask = await Prisma.task.update({
+            where: { id: Number(taskId) },
+            data, // Use the corrected data object
+        });
+
+        res.json(updatedTask);
+    } catch (error: any) {
+        console.error("Error updating task:", error);
+        res.status(500).json({ message: `Error updating task: ${error.message}` });
+    }
+};

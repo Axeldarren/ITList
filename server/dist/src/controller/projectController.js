@@ -9,13 +9,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProject = exports.getProjectUsers = exports.incrementProjectVersion = exports.createProject = exports.getProjects = void 0;
+exports.updateProject = exports.deleteProject = exports.getProjectUsers = exports.incrementProjectVersion = exports.createProject = exports.getProjects = void 0;
 const client_1 = require("@prisma/client");
 const Prisma = new client_1.PrismaClient();
 const getProjects = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const projects = yield Prisma.project.findMany();
-        res.json(projects);
+        const projects = yield Prisma.project.findMany({
+            include: {
+                projectTeams: {
+                    select: {
+                        teamId: true
+                    }
+                }
+            }
+        });
+        // Restructure the data to be more convenient for the frontend
+        const projectsWithTeamId = projects.map(p => {
+            var _a;
+            return (Object.assign(Object.assign({}, p), { teamId: ((_a = p.projectTeams[0]) === null || _a === void 0 ? void 0 : _a.teamId) || null }));
+        });
+        res.json(projectsWithTeamId);
     }
     catch (error) {
         res.status(500).json({ message: `Error retrieving projects: ${error}` });
@@ -103,6 +116,21 @@ const getProjectUsers = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getProjectUsers = getProjectUsers;
+/**
+ * Deletes a project and all its associated data, including tasks, comments, attachments,
+ * task assignments, and project-team associations. The deletion is performed within a
+ * database transaction to ensure data integrity.
+ *
+ * @param req - Express request object containing the project ID in the route parameters.
+ * @param res - Express response object used to send the result of the deletion operation.
+ * @returns A promise that resolves when the operation is complete. Sends a JSON response
+ *          indicating success or failure.
+ *
+ * @remarks
+ * - Returns a 400 status code if the project ID is invalid.
+ * - Returns a 200 status code if the project and all related data are deleted successfully.
+ * - Returns a 500 status code if an error occurs during the deletion process.
+ */
 const deleteProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { projectId } = req.params;
     const numericProjectId = Number(projectId);
@@ -140,3 +168,32 @@ const deleteProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.deleteProject = deleteProject;
+const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { projectId } = req.params;
+    const { name, description, startDate, endDate, teamId } = req.body;
+    try {
+        const updatedProject = yield Prisma.project.update({
+            where: { id: Number(projectId) },
+            data: {
+                name,
+                description,
+                startDate,
+                endDate,
+                projectTeams: {
+                    updateMany: {
+                        where: {},
+                        data: {
+                            teamId: Number(teamId)
+                        }
+                    }
+                }
+            },
+        });
+        res.status(200).json(updatedProject);
+    }
+    catch (error) {
+        console.error("Error updating project:", error);
+        res.status(500).json({ message: `Error updating project: ${error}` });
+    }
+});
+exports.updateProject = updateProject;

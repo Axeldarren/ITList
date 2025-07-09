@@ -8,8 +8,23 @@ export const getProjects = async (
     res: Response
 ): Promise<void> => {
     try {
-        const projects = await Prisma.project.findMany();
-        res.json(projects);
+        const projects = await Prisma.project.findMany({
+            include: {
+                projectTeams: {
+                    select: {
+                        teamId: true
+                    }
+                }
+            }
+        });
+
+        // Restructure the data to be more convenient for the frontend
+        const projectsWithTeamId = projects.map(p => ({
+            ...p,
+            teamId: p.projectTeams[0]?.teamId || null, // Assuming one team per project
+        }));
+
+        res.json(projectsWithTeamId);
     } catch (error) {
         res.status(500).json({ message: `Error retrieving projects: ${error}` });
     }
@@ -111,6 +126,22 @@ export const getProjectUsers = async (
     }
 };
 
+/**
+ * Deletes a project and all its associated data, including tasks, comments, attachments,
+ * task assignments, and project-team associations. The deletion is performed within a
+ * database transaction to ensure data integrity.
+ *
+ * @param req - Express request object containing the project ID in the route parameters.
+ * @param res - Express response object used to send the result of the deletion operation.
+ * @returns A promise that resolves when the operation is complete. Sends a JSON response
+ *          indicating success or failure.
+ *
+ * @remarks
+ * - Returns a 400 status code if the project ID is invalid.
+ * - Returns a 200 status code if the project and all related data are deleted successfully.
+ * - Returns a 500 status code if an error occurs during the deletion process.
+ */
+
 export const deleteProject = async (
     req: Request,
     res: Response
@@ -154,5 +185,37 @@ export const deleteProject = async (
     } catch (error) {
         console.error("Error deleting project:", error);
         res.status(500).json({ message: `Error deleting project: ${error}` });
+    }
+};
+
+export const updateProject = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    const { projectId } = req.params;
+    const { name, description, startDate, endDate, teamId } = req.body;
+
+    try {
+        const updatedProject = await Prisma.project.update({
+            where: { id: Number(projectId) },
+            data: {
+                name,
+                description,
+                startDate,
+                endDate,
+                projectTeams: {
+                    updateMany: {
+                        where: {},
+                        data: {
+                            teamId: Number(teamId)
+                        }
+                    }
+                }
+            },
+        });
+        res.status(200).json(updatedProject);
+    } catch (error) {
+        console.error("Error updating project:", error);
+        res.status(500).json({ message: `Error updating project: ${error}` });
     }
 };
