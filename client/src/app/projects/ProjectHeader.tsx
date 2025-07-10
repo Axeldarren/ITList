@@ -1,5 +1,5 @@
 import Header from '@/components/Header';
-import { Clock, Edit, Filter, GitBranch, Grid3X3, List, PlusSquare, Share2, Table } from 'lucide-react';
+import { Clock, Edit, Filter, GitBranch, Grid3X3, List, PlusSquare, Share2, Table, Search } from 'lucide-react'; // Added Search
 import React, { useState } from 'react';
 import ModalNewProject from './ModalNewProject';
 
@@ -9,10 +9,12 @@ type Props = {
     projectName: string;
     description: string | undefined;
     version: number | undefined;
-    onEdit: () => void; // Prop to handle the edit click
+    onEdit: () => void;
+    localSearchTerm: string;
+    setLocalSearchTerm: (term: string) => void;
 }
 
-const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, version, onEdit }: Props) => {
+const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, version, onEdit, localSearchTerm, setLocalSearchTerm }: Props) => {
     const [isModalNewProjectOpen, setIsModalNewProjectOpen] = useState(false);
   
     return (
@@ -51,7 +53,6 @@ const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, vers
                 </div>
             </div>
 
-            {/* TABS */}
             <div className='flex flex-wrap-reverse gap-2 border-y border-gray-200 pb-[8px] pt-2 dark:border-stroke-dark md:items-center'>
                 <div className='flex flex-1 items-center gap-2 md:gap-4'>
                     <TabButton name="Board" icon={<Grid3X3 className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
@@ -60,15 +61,15 @@ const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, vers
                     <TabButton name="Table" icon={<Table className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                 </div>
                 <div className='flex items-center gap-2'>
-                    <button className='text-gray-500 hover:text-gray-600 dark:text-neutral-500 dar:hover:text-gray-300'>
-                        <Filter className='size-5' />
-                    </button>
-                    <button className='text-gray-500 hover:text-gray-600 dark:text-neutral-500 dar:hover:text-gray-300'>
-                        <Share2 className='size-5' />
-                    </button>
                     <div className='relative'>
-                        <input type='text' placeholder='Search Task' className='rounded-md border py-1 pl-10 pr-4 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white' />
-                        <Grid3X3 className='absolute left-3 top-2 h-4 w-4 text-gray-400 dark:text-neutral-500' />
+                        <input 
+                            type='text' 
+                            placeholder='Search Task' 
+                            className='rounded-md border py-1 pl-10 pr-4 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white'
+                            value={localSearchTerm}
+                            onChange={(e) => setLocalSearchTerm(e.target.value)}
+                        />
+                        <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-neutral-500' />
                     </div>
                 </div>
             </div>

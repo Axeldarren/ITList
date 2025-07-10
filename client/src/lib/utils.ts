@@ -37,11 +37,21 @@ export const dataGridSxStyles = (isDarkMode: boolean) => {
         borderBottom: 'none', // Remove border from the very last row
       },
     },
-    // --- THIS IS THE NEW PART THAT FIXES THE HOVER ---
     '& .MuiDataGrid-row:hover': {
       backgroundColor: isDarkMode 
         ? '#2d3135' // Use your --color-stroke-dark for a subtle hover
         : '#f5f5f5', // A standard light grey for light mode hover
+    },
+    // --- THIS IS THE FIX ---
+    '& .MuiDataGrid-row.Mui-selected': {
+      backgroundColor: isDarkMode 
+        ? 'rgba(45, 49, 53, 0.7) !important' // Darker selection color
+        : 'rgba(25, 118, 210, 0.08) !important', // Default MUI light mode selection color
+       '&:hover': {
+         backgroundColor: isDarkMode 
+           ? 'rgba(45, 49, 53, 1) !important' // Even darker on hover
+           : 'rgba(25, 118, 210, 0.12) !important', // Default MUI light mode hover
+      },
     },
     "& .MuiDataGrid-withBorderColor": {
       borderColor: isDarkMode ? "#2d3135" : "#e5e7eb",

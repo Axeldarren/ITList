@@ -8,7 +8,6 @@ import Timeline from '../TimelineView';
 import Table from '../TableView';
 import ModalNewTask from '@/components/ModalNewTask';
 import { useGetProjectsQuery } from '@/state/api';
-// Import the new edit modal
 import ModalEditProject from '../ModalEditProject';
 import { Project as ProjectType } from '@/state/api';
 
@@ -20,13 +19,13 @@ const Project = ({ params }: Props) => {
     const { id } = params;
     const [activeTab, setActiveTab] = useState("Board");
     const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
-    
-    // --- NEW: State for the edit modal ---
     const [isEditModalOpen, setEditModalOpen] = useState(false);
+    
+    // State for local task search
+    const [localSearchTerm, setLocalSearchTerm] = useState('');
 
     const { data: projects, isLoading } = useGetProjectsQuery();
     
-    // Find the current project from the fetched list
     const currentProject = projects?.find((p: ProjectType) => p.id === Number(id));
 
     if (isLoading) {
@@ -41,7 +40,6 @@ const Project = ({ params }: Props) => {
                 id={id}
             />
             
-            {/* --- NEW: Add the edit modal to the page --- */}
             <ModalEditProject
                 isOpen={isEditModalOpen}
                 onClose={() => setEditModalOpen(false)}
@@ -54,14 +52,15 @@ const Project = ({ params }: Props) => {
                 projectName={currentProject?.name || 'Project'}
                 description={currentProject?.description}
                 version={currentProject?.version}
-                // --- NEW: Pass the handler to open the modal ---
                 onEdit={() => setEditModalOpen(true)}
+                localSearchTerm={localSearchTerm}
+                setLocalSearchTerm={setLocalSearchTerm}
             />
 
-            { activeTab === "Board" && <Board id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} />}
-            { activeTab === "List" && <List id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} />}
-            { activeTab === "Timeline" && <Timeline id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} />}
-            { activeTab === "Table" && <Table id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} />}
+            { activeTab === "Board" && <Board id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} />}
+            { activeTab === "List" && <List id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} />}
+            { activeTab === "Table" && <Table id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} />}
+            { activeTab === "Timeline" && <Timeline id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} />}
         </div>
     );
 };

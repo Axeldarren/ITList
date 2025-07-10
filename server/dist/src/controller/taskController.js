@@ -14,11 +14,11 @@ const client_1 = require("@prisma/client");
 const Prisma = new client_1.PrismaClient();
 const getTasks = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { projectId } = req.query;
+    // --- MODIFICATION: Allow fetching all tasks ---
+    const whereClause = projectId ? { projectId: Number(projectId) } : {};
     try {
         const tasks = yield Prisma.task.findMany({
-            where: {
-                projectId: Number(projectId),
-            },
+            where: whereClause, // Use the dynamic where clause
             include: {
                 author: true,
                 assignee: true,
@@ -33,6 +33,7 @@ const getTasks = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getTasks = getTasks;
+// ... keep the rest of the file the same
 const createTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { title, description, status, priority, tags, startDate, dueDate, points, projectId, authorUserId, assignedUserId, } = req.body;
     if (!projectId) {
@@ -166,14 +167,13 @@ const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     const { taskId } = req.params;
     const { title, description, status, priority, tags, startDate, dueDate, points, assignedUserId, } = req.body;
     try {
-        // --- FIX: Convert date strings to Date objects if they exist ---
         const data = {
             title,
             description,
             status,
             priority,
             tags,
-            points: Number(points) || null, // Ensure points is a number or null
+            points: Number(points) || null,
             assignedUserId: assignedUserId ? Number(assignedUserId) : null,
         };
         if (startDate) {
@@ -184,7 +184,7 @@ const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
         const updatedTask = yield Prisma.task.update({
             where: { id: Number(taskId) },
-            data, // Use the corrected data object
+            data,
         });
         res.json(updatedTask);
     }

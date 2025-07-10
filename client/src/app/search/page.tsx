@@ -5,41 +5,30 @@ import ProjectCard from '@/components/ProjectCard';
 import TaskCard from '@/components/TaskCard';
 import UserCard from '@/components/UserCard';
 import { useSearchQuery } from '@/state/api';
-import { debounce } from 'lodash';
-import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation'; // Import useSearchParams
+import React from 'react';
 
 const Search = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const { data: searchResults, isLoading, isError } = useSearchQuery(searchTerm, {
-        skip: searchTerm.length < 3
-    })
+    // Get search query from URL
+    const searchParams = useSearchParams();
+    const query = searchParams.get('q') || '';
 
-    const handleSearch = debounce(
-        (event: React.ChangeEvent<HTMLInputElement>) => {
-            setSearchTerm(event.target.value);
-        },
-        500,
-    );
-
-    useEffect(() => {
-    return handleSearch.cancel;
-    }, [handleSearch.cancel]);
+    const { data: searchResults, isLoading, isError } = useSearchQuery(query, {
+        skip: !query,
+    });
 
     return (
         <div className="p-8">
-            <Header name="Search" />
-            <div>
-                <input
-                    type="text"
-                    placeholder="Search for tasks, projects, or users..."
-                    // Added dark mode classes for background, border, text, and placeholder
-                    className="w-1/2 rounded border border-gray-300 p-3 shadow-sm dark:bg-dark-secondary dark:border-stroke-dark dark:text-white dark:placeholder-gray-400"
-                    onChange={handleSearch}
-                />
-            </div>
+            <Header name={`Search Results for "${query}"`} />
+            
             <div className="p-5">
                 {isLoading && <p className="text-gray-500 dark:text-gray-400">Loading...</p>}
                 {isError && <p className="text-red-500">Error occurred while fetching search results.</p>}
+                
+                {!isLoading && !isError && !searchResults && query && (
+                    <p className="text-gray-500 dark:text-gray-400">No results found.</p>
+                )}
+
                 {!isLoading && !isError && searchResults && (
                     <div className="mt-6 space-y-8">
                         {searchResults.tasks && searchResults.tasks?.length > 0 && (

@@ -1,15 +1,27 @@
-import React from 'react'
+import React, { useState } from 'react';
 import { Menu, Moon, Search, Settings, Sun } from "lucide-react";
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsDarkMode, setIsSidebarCollapsed } from '@/state';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 const Navbar = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter(); // Initialize router
   const isSidebarCollapsed = useAppSelector(
     (state) => state.global.isSidebarCollapsed,
   );
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
+  
+  // State for the search term
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Handle search when user presses Enter
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      router.push(`/search?q=${searchTerm.trim()}`);
+    }
+  };
 
   return (
     <div 
@@ -28,6 +40,9 @@ const Navbar = () => {
                     className='w-full rounded border-none bg-gray-100 p-2 pl-8 placeholder-gray-500 focus:border-transparent focus:outline-none dark:bg-gray-700 dark:text-white dark:placeholder-white'
                     type="search" 
                     placeholder="Search...."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearch}
                 />
             </div>
         </div>

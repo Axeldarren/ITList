@@ -12,7 +12,8 @@ import {
     MoreVertical,
     GitBranch,
     Trash2,
-    Edit, // <-- Import Edit icon
+    Edit,
+    MessageSquareMore, // <-- Import Edit icon
 } from 'lucide-react';
 import { useDeleteTaskMutation } from '@/state/api';
 import toast from 'react-hot-toast';
@@ -207,7 +208,7 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                             </div>
                         )}
                          <div className="flex items-center gap-1.5" title={`${commentCount} comments`}>
-                            <MessageSquare className='h-4 w-4' />
+                            <MessageSquareMore className='h-4 w-4' />
                             <span>{commentCount}</span>
                         </div>
                     </div>

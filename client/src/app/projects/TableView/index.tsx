@@ -2,13 +2,14 @@ import { useAppSelector } from '@/app/redux';
 import Header from '@/components/Header';
 import { dataGridSxStyles } from '@/lib/utils';
 import { useGetTasksQuery } from '@/state/api';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Plus } from 'lucide-react';
-import React from 'react'
+import React, { useMemo } from 'react';
 
 type Props = {
   id: string;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
+  searchTerm: string; // New prop for search
 };
 
 const columns: GridColDef[] = [
@@ -66,13 +67,28 @@ const columns: GridColDef[] = [
   },
 ];
 
-const TableView = ({ id, setIsModalNewTaskOpen }: Props) => {
+const TableView = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const {
     data: tasks,
     error,
     isLoading,
   } = useGetTasksQuery({ projectId: Number(id) });
+
+  // Filter tasks based on the search term
+  const filteredTasks = useMemo(() => {
+    if (!tasks) return [];
+    if (!searchTerm) return tasks;
+    
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+
+    return tasks.filter(task => 
+        task.title.toLowerCase().includes(lowercasedSearchTerm) ||
+        (task.description && task.description.toLowerCase().includes(lowercasedSearchTerm)) ||
+        (task.tags && task.tags.toLowerCase().includes(lowercasedSearchTerm)) ||
+        (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
+    );
+  }, [tasks, searchTerm]);
 
   if (isLoading) return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading Tasks...</div>;
   if (error || !tasks) return <div className="p-6 text-center text-red-500">An error occurred while fetching tasks.</div>;
@@ -95,7 +111,7 @@ const TableView = ({ id, setIsModalNewTaskOpen }: Props) => {
             />
         </div>
         <DataGrid
-            rows={tasks || []}
+            rows={filteredTasks || []}
             columns={columns}
             sx={dataGridSxStyles(isDarkMode)}
         />
@@ -103,4 +119,4 @@ const TableView = ({ id, setIsModalNewTaskOpen }: Props) => {
   )
 }
 
-export default TableView
+export default TableView;

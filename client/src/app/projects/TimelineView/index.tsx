@@ -1,18 +1,20 @@
 import { useAppSelector } from '@/app/redux';
 import { useGetTasksQuery } from '@/state/api';
-import { DisplayOption, Gantt, ViewMode } from "gantt-task-react";
+import { DisplayOption, Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
 import { Plus } from 'lucide-react';
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react';
+import ModalEditTask from '@/components/ModalEditTask';
 
 type Props = {
     id: string;
     setIsModalNewTaskOpen: (isOpen: boolean) => void;
+    searchTerm: string; // New prop for search
 }
 
 type TaskTypeItems = "task" | "milestone" | "project";
 
-const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
+const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const {
     data: tasks,
@@ -23,21 +25,44 @@ const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
   const [displayOptions, setDisplayOptions] = useState<DisplayOption>({
     viewMode: ViewMode.Month,
     locale: "en-US"
-  })
+  });
   
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+
   const ganttTasks = useMemo(() => {
+    if (!tasks) return [];
+    
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+
+    const filtered = searchTerm
+      ? tasks.filter(task => 
+            task.title.toLowerCase().includes(lowercasedSearchTerm) ||
+            (task.description && task.description.toLowerCase().includes(lowercasedSearchTerm)) ||
+            (task.tags && task.tags.toLowerCase().includes(lowercasedSearchTerm)) ||
+            (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
+        )
+      : tasks;
+
     return (
-      tasks?.map((task) => ({
+      filtered.map((task) => ({
         start: new Date(task.startDate as string),
         end: new Date(task.dueDate as string),
         name: task.title,
-        id: `Task-${task.id}`,
+        id: `${task.id}`,
         type: "task" as TaskTypeItems,
         progress: task.points ? task.points / 100 : 0,
         isDisabled: false
       })) || []
     )
-  }, [tasks]);
+  }, [tasks, searchTerm]);
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTaskId(Number(task.id));
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTaskId(null);
+  };
 
   const handleViewModeChange = (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -53,6 +78,9 @@ const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
 
   return (
     <div className='px-4 xl:px-6'>
+      {selectedTaskId && (
+        <ModalEditTask taskId={selectedTaskId} onClose={handleCloseModal} />
+      )}
       <div className='flex flex-wrap items-center justify-between gap-2 py-5'>
         <h1 className='me-2 text-lg font-bold dark:text-white'>
           Project Tasks Timeline
@@ -76,14 +104,17 @@ const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
             <Gantt
                 tasks={ganttTasks}
                 {...displayOptions}
+                onClick={handleTaskClick}
                 columnWidth={displayOptions.viewMode === ViewMode.Month ? 150 : 100}
                 listCellWidth="100px"
                 barBackgroundColor={isDarkMode ? "#101214" : "#aeb8c2"}
                 barBackgroundSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
-                <h1 className="mt-6 mb-4 font-bold justify-center text-gray-500 dark:text-white">No tasks to display in the timeline.</h1>
+            <div className="flex h-full items-center justify-center p-6">
+                <h1 className="font-bold text-gray-500 dark:text-white">
+                    {searchTerm ? 'No tasks match your search.' : 'No tasks to display in the timeline.'}
+                </h1>
             </div>
           )}
         </div>
@@ -101,4 +132,4 @@ const Timeline = ({ id, setIsModalNewTaskOpen }: Props) => {
   )
 }
 
-export default Timeline
+export default Timeline;

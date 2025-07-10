@@ -1,9 +1,9 @@
 import { useDeleteTaskMutation, useGetTasksQuery, useUpdateTaskStatusMutation } from '@/state/api';
-import React, { useState, MouseEvent } from 'react';
+import React, { useState, MouseEvent, useMemo } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Task as TaskType } from '@/state/api';
-import { MessageSquareMore, MoreVertical, Plus, Trash2, Edit } from 'lucide-react'; // <-- Import Edit icon
+import { MessageSquareMore, MoreVertical, Plus, Trash2, Edit, Paperclip } from 'lucide-react'; // <-- Import Edit icon
 import { format } from 'date-fns';
 import Image from 'next/image';
 import BoardViewSkeleton from './BoardViewSkeleton';
@@ -14,11 +14,12 @@ import ModalEditTask from '@/components/ModalEditTask'; // <-- Import the edit m
 type BoardProps = {
     id: string;
     setIsModalNewTaskOpen: (isOpen: boolean) => void;
+    searchTerm: string;
 };
 
 const taskStatus = ["To Do", "Work In Progress", "Under Review", "Completed"];
 
-const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
+const BoardView = ({ id, setIsModalNewTaskOpen, searchTerm }: BoardProps) => {
   const { 
     data: tasks, 
     isLoading, 
@@ -26,6 +27,20 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
   } = useGetTasksQuery({ projectId: Number(id) });
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  const filteredTasks = useMemo(() => {
+    if (!tasks) return [];
+    if (!searchTerm) return tasks;
+    
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+
+    return tasks.filter(task => 
+        task.title.toLowerCase().includes(lowercasedSearchTerm) ||
+        (task.description && task.description.toLowerCase().includes(lowercasedSearchTerm)) ||
+        (task.tags && task.tags.toLowerCase().includes(lowercasedSearchTerm)) ||
+        (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
+    );
+  }, [tasks, searchTerm]);
 
   const handleMenuToggle = (taskId: number) => {
     setOpenMenuId(openMenuId === taskId ? null : taskId);
@@ -45,7 +60,7 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
                 <TaskColumn
                     key={status}
                     status={status}
-                    tasks={tasks || []}
+                    tasks={filteredTasks}
                     moveTask={moveTask}
                     setIsModalNewTaskOpen={setIsModalNewTaskOpen}
                     openMenuId={openMenuId}
@@ -185,6 +200,8 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
     const formattedStartDate = task.startDate ? format(new Date(task.startDate), "P") : "";
     const formattedDueDate = task.dueDate ? format(new Date(task.dueDate), "P") : "";
     const numberOfComments = (task.comments && task.comments.length) || 0;
+    const attachmentCount = task.attachments?.length || 0;
+    const commentCount = task.comments?.length || 0;
 
     const PriorityTag = ({ priority }: { priority: TaskType["priority"] }) => (
         <div
@@ -316,11 +333,18 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
                                 />
                             )}
                         </div>
-                        <div className='flex items-center text-gray-500 dark:text-neutral-500'>
-                            <MessageSquareMore size={20} />
-                            <span className='ml-1 text-sm dark:text-neutral-400'>
-                                {numberOfComments}
-                            </span>
+                        
+                        <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400">
+                            {attachmentCount > 0 && (
+                                <div className="flex items-center gap-1.5" title={`${attachmentCount} attachments`}>
+                                    <Paperclip className='h-4 w-4' />
+                                    <span>{attachmentCount}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1.5" title={`${commentCount} comments`}>
+                                <MessageSquareMore className='h-4 w-4' />
+                                <span>{commentCount}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

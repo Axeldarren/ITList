@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Define all interfaces for your data
+// ... (existing interfaces are correct)
 export interface Project {
     id: number;
     name: string;
@@ -120,13 +120,23 @@ export const api = createApi({
                 method: 'PATCH',
                 body: patch,
             }),
-            // --- UPDATED: Invalidates both the project and its user list ---
             invalidatesTags: (result, error, { id }) => [
                 { type: "Projects", id },
                 { type: 'Users', id: `PROJECT_${id}` }
             ],
         }),
-
+        
+        // --- NEW: Endpoint to get ALL tasks for the dashboard ---
+        getAllTasks: build.query<Task[], void>({
+            query: () => `tasks`,
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'Tasks' as const, id })),
+                        { type: 'Tasks', id: 'LIST' },
+                      ]
+                    : [{ type: 'Tasks', id: 'LIST' }],
+        }),
         getTasks: build.query<Task[], { projectId: number }>({
             query: ({ projectId }) => `tasks?projectId=${projectId}`,
             providesTags: (result) =>
@@ -162,16 +172,18 @@ export const api = createApi({
                 method: 'PATCH',
                 body: { status }
             }),
-            invalidatesTags: (result, error, {taskId}) => [{ type: "Tasks", id: taskId }],
+            invalidatesTags: [{ type: "Tasks", id: 'LIST' }],
         }),
-        
-        // Other endpoints
         getTasksByUser: build.query<Task[], number>({
             query: (userId) => `tasks/user/${userId}`,
-            providesTags: (result, error, userId) =>
+            // --- FIX: Add the 'LIST' tag here ---
+            providesTags: (result) =>
                 result
-                ? result.map(({ id }) => ({ type: "Tasks", id }))
-                : [{ type: "Tasks", id: userId }],
+                ? [
+                    ...result.map(({ id }) => ({ type: "Tasks" as const, id })),
+                    { type: 'Tasks', id: 'LIST' },
+                  ]
+                : [{ type: 'Tasks', id: 'LIST' }],
         }),
         incrementProjectVersion: build.mutation<Project, { projectId: number }>({
             query: ({ projectId }) => ({
@@ -217,32 +229,29 @@ export const api = createApi({
                 method: 'PATCH',
                 body: patch,
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'Tasks' }], // Refetch the task to show updated comment
+            invalidatesTags: [{ type: 'Tasks' }],
         }),
-
         deleteComment: build.mutation<{ message: string }, number>({
             query: (commentId) => ({
                 url: `comments/${commentId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: [{ type: 'Tasks' }], // Refetch the task
+            invalidatesTags: [{ type: 'Tasks' }],
         }),
-
         addAttachment: build.mutation<Attachment, FormData>({
             query: (formData) => ({
                 url: `attachments`,
                 method: 'POST',
                 body: formData, 
             }),
-            invalidatesTags: (result, error) => [{ type: 'Tasks' }],
+            invalidatesTags: [{ type: 'Tasks' }],
         }),
         deleteAttachment: build.mutation<{ message: string }, number>({
             query: (attachmentId) => ({
                 url: `attachments/${attachmentId}`,
                 method: 'DELETE',
             }),
-            // Invalidate all tasks to refetch and update the UI
-            invalidatesTags: (result, error, attachmentId) => [{ type: 'Tasks' }],
+            invalidatesTags: [{ type: 'Tasks' }],
         }),
     }),
 });
@@ -252,6 +261,7 @@ export const {
     useCreateProjectMutation,
     useDeleteProjectMutation,
     useUpdateProjectMutation,
+    useGetAllTasksQuery, // Export the new query
     useGetTasksQuery,
     useGetTaskByIdQuery,
     useGetTasksByUserQuery,

@@ -3,21 +3,38 @@
 import Header from '@/components/Header';
 import TaskCard from '@/components/TaskCard';
 import { Task, useGetTasksQuery } from '@/state/api';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react'; 
 
 type Props = {
     id: string;
     setIsModalNewTaskOpen: (isOpen: boolean) => void;
+    searchTerm: string; // New prop for search
 }
 
-const ListView = ({ id, setIsModalNewTaskOpen }: Props) => {
+const ListView = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
   const { 
     data: tasks, 
     error, 
     isLoading 
   } = useGetTasksQuery({ projectId: Number(id) });
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  // Filter tasks based on the search term
+  const filteredTasks = useMemo(() => {
+    if (!tasks) return [];
+    if (!searchTerm) return tasks;
+
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+
+    return tasks.filter(task => 
+        task.title.toLowerCase().includes(lowercasedSearchTerm) ||
+        (task.description && task.description.toLowerCase().includes(lowercasedSearchTerm)) ||
+        (task.tags && task.tags.toLowerCase().includes(lowercasedSearchTerm)) ||
+        (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
+    );
+  }, [tasks, searchTerm]);
+
 
   const handleMenuToggle = (taskId: number) => {
     setOpenMenuId(openMenuId === taskId ? null : taskId);
@@ -44,7 +61,7 @@ const ListView = ({ id, setIsModalNewTaskOpen }: Props) => {
             </div>
 
             <div className='mt-4 grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-6'>
-                {tasks?.map((task: Task) => (
+                {filteredTasks?.map((task: Task) => (
                     <TaskCard 
                         key={task.id} 
                         task={task}

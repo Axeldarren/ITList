@@ -8,11 +8,13 @@ export const getTasks = async (
     res: Response
 ): Promise<void> => {
     const { projectId } = req.query;
+
+    // --- MODIFICATION: Allow fetching all tasks ---
+    const whereClause = projectId ? { projectId: Number(projectId) } : {};
+
     try {
         const tasks = await Prisma.task.findMany({
-            where: {
-                projectId: Number(projectId),
-            },
+            where: whereClause, // Use the dynamic where clause
             include: {
                 author: true,
                 assignee: true,
@@ -26,6 +28,7 @@ export const getTasks = async (
     }
 };
 
+// ... keep the rest of the file the same
 export const createTask = async (
     req: Request,
     res: Response
@@ -199,14 +202,13 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
     } = req.body;
 
     try {
-        // --- FIX: Convert date strings to Date objects if they exist ---
         const data: any = {
             title,
             description,
             status,
             priority,
             tags,
-            points: Number(points) || null, // Ensure points is a number or null
+            points: Number(points) || null,
             assignedUserId: assignedUserId ? Number(assignedUserId) : null,
         };
 
@@ -219,7 +221,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
         
         const updatedTask = await Prisma.task.update({
             where: { id: Number(taskId) },
-            data, // Use the corrected data object
+            data,
         });
 
         res.json(updatedTask);
