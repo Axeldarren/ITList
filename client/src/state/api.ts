@@ -84,6 +84,11 @@ export interface AddAttachmentPayload {
     uploadedById: number;
 }
 
+export interface Suggestion {
+    text: string;
+    type: 'Project' | 'Task';
+}
+
 export const api = createApi({
     baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL }),
     reducerPath: 'api',
@@ -196,9 +201,20 @@ export const api = createApi({
             query: (projectId) => `projects/${projectId}/users`,
             providesTags: (result, error, projectId) => [{ type: 'Users', id: `PROJECT_${projectId}` }],
         }),
+
         search: build.query<SearchResults, string>({
             query: ( query ) => `search?query=${query}`
         }),
+        getSearchSuggestions: build.query<Suggestion[], { query: string; projectId?: number }>({
+            query: ({ query, projectId }) => {
+                let url = `search/suggestions?q=${query}`;
+                if (projectId) {
+                    url += `&projectId=${projectId}`;
+                }
+                return url;
+            },
+        }),
+
         getUsers: build.query<User[], void>({
             query: () => 'users',
             providesTags: ["Users"]
@@ -206,6 +222,31 @@ export const api = createApi({
         getTeams: build.query<Team[], void>({
             query: () => 'teams',
             providesTags: ["Teams"]
+        }),
+
+        // --- NEW: Team Mutations ---
+        createTeam: build.mutation<Team, Partial<Team>>({
+            query: (team) => ({
+                url: 'teams',
+                method: 'POST',
+                body: team,
+            }),
+            invalidatesTags: ['Teams'],
+        }),
+        updateTeam: build.mutation<Team, Partial<Team> & { id: number }>({
+            query: ({ id, ...patch }) => ({
+                url: `teams/${id}`,
+                method: 'PATCH',
+                body: patch,
+            }),
+            invalidatesTags: ['Teams'],
+        }),
+        deleteTeam: build.mutation<{ message: string }, number>({
+            query: (teamId) => ({
+                url: `teams/${teamId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Teams'],
         }),
         updateTask: build.mutation<Task, Partial<Task> & { id: number }>({
             query: ({ id, ...patch }) => ({
@@ -271,8 +312,12 @@ export const {
     useIncrementProjectVersionMutation,
     useGetProjectUsersQuery,
     useSearchQuery,
+    useGetSearchSuggestionsQuery,
     useGetUsersQuery,
     useGetTeamsQuery,
+    useCreateTeamMutation,
+    useUpdateTeamMutation,
+    useDeleteTeamMutation,
     useUpdateTaskMutation,
     useCreateCommentMutation,
     useUpdateCommentMutation,

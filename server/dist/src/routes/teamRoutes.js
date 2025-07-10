@@ -4,4 +4,7 @@ const express_1 = require("express");
 const teamController_1 = require("../controller/teamController");
 const router = (0, express_1.Router)();
 router.get("/", teamController_1.getTeams);
+router.post("/", teamController_1.createTeam);
+router.patch("/:teamId", teamController_1.updateTeam);
+router.delete("/:teamId", teamController_1.deleteTeam);
 exports.default = router;

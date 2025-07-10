@@ -47,7 +47,7 @@ const ExpandableStatsCard = ({ title, value, icon, color, description, items, re
                     <p className="text-2xl font-semibold text-gray-800 dark:text-white">{value}</p>
                 </div>
                 {items.length > 0 && (
-                     <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary">
+                     <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary text-dark dark:text-white">
                         <ChevronDown className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
                 )}
@@ -169,7 +169,7 @@ const HomePage = () => {
   if (!userTasks || !projects || !allTasks) return <div>Error fetching data. Please try again later.</div>;
 
   return (
-    <div className="container h-full w-[100%] bg-transparent p-8">
+    <div className="h-full w-[100%] bg-transparent p-8">
       <ModalNewProject isOpen={isNewProjectModalOpen} onClose={() => setIsNewProjectModalOpen(false)} />
       
       <Header 
