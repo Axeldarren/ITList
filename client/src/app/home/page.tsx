@@ -2,7 +2,6 @@
 
 import {
   Priority,
-  Project,
   Task,
   useGetAllTasksQuery,
   useGetProjectsQuery,
@@ -12,19 +11,6 @@ import React, { useMemo, useState } from "react";
 import { useAppSelector } from "../redux";
 import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
 import Header from "@/components/Header";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "../projects/ModalNewProject";
 import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus } from "lucide-react";
@@ -33,7 +19,27 @@ import { differenceInDays, format } from "date-fns";
 import { useRouter } from "next/navigation";
 
 // --- Expandable Stats Card Component ---
-const ExpandableStatsCard = ({ title, value, icon, color, description, items, renderItem, viewAllLink }) => {
+interface ExpandableStatsCardProps<T> {
+    title: string;
+    value: number;
+    icon: React.ReactNode;
+    color: string;
+    description: string;
+    items: T[];
+    renderItem: (item: T) => React.ReactNode;
+    viewAllLink?: string;
+}
+
+const ExpandableStatsCard = <T,>({
+    title,
+    value,
+    icon,
+    color,
+    description,
+    items,
+    renderItem,
+    viewAllLink,
+}: ExpandableStatsCardProps<T>) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (

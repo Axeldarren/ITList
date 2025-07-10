@@ -9,7 +9,11 @@ import { useRouter } from 'next/navigation';
 import { useGetSearchSuggestionsQuery, Suggestion } from '@/state/api';
 import { useDebounce } from 'use-debounce';
 
-const AutocompleteSearch = ({ onSearch }) => {
+interface AutocompleteSearchProps {
+    onSearch: (query: string) => void;
+}
+
+const AutocompleteSearch = ({ onSearch }: AutocompleteSearchProps) => {
     const [inputValue, setInputValue] = useState('');
     const [debouncedValue] = useDebounce(inputValue, 300);
     const { data: suggestions = [] } = useGetSearchSuggestionsQuery(

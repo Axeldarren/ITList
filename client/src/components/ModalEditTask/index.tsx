@@ -148,12 +148,10 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
   };
 
   const handleDeleteComment = (commentId: number) => {
-    if (window.confirm("Are you sure you want to delete this comment?")) {
-      deleteComment(commentId)
+    deleteComment(commentId)
         .unwrap()
         .then(() => toast.success("Comment deleted!"))
         .catch(() => toast.error("Failed to delete comment."));
-    }
   };
 
   if (isLoading)
@@ -277,7 +275,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                 <div className="bg-blue-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white">
                   <User size={18} />
                 </div>
-                <div className="w-full">
+                <div className="flex w-full gap-4">
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
@@ -285,14 +283,12 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                     className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white"
                     rows={1}
                   />
-                  {newComment && (
                     <button
-                      onClick={handleAddComment}
-                      className="bg-blue-primary mt-2 rounded px-4 py-1 text-sm text-white"
+                        onClick={handleAddComment}
+                        className="bg-blue-primary rounded px-4 py-1 text-sm text-white"
                     >
-                      Save
+                        Send
                     </button>
-                  )}
                 </div>
               </div>
               <div className="mt-4 space-y-4">

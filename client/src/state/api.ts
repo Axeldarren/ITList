@@ -1,6 +1,4 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
-// ... (existing interfaces are correct)
 export interface Project {
     id: number;
     name: string;
@@ -256,7 +254,7 @@ export const api = createApi({
             }),
             invalidatesTags: (result, error, { id }) => [{ type: 'Tasks', id }, { type: 'Tasks', id: 'LIST' }],
         }),
-        createComment: build.mutation<Comment, Partial<Comment>>({
+        createComment: build.mutation<Comment, Partial<Comment> & { taskId: number }>({
             query: (comment) => ({
                 url: 'comments',
                 method: 'POST',

@@ -1,5 +1,5 @@
 import Header from '@/components/Header';
-import { Clock, Edit, Filter, GitBranch, Grid3X3, List, PlusSquare, Share2, Table, Search } from 'lucide-react'; // Added Search
+import { Clock, Edit, GitBranch, Grid3X3, List, PlusSquare, Table, Search } from 'lucide-react'; // Added Search
 import React, { useState } from 'react';
 import ModalNewProject from './ModalNewProject';
 

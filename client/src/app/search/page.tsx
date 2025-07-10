@@ -63,7 +63,7 @@ const Search = () => {
         skip: !query,
     });
 
-    const hasResults = searchResults && (searchResults.tasks?.length > 0 || searchResults.projects?.length > 0 || searchResults.users?.length > 0);
+    const hasResults = searchResults && ((searchResults.tasks?.length ?? 0) > 0 || (searchResults.projects?.length ?? 0) > 0 || (searchResults.users?.length ?? 0) > 0);
 
     return (
         <div className="p-8">

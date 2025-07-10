@@ -13,28 +13,27 @@ import {
     GitBranch,
     Trash2,
     Edit,
-    MessageSquareMore, // <-- Import Edit icon
+    Hash,
 } from 'lucide-react';
 import { useDeleteTaskMutation } from '@/state/api';
 import toast from 'react-hot-toast';
 import ModalConfirm from '../ModalConfirm';
-import ModalEditTask from '../ModalEditTask'; // <-- Import the modal
+import ModalEditTask from '../ModalEditTask';
 
 type Props = {
     task: Task;
-    openMenuId: number | null;
-    onMenuToggle: (taskId: number) => void;
+    openMenuId?: number | null;
+    onMenuToggle?: (taskId: number) => void;
 }
 
-const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
+const TaskCard = ({ task, openMenuId, onMenuToggle = () => {} }: Props) => {
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
-    const [isEditModalOpen, setEditModalOpen] = useState(false); // <-- State for the edit modal
+    const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
     
     const attachmentCount = task.attachments?.length || 0;
     const commentCount = task.comments?.length || 0;
 
-    // --- Handlers for opening and closing the modal ---
     const handleCardClick = () => {
         setEditModalOpen(true);
     };
@@ -44,15 +43,15 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
     };
 
     const handleEditClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card click
-        onMenuToggle(task.id); // Close the kebab menu
-        setEditModalOpen(true); // Open the edit modal
+        e.stopPropagation();
+        onMenuToggle(task.id);
+        setEditModalOpen(true);
     };
 
     const handleDeleteClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card click
-        onMenuToggle(task.id); // Close the kebab menu
-        setConfirmModalOpen(true); // Open the confirmation modal
+        e.stopPropagation();
+        onMenuToggle(task.id);
+        setConfirmModalOpen(true);
     };
 
     const handleConfirmDelete = () => {
@@ -66,7 +65,6 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
     };
 
     const getPriorityIcon = (priority: string) => {
-        // ... (no changes in this function)
         switch (priority?.toLowerCase()) {
             case 'urgent':
                 return <Flag className="h-4 w-4 flex-shrink-0 text-red-500" />;
@@ -83,7 +81,6 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
     
     return (
         <>
-            {/* --- Render Modals --- */}
             {isEditModalOpen && (
                 <ModalEditTask taskId={task.id} onClose={handleCloseModal} />
             )}
@@ -97,9 +94,8 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                 isLoading={isDeleting}
             />
 
-            {/* --- Main Card --- */}
             <div 
-                onClick={handleCardClick} // <-- Open modal on card click
+                onClick={handleCardClick}
                 className='flex cursor-pointer flex-col rounded-lg bg-white p-4 shadow-md transition-shadow duration-200 hover:shadow-xl dark:bg-[#1d1f21]'
             >
                 <div className="mb-2 flex items-start justify-between">
@@ -107,7 +103,7 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                     <div className="relative flex-shrink-0">
                         <button 
                             onClick={(e) => {
-                                e.stopPropagation(); // <-- Stop propagation to prevent card click
+                                e.stopPropagation();
                                 onMenuToggle(task.id);
                             }}
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
@@ -116,11 +112,10 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                         </button>
                         {openMenuId === task.id && (
                             <div 
-                                onClick={(e) => e.stopPropagation()} // <-- Stop propagation on menu container
+                                onClick={(e) => e.stopPropagation()}
                                 className="absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-tertiary"
                             >
                                 <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                    {/* --- Edit Button --- */}
                                     <button
                                         onClick={handleEditClick}
                                         className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
@@ -129,7 +124,6 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                                         <Edit className="mr-3 h-5 w-5" />
                                         <span>Edit</span>
                                     </button>
-                                    {/* --- Delete Button --- */}
                                     <button
                                         onClick={handleDeleteClick}
                                         className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
@@ -158,6 +152,7 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                     </div>
                 )}
                 
+                {/* --- CORRECTED Details Grid --- */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-2 text-sm">
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title={`Status: ${task.status}`}>
                         <CircleDot className="h-4 w-4 flex-shrink-0" />
@@ -167,21 +162,28 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                         {getPriorityIcon(task.priority || "")}
                         <span className='truncate'>{task.priority}</span>
                     </div>
-                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title={`Version: ${task.version}`}>
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title={`Version: ${task.version}`}>
                         <GitBranch className="h-4 w-4 flex-shrink-0" />
                         <span className='truncate'>Version {task.version || 1}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title="Start Date">
-                        <CalendarIcon className="h-4 w-4 flex-shrink-0" />
-                        <span className='truncate'>
-                            {task.startDate ? format(new Date(task.startDate), "MMM d, yyyy") : "Not set"}
-                        </span>
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title={`Story Points: ${task.points}`}>
+                        <Hash className="h-4 w-4 flex-shrink-0" />
+                        <span className='truncate'>{task.points || 0} Points</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title="Due Date">
-                        <CalendarIcon className="h-4 w-4 flex-shrink-0" />
-                        <span className='truncate'>
-                            {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "Not set"}
-                        </span>
+                    {/* Dates are now in their own row */}
+                    <div className="col-span-2 grid grid-cols-2 gap-x-4">
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title="Start Date">
+                            <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                            <span className='truncate'>
+                                {task.startDate ? format(new Date(task.startDate), "MMM d, yyyy") : "Not set"}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title="Due Date">
+                            <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                            <span className='truncate'>
+                                {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "Not set"}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -208,7 +210,7 @@ const TaskCard = ({ task, openMenuId, onMenuToggle }: Props) => {
                             </div>
                         )}
                          <div className="flex items-center gap-1.5" title={`${commentCount} comments`}>
-                            <MessageSquareMore className='h-4 w-4' />
+                            <MessageSquare className='h-4 w-4' />
                             <span>{commentCount}</span>
                         </div>
                     </div>
