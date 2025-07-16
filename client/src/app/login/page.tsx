@@ -8,8 +8,8 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [email, setEmail] = useState('alice.jones@example.com');
+    const [password, setPassword] = useState('password123');
     const dispatch = useAppDispatch();
     const router = useRouter();
     const [login, { isLoading }] = useLoginMutation();
