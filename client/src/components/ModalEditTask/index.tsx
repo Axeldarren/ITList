@@ -8,12 +8,10 @@ import {
   useDeleteAttachmentMutation,
   useUpdateCommentMutation,
   useDeleteCommentMutation,
-  User as UserType,
   Task as TaskType,
-  Attachment as AttachmentType,
-  Comment as CommentType,
   Priority,
   Status,
+  Comment as CommentType,
 } from "@/state/api";
 import {
   X,
@@ -30,7 +28,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
-import { filesize } from "filesize";
+import { useAppSelector } from "@/app/redux";
+import { selectCurrentUser } from "@/state/authSlice";
 
 type Props = {
   taskId: number;
@@ -38,11 +37,14 @@ type Props = {
 };
 
 const ModalEditTask = ({ taskId, onClose }: Props) => {
+  // Get the current logged-in user from the Redux store
+  const loggedInUser = useAppSelector(selectCurrentUser);
+
   // Queries and Mutations
   const { data: task, isLoading, isError } = useGetTaskByIdQuery(taskId);
   const { data: users, isLoading: usersLoading } = useGetProjectUsersQuery(
-    task?.projectId!,
-    { skip: !task },
+    task?.projectId ?? 0,
+    { skip: !task || !task.projectId },
   );
   const [updateTask] = useUpdateTaskMutation();
   const [createComment] = useCreateCommentMutation();
@@ -89,9 +91,8 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
   };
 
   const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    const currentUserId = 1;
-    createComment({ taskId, text: newComment, userId: currentUserId })
+    if (!newComment.trim() || !loggedInUser) return;
+    createComment({ taskId, text: newComment, userId: loggedInUser.userId })
       .unwrap()
       .then(() => {
         toast.success("Comment added!");
@@ -102,7 +103,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !loggedInUser) return;
 
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File is too large. Maximum size is 5MB.");
@@ -112,7 +113,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("taskId", String(taskId));
-    formData.append("uploadedById", "1");
+    formData.append("uploadedById", String(loggedInUser.userId));
 
     const promise = addAttachment(formData).unwrap();
     toast.promise(promise, {
@@ -231,7 +232,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                     className="dark:bg-dark-tertiary flex items-center justify-between rounded bg-gray-200 p-2"
                   >
                     <a
-                      href={`${process.env.NEXT_PUBLIC_API_BASE_URL}${att.fileURL}`}
+                      href={`${process.env.NEXT_PUBLIC_API_BASE_URL}${att.fileUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-grow hover:underline dark:text-gray-200"
@@ -292,63 +293,68 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                 </div>
               </div>
               <div className="mt-4 space-y-4">
-                {task.comments?.map((comment) => (
-                  <div key={comment.id} className="flex gap-3">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-400 text-white">
-                      <User size={18} />
-                    </div>
-                    <div className="w-full">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold dark:text-gray-200">
-                          {comment.user?.username || "User"}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleEditComment(comment)}
-                            className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                {task.comments?.map((comment) => {
+                  const canEditOrDelete = loggedInUser?.userId === comment.userId;
+                  return (
+                    <div key={comment.id} className="flex gap-3">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-400 text-white">
+                        <User size={18} />
                       </div>
-                      {editingCommentId === comment.id ? (
-                        <div className="mt-1">
-                          <textarea
-                            value={editingCommentText}
-                            onChange={(e) =>
-                              setEditingCommentText(e.target.value)
-                            }
-                            className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2"
-                          />
-                          <div className="mt-2 space-x-2">
-                            <button
-                              onClick={() => handleSaveComment(comment.id)}
-                              className="bg-blue-primary rounded px-3 py-1 text-sm text-white"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingCommentId(null)}
-                              className="text-sm hover:underline dark:text-gray-300"
-                            >
-                              Cancel
-                            </button>
+                      <div className="w-full">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold dark:text-gray-200">
+                            {comment.user?.username || "User"}
+                          </span>
+                          {canEditOrDelete && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditComment(comment)}
+                                className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {editingCommentId === comment.id ? (
+                          <div className="mt-1">
+                            <textarea
+                              value={editingCommentText}
+                              onChange={(e) =>
+                                setEditingCommentText(e.target.value)
+                              }
+                              className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2"
+                            />
+                            <div className="mt-2 space-x-2">
+                              <button
+                                onClick={() => handleSaveComment(comment.id)}
+                                className="bg-blue-primary rounded px-3 py-1 text-sm text-white"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingCommentId(null)}
+                                className="text-sm hover:underline dark:text-gray-300"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="dark:bg-dark-bg mt-1 rounded bg-white p-2 text-gray-800 dark:text-gray-200">
-                          {comment.text}
-                        </div>
-                      )}
+                        ) : (
+                          <div className="dark:bg-dark-bg mt-1 rounded bg-white p-2 text-gray-800 dark:text-gray-200">
+                            {comment.text}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

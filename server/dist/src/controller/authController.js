@@ -29,7 +29,7 @@ const signToken = (id) => {
     });
 };
 const createSendToken = (user, statusCode, res) => {
-    const token = signToken(user.id);
+    const token = signToken(user.userId);
     const cookieOptions = {
         expires: new Date(Date.now() + Number(process.env.JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000),
         httpOnly: true,
@@ -69,7 +69,7 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
         if (!user || !(yield bcryptjs_1.default.compare(password, user.password))) {
             return res.status(401).json({ message: 'Incorrect email or password' });
         }
-        createSendToken({ id: user.userId, password: user.password }, 200, res);
+        createSendToken({ userId: user.userId, password: user.password }, 200, res);
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

@@ -75,9 +75,7 @@ const columns: GridColDef[] = [
 const ReusablePriorityPage = ({ priority }: Props) => {
   const [view, setView] = useState("list");
   const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
-
-//   const { data: currentUser } = useGetAuthUserQuery({});
-  const userId = 1; 
+  const userId = useAppSelector((state) => state.auth?.user?.userId || null);
   const {
     data: tasks,
     isLoading,

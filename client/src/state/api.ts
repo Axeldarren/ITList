@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { RootState } from '@/app/redux';
 export interface Project {
     id: number;
     name: string;
@@ -40,6 +41,26 @@ export interface Attachment {
     fileName: string;
     taskId: number;
     uploadedById: number;
+}
+
+// Define the shape of a Comment
+export interface Comment {
+    id: number;
+    text: string;
+    taskId: number;
+    userId: number;
+    user?: User;
+}
+
+// --- NEW: Define the Team interface ---
+export interface Team {
+    id: number;
+    teamName: string;
+    productOwnerUserId?: number;
+    projectManagerUserId?: number;
+    users?: User[]; // Add the users array here
+    productOwnerUsername?: string;
+    projectManagerUsername?: string;
 }
 
 export interface Task {

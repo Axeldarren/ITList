@@ -25,8 +25,9 @@ const LoginPage = () => {
             
             toast.success('Login successful!');
             router.push('/home'); // Redirect to the dashboard
-        } catch (err: any) {
-            toast.error(err.data?.message || 'Failed to login. Please check your credentials.');
+        } catch (err: unknown) {
+            const error = err as { data?: { message?: string } };
+            toast.error(error.data?.message || 'Failed to login. Please check your credentials.');
         }
     };
 

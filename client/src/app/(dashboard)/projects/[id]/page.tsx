@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import ProjectHeader from '@/app/(dashboard)/projects/ProjectHeader';
 import Board from '../BoardView';
 import List from '../ListView';
@@ -11,12 +11,8 @@ import { useGetProjectsQuery } from '@/state/api';
 import ModalEditProject from '../ModalEditProject';
 import { Project as ProjectType } from '@/state/api';
 
-type Props = {
-    params: { id: string };
-};
-
-const Project = ({ params }: Props) => {
-    const { id } = params;
+const Project = ({ params }: {params: Promise<{ id: string }>}) => {
+    const { id } = use(params);
     const [activeTab, setActiveTab] = useState("Board");
     const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);

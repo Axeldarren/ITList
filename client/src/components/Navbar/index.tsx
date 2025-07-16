@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import Image from 'next/image'; // Import the Next.js Image component
 
 // --- Autocomplete Component (No changes needed here) ---
-const AutocompleteSearch = ({ onSearch }) => {
+const AutocompleteSearch = ({ onSearch }: { onSearch: (query: string) => void }) => {
     const [inputValue, setInputValue] = useState('');
     const [debouncedValue] = useDebounce(inputValue, 300);
     const { data: suggestions = [] } = useGetSearchSuggestionsQuery(
@@ -84,8 +84,8 @@ const Navbar = () => {
   const isDarkMode = useAppSelector(state => state.global.isDarkMode);
   
   const currentUser = useAppSelector(selectCurrentUser);
-  const UserID = currentUser?.id;
-  const { data: userData, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });
+  const UserID = currentUser?.userId;
+  const { data: userData } = useGetUserByIdQuery(UserID!, { skip: !UserID });
   const [logout] = useLogoutMutation();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -103,8 +103,12 @@ const Navbar = () => {
           dispatch(logOut());
           router.push('/login');
           toast.success('Logged out successfully!');
-      } catch (err) {
-          toast.error('Logout failed. Please try again.');
+      } catch (err: unknown) {
+          const errorMessage = err && typeof err === 'object' && 'data' in err && 
+            err.data && typeof err.data === 'object' && 'message' in err.data ? 
+            String(err.data.message) : 'Logout failed. Please try again.';
+          toast.error(errorMessage);
+          console.error('Logout error:', err);
       }
   };
 

@@ -13,19 +13,6 @@ import React, { useMemo, useState } from "react";
 import { useAppSelector } from "../../redux";
 import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
 import Header from "@/components/Header";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
 import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle } from "lucide-react";
@@ -35,7 +22,18 @@ import { useRouter } from "next/navigation";
 import { selectCurrentUser } from "@/state/authSlice";
 
 // --- Expandable Stats Card Component ---
-const ExpandableStatsCard = ({ title, value, icon, color, description, items, renderItem, viewAllLink }) => {
+interface ExpandableStatsCardProps<T> {
+    title: string;
+    value: number | string;
+    icon: React.ReactNode;
+    color: string;
+    description: string;
+    items: T[];
+    renderItem: (item: T) => React.ReactNode;
+    viewAllLink?: string;
+}
+
+const ExpandableStatsCard = <T,>({ title, value, icon, color, description, items, renderItem, viewAllLink }: ExpandableStatsCardProps<T>) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -89,7 +87,6 @@ const taskColumns: GridColDef[] = [
     },
 ];
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 const priorities: Priority[] = [Priority.Backlog, Priority.Low, Priority.Medium, Priority.High, Priority.Urgent];
 
 const HomePage = () => {
@@ -99,9 +96,7 @@ const HomePage = () => {
   const router = useRouter();
   
   const loggedInUser = useAppSelector(selectCurrentUser);
-  console.log("Logged in user:", loggedInUser);
-  const UserID = loggedInUser?.id;
-  console.log("User ID:", UserID);
+  const UserID = loggedInUser?.userId;
 
   // 2. Fetch full user data using the ID from the auth state
   const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(
@@ -210,7 +205,7 @@ const HomePage = () => {
       />
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <ExpandableStatsCard 
+          <ExpandableStatsCard<Task> 
             title="Tasks Overdue"
             value={tasksOverdue.length}
             icon={<AlertTriangle />}
@@ -224,7 +219,7 @@ const HomePage = () => {
             )}
             viewAllLink="/tasks/overdue"
           />
-          <ExpandableStatsCard 
+          <ExpandableStatsCard<Task> 
             title="Tasks Due This Week"
             value={tasksDueThisWeek.length}
             icon={<Clock />}
@@ -238,7 +233,7 @@ const HomePage = () => {
             )}
              viewAllLink="/timeline"
           />
-          <ExpandableStatsCard 
+          <ExpandableStatsCard<Project> 
             title="Projects at Risk"
             value={projectsAtRisk.length}
             icon={<ClipboardList />}
@@ -252,7 +247,7 @@ const HomePage = () => {
             )}
             viewAllLink="/timeline"
           />
-          <ExpandableStatsCard 
+          <ExpandableStatsCard<Task> 
             title="Tasks Completed"
             value={tasksCompleted.length}
             icon={<CheckCircle />}

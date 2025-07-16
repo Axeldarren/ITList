@@ -10,7 +10,7 @@ import Image from "next/image";
 
 // --- Avatar Cell Component ---
 // This component handles displaying the image and the fallback initials.
-const AvatarCell = ({ value, username }) => {
+const AvatarCell = ({ value, username }: { value: string | null; username: string | null }) => {
     const [imageError, setImageError] = useState(false);
     const hasImage = value && !imageError;
 
@@ -23,7 +23,7 @@ const AvatarCell = ({ value, username }) => {
             {hasImage ? (
                 <Image
                     src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${value}`}
-                    alt={username}
+                    alt={username || 'User avatar'}
                     width={40}
                     height={40}
                     className="rounded-full object-cover h-10 w-10"

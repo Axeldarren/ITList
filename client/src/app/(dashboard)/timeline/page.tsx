@@ -2,10 +2,9 @@
 
 import { useAppSelector } from '@/app/redux';
 import Header from '@/components/Header';
-import { useGetProjectsQuery, useGetTasksQuery } from '@/state/api';
+import { useGetProjectsQuery } from '@/state/api';
 import { DisplayOption, Gantt, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
-import { Plus } from 'lucide-react';
 import React, { useMemo, useState } from 'react'
 
 type TaskTypeItems = "task" | "milestone" | "project";

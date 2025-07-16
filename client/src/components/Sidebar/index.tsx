@@ -12,7 +12,13 @@ import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
 import ModalConfirm from '../ModalConfirm'; // Import the new modal
 
-const ContextMenu = ({ x, y, onDismiss, onDelete }) => {
+interface ContextMenuProps {
+    x: number;
+    y: number;
+    onDelete: () => void;
+}
+
+const ContextMenu = ({ x, y, onDelete }: ContextMenuProps) => {
     return ReactDOM.createPortal(
         <div
             style={{ top: y, left: x }}
@@ -133,7 +139,6 @@ const Sidebar = () => {
                     <ContextMenu 
                         x={contextMenu.x}
                         y={contextMenu.y}
-                        onDismiss={closeContextMenu}
                         // --- UPDATED: Call the new handler ---
                         onDelete={handleDeleteClick}
                     />

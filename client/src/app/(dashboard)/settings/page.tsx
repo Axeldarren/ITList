@@ -4,13 +4,13 @@ import React, { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
-import { useGetUserByIdQuery, useUpdateUserMutation, useUploadProfilePictureMutation, User } from "@/state/api";
+import { useGetUserByIdQuery, useUpdateUserMutation, useUploadProfilePictureMutation } from "@/state/api";
 import toast from "react-hot-toast";
-import { Save, Upload, X, Edit } from "lucide-react";
+import { Save, Upload, Edit } from "lucide-react";
 import Image from "next/image";
 
 // Reusable component to display a single setting item
-const SettingItem = ({ label, value }) => (
+const SettingItem = ({ label, value }: { label: string; value: string | number | undefined }) => (
     <div>
         <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
             {label}
@@ -22,7 +22,7 @@ const SettingItem = ({ label, value }) => (
 );
 
 // Reusable input component for styling consistency
-const SettingsInput = ({ label, id, ...props }) => (
+const SettingsInput = ({ label, id, ...props }: { label: string; id: string; } & React.InputHTMLAttributes<HTMLInputElement>) => (
     <div>
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             {label}
@@ -37,7 +37,7 @@ const SettingsInput = ({ label, id, ...props }) => (
 
 const Settings = () => {
     const loggedInUser = useAppSelector(selectCurrentUser);
-    const userID = loggedInUser?.id;
+    const userID = loggedInUser?.userId; // Use userId from the auth state
     const { data: currentUser, isLoading: userLoading } = useGetUserByIdQuery(
         userID!,
         { skip: !userID }
@@ -86,7 +86,7 @@ const Settings = () => {
             updateUser({ userId: currentUser!.userId!, ...profileData, NIK: Number(profileData.NIK) }).unwrap(),
             {
                 loading: 'Updating profile...',
-                success: (updatedUser) => {
+                success: () => {
                     setIsEditMode(false); // Switch back to view mode on success
                     return 'Profile updated successfully!';
                 },
