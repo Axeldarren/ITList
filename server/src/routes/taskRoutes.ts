@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { createTask, deleteTask, getTaskById, getTasks, getUserTasks, updateTask, updateTaskStatus } from "../controller/taskController";
+import { protect, restrictToAdmin } from "../middleware/authMiddleware";
 
 const router = Router();
+
+router.use(protect); // Protect all routes in this router
 
 // Task Routes
 // Get Tasks
@@ -18,6 +21,5 @@ router.patch("/:taskId", updateTask);
 
 // Delete Task
 router.delete("/:taskId", deleteTask);
-
 
 export default router;

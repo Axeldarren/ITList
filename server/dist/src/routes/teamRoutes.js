@@ -2,7 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const teamController_1 = require("../controller/teamController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
+router.use(authMiddleware_1.protect);
 router.get("/", teamController_1.getTeams);
 router.post("/", teamController_1.createTeam);
 router.patch("/:teamId", teamController_1.updateTeam);

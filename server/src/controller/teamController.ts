@@ -3,79 +3,73 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// --- Get Teams (No Changes) ---
+// Get teams and their members through the new join table
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const teams = await prisma.team.findMany({
-      include: {
-        // Correct relation name is 'user' (singular) as per your schema
-        user: true, 
-      },
-    });
+    try {
+        const teams = await prisma.team.findMany({
+            include: {
+                members: { include: { user: true } },
+            }
+        });
 
-    // Manually fetch usernames for PO and PM to avoid relation errors
-    const userIds = [
-      ...new Set(teams.flatMap(team => [team.productOwnerUserId, team.projectManagerUserId]))
-    ].filter(id => id != null);
+        // Manually fetch usernames for PO and PM since relations are removed
+        const userIds = [
+            ...new Set(teams.map(team => team.productOwnerUserId)),
+            ...new Set(teams.map(team => team.projectManagerUserId))
+        ].filter(id => id != null);
 
-    const users = await prisma.user.findMany({
-        where: { userId: { in: userIds as number[] } },
-        select: { userId: true, username: true }
-    });
-    
-    const userMap = new Map(users.map(u => [u.userId, u.username]));
+        const users = await prisma.user.findMany({
+            where: { userId: { in: userIds as number[] } },
+            select: { userId: true, username: true }
+        });
+        
+        const userMap = new Map(users.map(u => [u.userId, u.username]));
 
-    const teamsWithDetails = teams.map(team => ({
-      ...team,
-      productOwnerUsername: team.productOwnerUserId ? userMap.get(team.productOwnerUserId) : null,
-      projectManagerUsername: team.projectManagerUserId ? userMap.get(team.projectManagerUserId) : null,
-      memberCount: team.user.length,
-      // Rename 'user' to 'users' for frontend consistency
-      users: team.user, 
-    }));
+        const teamsWithDetails = teams.map(team => ({
+            ...team,
+            users: team.members.map(m => m.user),
+            productOwnerUsername: team.productOwnerUserId ? userMap.get(team.productOwnerUserId) : null,
+            projectManagerUsername: team.projectManagerUserId ? userMap.get(team.projectManagerUserId) : null,
+            memberCount: team.members.length,
+        }));
 
-    res.json(teamsWithDetails);
-  } catch (error: any) {
-    res.status(500).json({ message: `Error retrieving teams: ${error.message}` });
-  }
+        res.json(teamsWithDetails);
+    } catch (error: any) {
+        res.status(500).json({ message: `Error retrieving teams: ${error.message}` });
+    }
 };
-
-
-// --- UPDATED: Create a Team and Assign Users ---
+// Create a team and create entries in the join table
 export const createTeam = async (req: Request, res: Response): Promise<void> => {
-    const { teamName, productOwnerUserId, projectManagerUserId, memberIds } = req.body;
+    const { teamName, productOwnerUserId, projectManagerUserId, memberIds = [] } = req.body;
     try {
         const newTeam = await prisma.team.create({
             data: {
                 teamName,
                 productOwnerUserId: Number(productOwnerUserId),
                 projectManagerUserId: Number(projectManagerUserId),
+                members: {
+                    create: memberIds.map((id: number) => ({
+                        userId: Number(id)
+                    }))
+                }
             },
         });
-
-        // If member IDs are provided, update those users to be part of the new team
-        if (memberIds && memberIds.length > 0) {
-            await prisma.user.updateMany({
-                where: { userId: { in: memberIds.map((id: number | string) => Number(id)) } },
-                data: { teamId: newTeam.id },
-            });
-        }
-
         res.status(201).json(newTeam);
     } catch (error) {
-        res.status(500).json({ message: `Error creating team: ${error}` });
+        const errMsg = error instanceof Error ? error.message : String(error);
+        res.status(500).json({ message: `Error creating team: ${errMsg}` });
     }
 };
 
-// --- UPDATED: Update a Team and its Members ---
+// Update team details and manage members in the join table
 export const updateTeam = async (req: Request, res: Response): Promise<void> => {
     const { teamId } = req.params;
-    const { teamName, productOwnerUserId, projectManagerUserId, memberIds } = req.body;
+    const { teamName, productOwnerUserId, projectManagerUserId, memberIds = [] } = req.body;
     try {
         const teamIdNum = Number(teamId);
 
         await prisma.$transaction(async (tx) => {
-            // 1. Update the team's basic info
+            // 1. Update team's basic info
             const updatedTeam = await tx.team.update({
                 where: { id: teamIdNum },
                 data: {
@@ -84,47 +78,47 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
                     projectManagerUserId: Number(projectManagerUserId),
                 },
             });
-
-            // 2. Get the list of users currently in the team
-            const currentMembers = await tx.user.findMany({
-                where: { teamId: teamIdNum },
-                select: { userId: true },
+            
+            // 2. Clear existing members for this team
+            await tx.teamMembership.deleteMany({
+                where: { teamId: teamIdNum }
             });
-            const currentMemberIds = currentMembers.map(u => u.userId);
 
-            // 3. Unassign users who are no longer in the team
-            const usersToRemove = currentMemberIds.filter(id => !memberIds.includes(id));
-            if (usersToRemove.length > 0) {
-                await tx.user.updateMany({
-                    where: { userId: { in: usersToRemove } },
-                    data: { teamId: null },
-                });
-            }
-
-            // 4. Assign new users to the team
-            if (memberIds && memberIds.length > 0) {
-                await tx.user.updateMany({
-                    where: { userId: { in: memberIds.map((id: number | string) => Number(id)) } },
-                    data: { teamId: teamIdNum },
+            // 3. Create new membership records
+            if (memberIds.length > 0) {
+                await tx.teamMembership.createMany({
+                    data: memberIds.map((id: number) => ({
+                        teamId: teamIdNum,
+                        userId: Number(id),
+                    })),
                 });
             }
 
             res.status(200).json(updatedTeam);
         });
+
     } catch (error) {
-        res.status(500).json({ message: `Error updating team: ${error}` });
+        const errMsg = error instanceof Error ? error.message : String(error);
+        res.status(500).json({ message: `Error updating team: ${errMsg}` });
     }
 };
 
-// --- Delete Team (No Changes to logic, but it's important for context) ---
+// Delete a team (onDelete: Cascade in the schema will handle TeamMembership)
 export const deleteTeam = async (req: Request, res: Response): Promise<void> => {
     const { teamId } = req.params;
     try {
-        await prisma.projectTeam.deleteMany({ where: { teamId: Number(teamId) } });
-        await prisma.user.updateMany({ where: { teamId: Number(teamId) }, data: { teamId: null } });
-        await prisma.team.delete({ where: { id: Number(teamId) } });
+        // Disassociate the team from any projects first
+        await prisma.projectTeam.deleteMany({
+            where: { teamId: Number(teamId) },
+        });
+
+        // Now delete the team. The `onDelete: Cascade` in the TeamMembership
+        // model will automatically delete all member links.
+        await prisma.team.delete({
+            where: { id: Number(teamId) },
+        });
         res.status(200).json({ message: `Team ${teamId} deleted successfully.` });
-    } catch (error) {
-        res.status(500).json({ message: `Error deleting team: ${error}` });
+    } catch (error: any) {
+        res.status(500).json({ message: `Error deleting team: ${error.message}` });
     }
 };

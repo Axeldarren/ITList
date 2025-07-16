@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { createProject, deleteProject, getProjects, getProjectUsers, incrementProjectVersion, updateProject } from "../controller/projectController";
+import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
+
+router.use(protect);
 
 // Project Routes
 router.get("/", getProjects);

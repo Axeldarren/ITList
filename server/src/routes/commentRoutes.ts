@@ -2,8 +2,11 @@
 
 import { Router } from "express";
 import { createComment, updateComment, deleteComment } from "../controller/commentController";
+import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
+
+router.use(protect);
 
 router.post("/", (req, res, next) => {
     Promise.resolve(createComment(req, res)).catch(next);

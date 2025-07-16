@@ -1,19 +1,19 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Menu, Moon, Search, Settings, Sun, Briefcase, CheckSquare } from "lucide-react";
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, Moon, Search, Settings, Sun, Briefcase, CheckSquare, LogOut, User } from "lucide-react";
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsDarkMode, setIsSidebarCollapsed } from '@/state';
 import { useRouter } from 'next/navigation';
-import { useGetSearchSuggestionsQuery, Suggestion } from '@/state/api';
+import { useGetSearchSuggestionsQuery, Suggestion, useLogoutMutation, useGetUserByIdQuery } from '@/state/api';
 import { useDebounce } from 'use-debounce';
+import { logOut, selectCurrentUser } from '@/state/authSlice';
+import toast from 'react-hot-toast';
+import Image from 'next/image'; // Import the Next.js Image component
 
-interface AutocompleteSearchProps {
-    onSearch: (query: string) => void;
-}
-
-const AutocompleteSearch = ({ onSearch }: AutocompleteSearchProps) => {
+// --- Autocomplete Component (No changes needed here) ---
+const AutocompleteSearch = ({ onSearch }) => {
     const [inputValue, setInputValue] = useState('');
     const [debouncedValue] = useDebounce(inputValue, 300);
     const { data: suggestions = [] } = useGetSearchSuggestionsQuery(
@@ -83,15 +83,51 @@ const Navbar = () => {
   const isSidebarCollapsed = useAppSelector(state => state.global.isSidebarCollapsed);
   const isDarkMode = useAppSelector(state => state.global.isDarkMode);
   
+  const currentUser = useAppSelector(selectCurrentUser);
+  const UserID = currentUser?.id;
+  const { data: userData, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });
+  const [logout] = useLogoutMutation();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // --- NEW: State to handle image loading errors ---
+  const [imageError, setImageError] = useState(false);
+
   const handleGlobalSearch = (query: string) => {
       router.push(`/search?q=${query}`);
   };
 
+  const handleLogout = async () => {
+      try {
+          await logout().unwrap();
+          dispatch(logOut());
+          router.push('/login');
+          toast.success('Logged out successfully!');
+      } catch (err) {
+          toast.error('Logout failed. Please try again.');
+      }
+  };
+
+  // Reset image error state when the user changes
+  useEffect(() => {
+    if (userData) {
+        setImageError(false);
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+            setIsProfileMenuOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className='flex items-center justify-between bg-white px-4 py-3 dark:bg-black'>
         <div className='flex items-center gap-8'>
-            {/* --- THIS IS THE FIX --- */}
-            {/* The conditional was changed from !isSidebarCollapsed to isSidebarCollapsed */}
             {isSidebarCollapsed && (
                 <button onClick={() => dispatch(setIsSidebarCollapsed(false))}>
                     <Menu className='w-8 h-8 dark:text-white' />
@@ -100,14 +136,49 @@ const Navbar = () => {
             <AutocompleteSearch onSearch={handleGlobalSearch} />
         </div>
 
-        <div className='flex items-center'>
-            <button onClick={() => dispatch(setIsDarkMode(!isDarkMode))} className={isDarkMode ? `rounded p-2 dark:hover:bg-gray-700` : `rounded p-2 hover:bg-gray-100`}>
-                {isDarkMode ? <Sun className="h-6 w-6 cursor-pointer dark:text-white" /> : <Moon className="h-6 w-6 cursor-pointer" />}
+        <div className='flex items-center gap-2'>
+            <button onClick={() => dispatch(setIsDarkMode(!isDarkMode))} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary">
+                {isDarkMode ? <Sun className="h-6 w-6 cursor-pointer text-white" /> : <Moon className="h-6 w-6 cursor-pointer" />}
             </button>
-            <Link href="/settings" className={isDarkMode ? 'h-min w-min rounded p-2 dark:hover:bg-gray-700' : 'h-min w-min rounded p-2 hover:bg-gray-100'}>
-                <Settings className='h-6 w-6 cursor-pointer dark:text-white' />
-            </Link>
-            <div className='ml-2 mr-5 hidden min-h-[2em] w-[0.1rem] bg-gray-200 dark:bg-dark-tertiary md:inline-block'></div>
+            
+            <div className='relative' ref={profileMenuRef}>
+                <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary">
+                    {/* --- UPDATED: Profile Picture Logic --- */}
+                    {userData && userData.profilePictureUrl && !imageError ? (
+                        <Image
+                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${userData.profilePictureUrl}`}
+                            alt="Profile"
+                            width={32}
+                            height={32}
+                            className="h-8 w-8 rounded-full object-cover"
+                            onError={() => setImageError(true)}
+                        />
+                    ) : (
+                        <div className="h-8 w-8 rounded-full bg-gray-500 text-white flex items-center justify-center text-sm font-bold">
+                            {userData && userData.username ? userData.username.substring(0, 2).toUpperCase() : <User size={16} />}
+                        </div>
+                    )}
+                </button>
+
+                {isProfileMenuOpen && userData && (
+                    <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-dark-secondary ring-1 ring-black ring-opacity-5 z-30">
+                        <div className="py-1">
+                            <div className="px-4 py-2 border-b dark:border-dark-tertiary">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{userData.username}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{userData.email}</p>
+                            </div>
+                            <Link href="/settings" className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-tertiary">
+                                <Settings className="mr-3 h-5 w-5" />
+                                <span>Settings</span>
+                            </Link>
+                            <button onClick={handleLogout} className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-dark-tertiary">
+                                <LogOut className="mr-3 h-5 w-5" />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     </div>
   );

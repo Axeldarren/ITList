@@ -1,0 +1,33 @@
+[
+    { "id": 1, "teamId": 1, "userId": 11 },
+    { "id": 2, "teamId": 1, "userId": 2 },
+    { "id": 3, "teamId": 1, "userId": 1 },
+    { "id": 4, "teamId": 1, "userId": 6 },
+    { "id": 5, "teamId": 1, "userId": 16 },
+
+    { "id": 6, "teamId": 2, "userId": 13 },
+    { "id": 7, "teamId": 2, "userId": 4 },
+    { "id": 8, "teamId": 2, "userId": 7 },
+    { "id": 9, "teamId": 2, "userId": 12 },
+    { "id": 10, "teamId": 2, "userId": 17 },
+
+    { "id": 11, "teamId": 3, "userId": 15 },
+    { "id": 12, "teamId": 3, "userId": 6 },
+    { "id": 13, "teamId": 3, "userId": 3 },
+    { "id": 14, "teamId": 3, "userId": 8 },
+    { "id": 15, "teamId": 3, "userId": 18 },
+
+    { "id": 16, "teamId": 4, "userId": 17 },
+    { "id": 17, "teamId": 4, "userId": 8 },
+    { "id": 18, "teamId": 4, "userId": 4 },
+    { "id": 19, "teamId": 4, "userId": 9 },
+    { "id": 20, "teamId": 4, "userId": 14 },
+
+    { "id": 21, "teamId": 5, "userId": 19 },
+    { "id": 22, "teamId": 5, "userId": 10 },
+    { "id": 23, "teamId": 5, "userId": 5 },
+    { "id": 24, "teamId": 5, "userId": 15 },
+    { "id": 25, "teamId": 5, "userId": 20 },
+    
+    { "id": 26, "teamId": 5, "userId": 1 }
+]

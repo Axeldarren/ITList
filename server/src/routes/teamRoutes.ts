@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { getTeams, createTeam, updateTeam, deleteTeam } from "../controller/teamController";
+import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
+
+router.use(protect);
 
 router.get("/", getTeams);
 router.post("/", createTeam);

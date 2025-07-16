@@ -1,162 +1,22 @@
 [
-  {
-    "username": "AliceJones",
-    "teamId": 1,
-    "email": "alice.jones@example.com",
-    "password": "password123",
-    "NIK": 12301,
-    "profilePictureUrl": "p1.jpeg"
-  },
-  {
-    "username": "BobSmith",
-    "teamId": 2,
-    "email": "bob.smith@example.com",
-    "password": "password123",
-    "NIK": 12302,
-    "profilePictureUrl": "p2.jpeg"
-  },
-  {
-    "username": "CarolWhite",
-    "teamId": 3,
-    "email": "carol.white@example.com",
-    "password": "password123",
-    "NIK": 12303,
-    "profilePictureUrl": "p3.jpeg"
-  },
-  {
-    "username": "DaveBrown",
-    "teamId": 4,
-    "email": "dave.brown@example.com",
-    "password": "password123",
-    "NIK": 12304,
-    "profilePictureUrl": "p4.jpeg"
-  },
-  {
-    "username": "EveClark",
-    "teamId": 5,
-    "email": "eve.clark@example.com",
-    "password": "password123",
-    "NIK": 12305,
-    "profilePictureUrl": "p5.jpeg"
-  },
-  {
-    "username": "FrankWright",
-    "teamId": 1,
-    "email": "frank.wright@example.com",
-    "password": "password123",
-    "NIK": 12306,
-    "profilePictureUrl": "p6.jpeg"
-  },
-  {
-    "username": "GraceHall",
-    "teamId": 2,
-    "email": "grace.hall@example.com",
-    "password": "password123",
-    "NIK": 12307,
-    "profilePictureUrl": "p7.jpeg"
-  },
-  {
-    "username": "HenryAllen",
-    "teamId": 3,
-    "email": "henry.allen@example.com",
-    "password": "password123",
-    "NIK": 12308,
-    "profilePictureUrl": "p8.jpeg"
-  },
-  {
-    "username": "IdaMartin",
-    "teamId": 4,
-    "email": "ida.martin@example.com",
-    "password": "password123",
-    "NIK": 12309,
-    "profilePictureUrl": "p9.jpeg"
-  },
-  {
-    "username": "JohnDoe",
-    "teamId": 5,
-    "email": "john.doe@example.com",
-    "password": "password123",
-    "NIK": 12310,
-    "profilePictureUrl": "p10.jpeg"
-  },
-  {
-    "username": "LauraAdams",
-    "teamId": 1,
-    "email": "laura.adams@example.com",
-    "password": "password123",
-    "NIK": 12311,
-    "profilePictureUrl": "p11.jpeg"
-  },
-  {
-    "username": "NormanBates",
-    "teamId": 2,
-    "email": "norman.bates@example.com",
-    "password": "password123",
-    "NIK": 12312,
-    "profilePictureUrl": "p12.jpeg"
-  },
-  {
-    "username": "OliviaPace",
-    "teamId": 3,
-    "email": "olivia.pace@example.com",
-    "password": "password123",
-    "NIK": 12313,
-    "profilePictureUrl": "p13.jpeg"
-  },
-  {
-    "username": "PeterQuill",
-    "teamId": 4,
-    "email": "peter.quill@example.com",
-    "password": "password123",
-    "NIK": 12314,
-    "profilePictureUrl": "p1.jpeg"
-  },
-  {
-    "username": "QuincyAdams",
-    "teamId": 5,
-    "email": "quincy.adams@example.com",
-    "password": "password123",
-    "NIK": 12315,
-    "profilePictureUrl": "p2.jpeg"
-  },
-  {
-    "username": "RachelGreen",
-    "teamId": 1,
-    "email": "rachel.green@example.com",
-    "password": "password123",
-    "NIK": 12316,
-    "profilePictureUrl": "p3.jpeg"
-  },
-  {
-    "username": "SteveJobs",
-    "teamId": 2,
-    "email": "steve.jobs@example.com",
-    "password": "password123",
-    "NIK": 12317,
-    "profilePictureUrl": "p4.jpeg"
-  },
-  {
-    "username": "TinaFey",
-    "teamId": 3,
-    "email": "tina.fey@example.com",
-    "password": "password123",
-    "NIK": 12318,
-    "profilePictureUrl": "p5.jpeg"
-  },
-  {
-    "username": "UrsulaMonroe",
-    "teamId": 4,
-    "email": "ursula.monroe@example.com",
-    "password": "password123",
-    "NIK": 12319,
-    "profilePictureUrl": "p6.jpeg"
-  },
-  {
-    "username": "VictorHugo",
-    "teamId": 5,
-    "email": "victor.hugo@example.com",
-    "password": "password123",
-    "NIK": 12320,
-    "profilePictureUrl": "p7.jpeg"
-  }
+  { "userId": 1, "username": "AliceJones", "email": "alice.jones@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12301, "profilePictureUrl": "p1.jpeg", "isAdmin": true },
+  { "userId": 2, "username": "BobSmith", "email": "bob.smith@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12302, "profilePictureUrl": "p2.jpeg" },
+  { "userId": 3, "username": "CarolWhite", "email": "carol.white@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12303, "profilePictureUrl": "p3.jpeg" },
+  { "userId": 4, "username": "DaveBrown", "email": "dave.brown@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12304, "profilePictureUrl": "p4.jpeg" },
+  { "userId": 5, "username": "EveClark", "email": "eve.clark@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12305, "profilePictureUrl": "p5.jpeg" },
+  { "userId": 6, "username": "FrankWright", "email": "frank.wright@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12306, "profilePictureUrl": "p6.jpeg" },
+  { "userId": 7, "username": "GraceHall", "email": "grace.hall@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12307, "profilePictureUrl": "p7.jpeg" },
+  { "userId": 8, "username": "HenryAllen", "email": "henry.allen@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12308, "profilePictureUrl": "p8.jpeg" },
+  { "userId": 9, "username": "IdaMartin", "email": "ida.martin@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12309, "profilePictureUrl": "p9.jpeg" },
+  { "userId": 10, "username": "JohnDoe", "email": "john.doe@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12310, "profilePictureUrl": "p10.jpeg" },
+  { "userId": 11, "username": "LauraAdams", "email": "laura.adams@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12311, "profilePictureUrl": "p11.jpeg" },
+  { "userId": 12, "username": "NormanBates", "email": "norman.bates@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12312, "profilePictureUrl": "p12.jpeg" },
+  { "userId": 13, "username": "OliviaPace", "email": "olivia.pace@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12313, "profilePictureUrl": "p13.jpeg" },
+  { "userId": 14, "username": "PeterQuill", "email": "peter.quill@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12314, "profilePictureUrl": "p1.jpeg" },
+  { "userId": 15, "username": "QuincyAdams", "email": "quincy.adams@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12315, "profilePictureUrl": "p2.jpeg" },
+  { "userId": 16, "username": "RachelGreen", "email": "rachel.green@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12316, "profilePictureUrl": "p3.jpeg" },
+  { "userId": 17, "username": "SteveJobs", "email": "steve.jobs@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12317, "profilePictureUrl": "p4.jpeg" },
+  { "userId": 18, "username": "TinaFey", "email": "tina.fey@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12318, "profilePictureUrl": "p5.jpeg" },
+  { "userId": 19, "username": "UrsulaMonroe", "email": "ursula.monroe@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12319, "profilePictureUrl": "p6.jpeg" },
+  { "userId": 20, "username": "VictorHugo", "email": "victor.hugo@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12320, "profilePictureUrl": "p7.jpeg" }
 ]

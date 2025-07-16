@@ -17,7 +17,7 @@ model User {
   password             String         // Added password field (will store hashed password)
   NIK                  Int         @unique // Added NIK (Employee Identification Number) field
   profilePictureUrl    String?        // Kept this field if you still need it
-  teamId               Int?
+  // teamId               Int?
   isAdmin              Boolean        @default(false) // Added isAdmin field
 
   authoredTasks        Task[]         @relation("TaskAuthor")
@@ -25,7 +25,8 @@ model User {
   taskAssignments      TaskAssignment[]
   attachments          Attachment[]
   comments             Comment[]
-  team                 Team?          @relation(fields: [teamId], references: [id])
+  teams             TeamMembership[]
+  // team                 Team?          @relation(fields: [teamId], references: [id])
 }
 
 model Team {
@@ -34,7 +35,18 @@ model Team {
   productOwnerUserId   Int?
   projectManagerUserId Int?
   projectTeams         ProjectTeam[]
-  user                 User[]
+
+  members              TeamMembership[]
+}
+
+model TeamMembership {
+  id     Int @id @default(autoincrement())
+  userId Int
+  teamId Int
+  user   User @relation(fields: [userId], references: [userId])
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
 }
 
 model Project {

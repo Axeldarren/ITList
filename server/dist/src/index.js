@@ -19,6 +19,7 @@ const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
 const attachmentRoutes_1 = __importDefault(require("./routes/attachmentRoutes"));
 const commentRoutes_1 = __importDefault(require("./routes/commentRoutes"));
+const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 // Configurations
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -38,6 +39,7 @@ app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
 app.get('/', (req, res) => {
     res.send('Welcome to the Project Management API');
 });
+app.use('/auth', authRoutes_1.default);
 app.use('/projects', projectRoutes_1.default);
 app.use('/tasks', taskRoutes_1.default);
 app.use('/search', searchRoutes_1.default);

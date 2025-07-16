@@ -2,7 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const projectController_1 = require("../controller/projectController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
+router.use(authMiddleware_1.protect);
 // Project Routes
 router.get("/", projectController_1.getProjects);
 router.get("/:projectId/users", projectController_1.getProjectUsers);

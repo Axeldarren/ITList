@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import ProjectHeader from '@/app/projects/ProjectHeader';
+import ProjectHeader from '@/app/(dashboard)/projects/ProjectHeader';
 import Board from '../BoardView';
 import List from '../ListView';
 import Timeline from '../TimelineView';

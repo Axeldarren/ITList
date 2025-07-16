@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import DashboardWrapper from "./dashboardWrapper";
+import StoreProvider from "./redux";
+import { Toaster } from "react-hot-toast";
 
-const inter = Inter({
-  subsets: ["latin"]})
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "ITList",
@@ -18,10 +18,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={inter.className}
-      >
-        <DashboardWrapper>{children}</DashboardWrapper>
+      <body className={inter.className}>
+        <StoreProvider>
+          <Toaster position="top-right" 
+            toastOptions={{
+              style: {
+                background: '#333',
+                color: '#fff',
+              },
+            }}
+          />
+          {children}
+        </StoreProvider>
       </body>
     </html>
   );

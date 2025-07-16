@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const attachmentController_1 = require("../controller/attachmentController");
 const upload_1 = __importDefault(require("../middleware/upload"));
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
+router.use(authMiddleware_1.protect);
 // This route uses the multer middleware to handle a single file upload
 router.post("/", upload_1.default.single('file'), (req, res, next) => {
     Promise.resolve((0, attachmentController_1.createAttachment)(req, res)).catch(next);

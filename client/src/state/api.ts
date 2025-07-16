@@ -31,7 +31,7 @@ export interface User {
     password?: string;
     NIK?: number;
     profilePictureUrl?: string;
-    teamId?: number;
+    isAdmin?: boolean;
 }
 
 export interface Attachment {
@@ -86,9 +86,19 @@ export interface Suggestion {
     text: string;
     type: 'Project' | 'Task';
 }
+const baseQuery = fetchBaseQuery({
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+    prepareHeaders: (headers, { getState }) => {
+        const token = (getState() as RootState).auth.token;
+        if (token) {
+            headers.set('authorization', `Bearer ${token}`);
+        }
+        return headers;
+    },
+});
 
 export const api = createApi({
-    baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL }),
+    baseQuery,
     reducerPath: 'api',
     tagTypes: ["Projects", "Tasks", "Users", "Teams"],
     endpoints: (build) => ({
@@ -217,6 +227,35 @@ export const api = createApi({
             query: () => 'users',
             providesTags: ["Users"]
         }),
+        getUserById: build.query<User, number>({
+            query: (userId) => `users/${userId}`,
+            providesTags: (result, error, id) => [{ type: 'Users', id }],
+        }),
+
+        updateUser: build.mutation<User, Partial<User> & { userId: number }>({
+            query: ({ userId, ...patch }) => ({
+                url: `users/${userId}`,
+                method: 'PATCH',
+                body: patch,
+            }),
+            invalidatesTags: (result, error, { userId }) => [{ type: 'Users', id: userId }],
+        }),
+
+        // --- NEW: Mutation for uploading a profile picture ---
+        uploadProfilePicture: build.mutation<User, { userId: number; file: File }>({
+            query: ({ userId, file }) => {
+                const formData = new FormData();
+                formData.append('profilePicture', file);
+                return {
+                    url: `users/${userId}/picture`,
+                    method: 'POST',
+                    body: formData,
+                };
+            },
+            invalidatesTags: (result, error, { userId }) => [{ type: 'Users', id: userId }],
+        }),
+        
+
         getTeams: build.query<Team[], void>({
             query: () => 'teams',
             providesTags: ["Teams"]
@@ -292,10 +331,22 @@ export const api = createApi({
             }),
             invalidatesTags: [{ type: 'Tasks' }],
         }),
+        login: build.mutation<{ token: string; data: { user: User } }, { email: string; password: string }>({
+            query: (credentials) => ({
+                url: 'auth/login',
+                method: 'POST',
+                body: credentials,
+            }),
+        }),
+        logout: build.mutation<{ status: string }, void>({
+            query: () => 'auth/logout',
+        }),
     }),
 });
 
 export const {
+    useLoginMutation,
+    useLogoutMutation,
     useGetProjectsQuery,
     useCreateProjectMutation,
     useDeleteProjectMutation,
@@ -312,6 +363,9 @@ export const {
     useSearchQuery,
     useGetSearchSuggestionsQuery,
     useGetUsersQuery,
+    useGetUserByIdQuery,
+    useUpdateUserMutation,
+    useUploadProfilePictureMutation,
     useGetTeamsQuery,
     useCreateTeamMutation,
     useUpdateTeamMutation,

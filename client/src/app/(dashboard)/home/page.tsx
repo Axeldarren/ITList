@@ -2,44 +2,40 @@
 
 import {
   Priority,
+  Project,
   Task,
   useGetAllTasksQuery,
   useGetProjectsQuery,
   useGetTasksByUserQuery,
+  useGetUserByIdQuery, // 1. Import the new hook
 } from "@/state/api";
 import React, { useMemo, useState } from "react";
-import { useAppSelector } from "../redux";
+import { useAppSelector } from "../../redux";
 import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
 import Header from "@/components/Header";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { dataGridSxStyles } from "@/lib/utils";
-import ModalNewProject from "../projects/ModalNewProject";
-import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus } from "lucide-react";
+import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
+import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { differenceInDays, format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { selectCurrentUser } from "@/state/authSlice";
 
 // --- Expandable Stats Card Component ---
-interface ExpandableStatsCardProps<T> {
-    title: string;
-    value: number;
-    icon: React.ReactNode;
-    color: string;
-    description: string;
-    items: T[];
-    renderItem: (item: T) => React.ReactNode;
-    viewAllLink?: string;
-}
-
-const ExpandableStatsCard = <T,>({
-    title,
-    value,
-    icon,
-    color,
-    description,
-    items,
-    renderItem,
-    viewAllLink,
-}: ExpandableStatsCardProps<T>) => {
+const ExpandableStatsCard = ({ title, value, icon, color, description, items, renderItem, viewAllLink }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -53,7 +49,7 @@ const ExpandableStatsCard = <T,>({
                     <p className="text-2xl font-semibold text-gray-800 dark:text-white">{value}</p>
                 </div>
                 {items.length > 0 && (
-                     <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary text-dark dark:text-white">
+                     <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary">
                         <ChevronDown className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
                 )}
@@ -102,11 +98,24 @@ const HomePage = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const router = useRouter();
   
-  const currentUserId = 1; 
+  const loggedInUser = useAppSelector(selectCurrentUser);
+  console.log("Logged in user:", loggedInUser);
+  const UserID = loggedInUser?.id;
+  console.log("User ID:", UserID);
 
-  const { data: userTasks, isLoading: tasksLoading } = useGetTasksByUserQuery(currentUserId, { skip: !currentUserId });
-  const { data: projects, isLoading: projectsLoading } = useGetProjectsQuery();
-  const { data: allTasks, isLoading: allTasksLoading } = useGetAllTasksQuery();
+  // 2. Fetch full user data using the ID from the auth state
+  const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(
+      UserID!,
+      { skip: !UserID }
+  );
+
+  const { data: userTasks, isLoading: tasksLoading, isError: tasksError } = useGetTasksByUserQuery(
+    UserID!,
+    { skip: !UserID }
+  );
+  
+  const { data: projects, isLoading: projectsLoading, isError: projectsError } = useGetProjectsQuery();
+  const { data: allTasks, isLoading: allTasksLoading, isError: allTasksError } = useGetAllTasksQuery();
 
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const projectMap = useMemo(() => {
@@ -134,19 +143,19 @@ const HomePage = () => {
     return sourceTasks.filter(task => task.priority === activeFilter);
   }, [tasksWithProjectName, activeFilter, showCompleted]);
 
-  // --- "Tasks Completed" has been removed from this calculation ---
-  const { tasksOverdue, tasksDueThisWeek, projectsAtRisk } = useMemo(() => {
-    const now = new Date();
-    if (!userTasks || !projects || !allTasks) return { tasksOverdue: [], tasksDueThisWeek: [], projectsAtRisk: [] };
+  const { tasksOverdue, tasksDueThisWeek, projectsAtRisk, tasksCompleted } = useMemo(() => {
+    if (!userTasks || !projects || !allTasks) return { tasksOverdue: [], tasksDueThisWeek: [], projectsAtRisk: [], tasksCompleted: [] };
     
+    const now = new Date();
     const overdue = userTasks.filter(t => t.dueDate && new Date(t.dueDate) < now && t.status !== 'Completed');
     const dueThisWeek = userTasks.filter(t => t.dueDate && differenceInDays(new Date(t.dueDate), now) <= 7 && differenceInDays(new Date(t.dueDate), now) >= 0);
     const atRisk = projects.filter(p => {
         const isCompleted = allTasks.filter(t => t.projectId === p.id).every(t => t.status === 'Completed');
         return p.endDate && new Date(p.endDate) < now && !isCompleted;
     });
+    const completed = userTasks.filter(t => t.status === 'Completed');
     
-    return { tasksOverdue: overdue, tasksDueThisWeek: dueThisWeek, projectsAtRisk: atRisk };
+    return { tasksOverdue: overdue, tasksDueThisWeek: dueThisWeek, projectsAtRisk: atRisk, tasksCompleted: completed };
   }, [userTasks, projects, allTasks]);
   
   const { ongoingProjects, overdueProjects } = useMemo(() => {
@@ -171,15 +180,25 @@ const HomePage = () => {
     router.push(`/projects/${task.projectId}`);
   };
 
-  if (tasksLoading || projectsLoading || allTasksLoading) return <div>Loading dashboard...</div>;
-  if (!userTasks || !projects || !allTasks) return <div>Error fetching data. Please try again later.</div>;
+  // 3. Update loading and error logic to include the new user query
+  if (projectsLoading || allTasksLoading || userLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading dashboard...</div>;
+  }
+  
+  if (tasksLoading) {
+      return <div className="flex items-center justify-center h-screen">Loading your tasks...</div>;
+  }
+  
+  if (projectsError || allTasksError || tasksError || !fullCurrentUser) {
+      return <div className="flex items-center justify-center h-screen">Error fetching data. Please try again later.</div>;
+  }
 
   return (
-    <div className="h-full w-[100%] bg-transparent p-8">
+    <div className="h-full w-full bg-transparent p-8">
       <ModalNewProject isOpen={isNewProjectModalOpen} onClose={() => setIsNewProjectModalOpen(false)} />
       
       <Header 
-        name="Dashboard"
+        name={`Hi, ${fullCurrentUser.username}`} // 4. Use the data from the new hook
         buttonComponent={
           <button 
             className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
@@ -190,7 +209,7 @@ const HomePage = () => {
         }
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <ExpandableStatsCard 
             title="Tasks Overdue"
             value={tasksOverdue.length}
@@ -232,6 +251,20 @@ const HomePage = () => {
                 </li>
             )}
             viewAllLink="/timeline"
+          />
+          <ExpandableStatsCard 
+            title="Tasks Completed"
+            value={tasksCompleted.length}
+            icon={<CheckCircle />}
+            color="bg-green-500"
+            description="Tasks you have successfully completed."
+            items={tasksCompleted}
+            renderItem={(task) => (
+                <li key={task.id} className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">{task.title}</span> in {projectMap.get(task.projectId)}
+                </li>
+            )}
+            viewAllLink="/tasks/completed"
           />
       </div>
 

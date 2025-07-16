@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useAppSelector } from "../redux";
+import { useAppSelector } from "../../redux";
 import Header from "@/components/Header";
 import {
   DataGrid,
