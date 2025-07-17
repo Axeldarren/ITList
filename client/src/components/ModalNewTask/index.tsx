@@ -1,9 +1,11 @@
 import Modal from "@/components/Modal";
 // Import the necessary hooks and types
-import { Priority, Status, useCreateTaskMutation, useGetProjectUsersQuery, useGetUsersQuery } from "@/state/api";
+import { Priority, Status, useCreateTaskMutation, useGetProjectUsersQuery } from "@/state/api";
 import React, { useState } from "react";
 import { formatISO } from "date-fns";
 import toast from 'react-hot-toast';
+import { useAppSelector } from "@/app/redux"; // Import Redux hook
+import { selectCurrentUser } from "@/state/authSlice"; // Import the selector for the current user
 
 type Props = {
   isOpen: boolean;
@@ -14,10 +16,9 @@ type Props = {
 const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [createTask, { isLoading }] = useCreateTaskMutation();
   
-  // --- NEW: Fetch all users for the Author dropdown ---
-  const { data: allUsers, isLoading: allUsersLoading } = useGetUsersQuery();
+  // --- NEW: Get the currently logged-in user ---
+  const loggedInUser = useAppSelector(selectCurrentUser);
 
-  // --- EXISTING: Fetch project-specific users for the Assignee dropdown ---
   const { data: projectUsers, isLoading: projectUsersLoading } = useGetProjectUsersQuery(
     Number(id), 
     { skip: !id }
@@ -30,7 +31,6 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [tags, setTags] = useState("");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [authorUserId, setAuthorUserId] = useState("");
   const [assignedUserId, setAssignedUserId] = useState("");
   const [projectId, setProjectId] = useState("");
 
@@ -42,13 +42,13 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     setTags("");
     setStartDate("");
     setDueDate("");
-    setAuthorUserId("");
     setAssignedUserId("");
     setProjectId("");
   };
 
   const handleSubmit = async () => {
-    if (!title || !authorUserId || !(id || projectId)) return;
+    // --- UPDATED: Use the loggedInUser's ID for authorUserId ---
+    if (!title || !loggedInUser?.userId || !(id || projectId)) return;
 
     const formattedStartDate = startDate ? formatISO(new Date(startDate)) : undefined;
     const formattedDueDate = dueDate ? formatISO(new Date(dueDate)) : undefined;
@@ -61,7 +61,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         tags,
         startDate: formattedStartDate,
         dueDate: formattedDueDate,
-        authorUserId: parseInt(authorUserId),
+        authorUserId: loggedInUser.userId, // Set author automatically
         assignedUserId: assignedUserId ? parseInt(assignedUserId) : undefined,
         projectId: id ? Number(id) : Number(projectId),
     }).unwrap();
@@ -78,7 +78,8 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   };
 
   const isFormValid = () => {
-    return title && authorUserId && (id || projectId);
+    // The author is now automatic, so we remove it from the form validation
+    return title && (id || projectId);
   };
 
   const sharedStyles = "w-full rounded border p-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -92,10 +93,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     <Modal isOpen={isOpen} onClose={onClose} name="Create New Task">
       <form
         className="mt-4 space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
+        onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
       >
         <input
           type="text"
@@ -127,46 +125,19 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
-        
-        {/* --- Author and Assignee Select Dropdowns --- */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* --- UPDATED: Author dropdown now uses allUsers --- */}
-            <select
-              className={selectStyles}
-              value={authorUserId}
-              onChange={(e) => setAuthorUserId(e.target.value)}
-              disabled={allUsersLoading}
-              required
-            >
-              <option value="">Select Author</option>
-              {allUsers?.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
-            </select>
-            
-            {/* --- Assignee dropdown still uses projectUsers --- */}
-            <select
-              className={selectStyles}
-              value={assignedUserId}
-              onChange={(e) => setAssignedUserId(e.target.value)}
-              disabled={projectUsersLoading}
-            >
-              <option value="">Assign to User (Optional)</option>
-              {projectUsers?.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
-            </select>
-        </div>
+        <select
+          className={selectStyles}
+          value={assignedUserId}
+          onChange={(e) => setAssignedUserId(e.target.value)}
+          disabled={projectUsersLoading}
+        >
+          <option value="">Assign to User (Optional)</option>
+          {projectUsers?.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
+        </select>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <input
-            type="date"
-            className={inputStyles}
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <input
-            type="date"
-            className={inputStyles}
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
+          <input type="date" className={inputStyles} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <input type="date" className={inputStyles} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </div>
 
         <input

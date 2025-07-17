@@ -6,9 +6,11 @@ const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
 router.use(authMiddleware_1.protect);
 // Project Routes
+// Get Projects
 router.get("/", projectController_1.getProjects);
 router.get("/:projectId/users", projectController_1.getProjectUsers);
 router.get("/:projectId/versions", projectController_1.getProjectVersionHistory);
+router.get("/versions", projectController_1.getAllProjectVersions);
 // Create Project
 router.post("/", projectController_1.createProject);
 router.post("/:projectId/archive", projectController_1.archiveAndIncrementVersion);

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProjectVersionHistory = exports.archiveAndIncrementVersion = exports.updateProject = exports.deleteProject = exports.getProjectUsers = exports.incrementProjectVersion = exports.createProject = exports.getProjects = void 0;
+exports.getAllProjectVersions = exports.getProjectVersionHistory = exports.archiveAndIncrementVersion = exports.updateProject = exports.deleteProject = exports.getProjectUsers = exports.incrementProjectVersion = exports.createProject = exports.getProjects = void 0;
 const client_1 = require("@prisma/client");
 const Prisma = new client_1.PrismaClient();
 const getProjects = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -207,7 +207,7 @@ const archiveAndIncrementVersion = (req, res) => __awaiter(void 0, void 0, void 
                     name: currentProject.name,
                     description: currentProject.description,
                     startDate: currentProject.startDate,
-                    endDate: currentProject.endDate,
+                    endDate: new Date(),
                 },
             });
             // 2. Increment the version and set the new dates
@@ -258,3 +258,23 @@ const getProjectVersionHistory = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.getProjectVersionHistory = getProjectVersionHistory;
+const getAllProjectVersions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const versions = yield Prisma.projectVersion.findMany({
+            // Order them to make the timeline consistent
+            orderBy: [
+                {
+                    projectId: 'asc',
+                },
+                {
+                    version: 'asc',
+                },
+            ]
+        });
+        res.json(versions);
+    }
+    catch (error) {
+        res.status(500).json({ message: `Error retrieving all project versions: ${error}` });
+    }
+});
+exports.getAllProjectVersions = getAllProjectVersions;

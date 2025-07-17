@@ -150,6 +150,17 @@ export const api = createApi({
             query: (projectId) => `projects/${projectId}/versions`,
             providesTags: (result, error, projectId) => [{ type: 'ProjectVersions', id: projectId }],
         }),
+        getAllProjectVersions: build.query<ProjectVersion[], void>({
+            query: () => 'projects/versions',
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'ProjectVersions' as const, id })),
+                        { type: 'ProjectVersions', id: 'LIST' },
+                    ]
+                    : [{ type: 'ProjectVersions', id: 'LIST' }],
+        }),
+
         createProject: build.mutation<Project, Partial<Project>>({
             query: (project) => ({
                 url: 'projects',
@@ -410,6 +421,7 @@ export const {
     useUpdateProjectMutation,
     useArchiveAndIncrementVersionMutation,
     useGetProjectVersionHistoryQuery,
+    useGetAllProjectVersionsQuery,
     useGetAllTasksQuery, // Export the new query
     useGetTasksQuery,
     useGetTaskByIdQuery,

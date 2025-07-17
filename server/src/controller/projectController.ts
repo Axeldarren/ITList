@@ -242,7 +242,7 @@ export const archiveAndIncrementVersion = async (
                     name: currentProject.name,
                     description: currentProject.description,
                     startDate: currentProject.startDate,
-                    endDate: currentProject.endDate,
+                    endDate: new Date(),
                 },
             });
 
@@ -294,5 +294,24 @@ export const getProjectVersionHistory = async (
         res.json(versions);
     } catch (error) {
         res.status(500).json({ message: `Error retrieving project version history: ${error}` });
+    }
+};
+
+export const getAllProjectVersions = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const versions = await Prisma.projectVersion.findMany({
+            // Order them to make the timeline consistent
+            orderBy: [
+                {
+                    projectId: 'asc',
+                },
+                {
+                    version: 'asc',
+                },
+            ]
+        });
+        res.json(versions);
+    } catch (error) {
+        res.status(500).json({ message: `Error retrieving all project versions: ${error}` });
     }
 };
