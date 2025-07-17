@@ -7,8 +7,6 @@ import { StringValue } from 'ms';
 const prisma = new PrismaClient();
 
 const signToken = (id: number) => {
-    // --- THIS IS THE FIX ---
-    // We must ensure the JWT_SECRET is not undefined before using it.
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
         throw new Error('JWT_SECRET is not defined in the environment variables.');

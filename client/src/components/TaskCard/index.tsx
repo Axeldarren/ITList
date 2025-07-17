@@ -24,9 +24,10 @@ type Props = {
     task: Task;
     openMenuId?: number | null;
     onMenuToggle?: (taskId: number) => void;
+    isArchived?: boolean; // --- NEW: Prop to disable interactions ---
 }
 
-const TaskCard = ({ task, openMenuId, onMenuToggle = () => {} }: Props) => {
+const TaskCard = ({ task, openMenuId, onMenuToggle = () => {}, isArchived = false }: Props) => {
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
@@ -35,6 +36,8 @@ const TaskCard = ({ task, openMenuId, onMenuToggle = () => {} }: Props) => {
     const commentCount = task.comments?.length || 0;
 
     const handleCardClick = () => {
+        // --- UPDATED: Prevent opening modal if archived ---
+        if (isArchived) return;
         setEditModalOpen(true);
     };
 
@@ -96,46 +99,53 @@ const TaskCard = ({ task, openMenuId, onMenuToggle = () => {} }: Props) => {
 
             <div 
                 onClick={handleCardClick}
-                className='flex cursor-pointer flex-col rounded-lg bg-white p-4 shadow-md transition-shadow duration-200 hover:shadow-xl dark:bg-[#1d1f21]'
+                // --- UPDATED: Change cursor style based on isArchived ---
+                className={`flex flex-col rounded-lg bg-white p-4 shadow-md dark:bg-[#1d1f21] ${
+                    isArchived 
+                        ? 'cursor-default' 
+                        : 'cursor-pointer transition-shadow duration-200 hover:shadow-xl'
+                }`}
             >
                 <div className="mb-2 flex items-start justify-between">
                     <h3 className='pr-2 text-lg font-bold text-gray-900 dark:text-gray-100'>{task.title}</h3>
-                    <div className="relative flex-shrink-0">
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onMenuToggle(task.id);
-                            }}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                        >
-                            <MoreVertical size={20} />
-                        </button>
-                        {openMenuId === task.id && (
-                            <div 
-                                onClick={(e) => e.stopPropagation()}
-                                className="absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-tertiary"
+                    {!isArchived && (
+                         <div className="relative flex-shrink-0">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onMenuToggle(task.id);
+                                }}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                             >
-                                <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                    <button
-                                        onClick={handleEditClick}
-                                        className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
-                                        role="menuitem"
-                                    >
-                                        <Edit className="mr-3 h-5 w-5" />
-                                        <span>Edit</span>
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteClick}
-                                        className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
-                                        role="menuitem"
-                                    >
-                                        <Trash2 className="mr-3 h-5 w-5" />
-                                        <span>Delete</span>
-                                    </button>
+                                <MoreVertical size={20} />
+                            </button>
+                            {openMenuId === task.id && (
+                                <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-tertiary"
+                                >
+                                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                        <button
+                                            onClick={handleEditClick}
+                                            className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                                            role="menuitem"
+                                        >
+                                            <Edit className="mr-3 h-5 w-5" />
+                                            <span>Edit</span>
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteClick}
+                                            className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
+                                            role="menuitem"
+                                        >
+                                            <Trash2 className="mr-3 h-5 w-5" />
+                                            <span>Delete</span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                 <p className='mb-4 text-sm text-gray-600 dark:text-gray-300'>

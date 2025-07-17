@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createProject, deleteProject, getProjects, getProjectUsers, incrementProjectVersion, updateProject } from "../controller/projectController";
+import { archiveAndIncrementVersion, createProject, deleteProject, getProjects, getProjectUsers, getProjectVersionHistory, incrementProjectVersion, updateProject } from "../controller/projectController";
 import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -9,9 +9,11 @@ router.use(protect);
 // Project Routes
 router.get("/", getProjects);
 router.get("/:projectId/users", getProjectUsers);
+router.get("/:projectId/versions", getProjectVersionHistory);
 
 // Create Project
 router.post("/", createProject);
+router.post("/:projectId/archive", archiveAndIncrementVersion);
 
 // Delete Project
 router.delete("/:projectId", deleteProject);

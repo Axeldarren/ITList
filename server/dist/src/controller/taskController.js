@@ -13,12 +13,21 @@ exports.updateTask = exports.getTaskById = exports.deleteTask = exports.getUserT
 const client_1 = require("@prisma/client");
 const Prisma = new client_1.PrismaClient();
 const getTasks = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { projectId } = req.query;
-    // --- MODIFICATION: Allow fetching all tasks ---
-    const whereClause = projectId ? { projectId: Number(projectId) } : {};
+    // --- UPDATED: Add version to the query parameters ---
+    const { projectId, version } = req.query;
+    let whereClause = {};
+    if (projectId) {
+        whereClause.projectId = Number(projectId);
+        // --- NEW: Add version to the where clause if it's provided ---
+        if (version) {
+            whereClause.version = Number(version);
+        }
+    }
+    // If no projectId is provided, we can still fetch all tasks (for other parts of the app)
+    // but the version filter will only apply if a projectId is also present.
     try {
         const tasks = yield Prisma.task.findMany({
-            where: whereClause, // Use the dynamic where clause
+            where: whereClause,
             include: {
                 author: true,
                 assignee: true,

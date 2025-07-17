@@ -8,6 +8,19 @@ export interface Project {
     endDate?: string;
     version: number;
     teamId?: number; 
+
+    versions?: ProjectVersion[];
+}
+
+export interface ProjectVersion {
+    id: number;
+    version: number;
+    name: string;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    archivedAt: string;
+    projectId: number;
 }
 
 export enum Priority {
@@ -121,7 +134,7 @@ const baseQuery = fetchBaseQuery({
 export const api = createApi({
     baseQuery,
     reducerPath: 'api',
-    tagTypes: ["Projects", "Tasks", "Users", "Teams"],
+    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults"],
     endpoints: (build) => ({
         getProjects: build.query<Project[], void>({
             query: () => 'projects',
@@ -132,6 +145,10 @@ export const api = createApi({
                         { type: 'Projects', id: 'LIST' },
                       ]
                     : [{ type: 'Projects', id: 'LIST' }],
+        }),
+        getProjectVersionHistory: build.query<ProjectVersion[], number>({
+            query: (projectId) => `projects/${projectId}/versions`,
+            providesTags: (result, error, projectId) => [{ type: 'ProjectVersions', id: projectId }],
         }),
         createProject: build.mutation<Project, Partial<Project>>({
             query: (project) => ({
@@ -171,14 +188,20 @@ export const api = createApi({
                       ]
                     : [{ type: 'Tasks', id: 'LIST' }],
         }),
-        getTasks: build.query<Task[], { projectId: number }>({
-            query: ({ projectId }) => `tasks?projectId=${projectId}`,
+        getTasks: build.query<Task[], { projectId: number; version?: number }>({
+            query: ({ projectId, version }) => {
+                let url = `tasks?projectId=${projectId}`;
+                if (version) {
+                    url += `&version=${version}`;
+                }
+                return url;
+            },
             providesTags: (result) =>
                 result
                     ? [
                         ...result.map(({ id }) => ({ type: 'Tasks' as const, id })),
                         { type: 'Tasks', id: 'LIST' },
-                      ]
+                    ]
                     : [{ type: 'Tasks', id: 'LIST' }],
         }),
         getTaskById: build.query<Task, number>({
@@ -225,6 +248,19 @@ export const api = createApi({
                 method: 'PATCH',
             }),
             invalidatesTags: (result, error, { projectId }) => [{ type: "Projects", id: projectId }],
+        }),
+        archiveAndIncrementVersion: build.mutation<Project, { projectId: number; startDate: string; endDate: string; }>({
+            query: ({ projectId, startDate, endDate }) => ({
+                url: `projects/${projectId}/archive`,
+                method: 'POST',
+                body: { startDate, endDate }, // Send the dates in the body
+            }),
+            invalidatesTags: (result, error, { projectId }) => [
+                { type: 'Projects', id: projectId },
+                { type: 'Projects', id: 'LIST' },
+                { type: 'ProjectVersions', id: projectId },
+                { type: 'Tasks', id: 'LIST' } // Invalidate tasks to refetch
+            ],
         }),
         getProjectUsers: build.query<User[], number>({
             query: (projectId) => `projects/${projectId}/users`,
@@ -372,6 +408,8 @@ export const {
     useCreateProjectMutation,
     useDeleteProjectMutation,
     useUpdateProjectMutation,
+    useArchiveAndIncrementVersionMutation,
+    useGetProjectVersionHistoryQuery,
     useGetAllTasksQuery, // Export the new query
     useGetTasksQuery,
     useGetTaskByIdQuery,

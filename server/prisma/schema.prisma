@@ -49,15 +49,33 @@ model TeamMembership {
   @@unique([userId, teamId])
 }
 
+model ProjectVersion {
+  id          Int      @id @default(autoincrement())
+  version     Int
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  archivedAt  DateTime @default(now())
+  
+  project     Project @relation(fields: [projectId], references: [id])
+  projectId   Int
+  
+  @@index([projectId])
+}
+
 model Project {
   id           Int           @id @default(autoincrement())
   name         String
   description  String?
   startDate    DateTime?
   endDate      DateTime?
-  version      Int?          
+  version      Int?
+            
   tasks        Task[]
   projectTeams ProjectTeam[]
+
+  versions      ProjectVersion[]
 }
 
 model ProjectTeam {

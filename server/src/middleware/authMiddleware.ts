@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { TokenExpiredError } from 'jsonwebtoken';
 import { PrismaClient, User } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -17,8 +17,6 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
-    // --- THIS IS THE FIX ---
-    // Check if req.cookies exists before trying to access a property on it.
     } else if (req.cookies && req.cookies.jwt) {
         token = req.cookies.jwt;
     }
@@ -43,7 +41,11 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
         req.user = currentUser;
         next();
     } catch (err) {
-        res.status(401).json({ message: 'Invalid token. Please log in again.' });
+        if (err instanceof TokenExpiredError) {
+            res.status(401).json({ message: 'Your session has expired. Please log in again.', code: 'TOKEN_EXPIRED' });
+        } else {
+            res.status(401).json({ message: 'Invalid token. Please log in again.' });
+        }
         return;
     }
 };

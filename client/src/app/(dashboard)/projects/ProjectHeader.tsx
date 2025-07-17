@@ -1,5 +1,7 @@
+"use client";
+
 import Header from '@/components/Header';
-import { Clock, Edit, GitBranch, Grid3X3, List, PlusSquare, Table, Search } from 'lucide-react'; // Added Search
+import { Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, PlusSquare } from 'lucide-react';
 import React, { useState } from 'react';
 import ModalNewProject from './ModalNewProject';
 
@@ -10,11 +12,24 @@ type Props = {
     description: string | undefined;
     version: number | undefined;
     onEdit: () => void;
+    onArchive: () => void;
+    isArchivable: boolean;
     localSearchTerm: string;
     setLocalSearchTerm: (term: string) => void;
 }
 
-const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, version, onEdit, localSearchTerm, setLocalSearchTerm }: Props) => {
+const ProjectHeader = ({ 
+    activeTab, 
+    setActiveTab, 
+    projectName, 
+    description, 
+    version, 
+    onEdit, 
+    onArchive, 
+    isArchivable, 
+    localSearchTerm, 
+    setLocalSearchTerm,
+}: Props) => {
     const [isModalNewProjectOpen, setIsModalNewProjectOpen] = useState(false);
   
     return (
@@ -27,6 +42,16 @@ const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, vers
                 <Header name={projectName}
                     buttonComponent={
                         <div className="flex space-x-2">
+                            <button
+                                className={`flex items-center rounded-md px-3 py-2 text-white ${
+                                    isArchivable ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+                                }`}
+                                onClick={onArchive}
+                                disabled={!isArchivable}
+                                title={isArchivable ? "Archive this version and start a new one" : "All tasks must be completed to start a new version"}
+                            >
+                                <Archive className='mr-2 size-5' /> New Version
+                            </button>
                             <button
                                 className='flex items-center rounded-md bg-gray-500 px-3 py-2 text-white hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600'
                                 onClick={onEdit}
@@ -44,7 +69,7 @@ const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, vers
                 />
                 <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                     <p className='max-w-2xl'>{description || "No description available."}</p>
-                    {version && (
+                    {version != null && (
                         <div className="flex items-center gap-2">
                             <GitBranch className="h-4 w-4" />
                             <span>Version {version}</span>
@@ -59,18 +84,22 @@ const ProjectHeader = ({ activeTab, setActiveTab, projectName, description, vers
                     <TabButton name="List" icon={<List className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                     <TabButton name="Timeline" icon={<Clock className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                     <TabButton name="Table" icon={<Table className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                    <TabButton name="History" icon={<History className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                 </div>
                 <div className='flex items-center gap-2'>
-                    <div className='relative'>
-                        <input 
-                            type='text' 
-                            placeholder='Search Task' 
-                            className='rounded-md border py-1 pl-10 pr-4 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white'
-                            value={localSearchTerm}
-                            onChange={(e) => setLocalSearchTerm(e.target.value)}
-                        />
-                        <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-neutral-500' />
-                    </div>
+                    {/* --- UPDATED: Show search bar unless History tab is active --- */}
+                    {activeTab !== 'History' && (
+                        <div className='relative'>
+                            <input 
+                                type='text' 
+                                placeholder='Search Task' 
+                                className='rounded-md border py-1 pl-10 pr-4 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white'
+                                value={localSearchTerm}
+                                onChange={(e) => setLocalSearchTerm(e.target.value)}
+                            />
+                            <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-neutral-500' />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

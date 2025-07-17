@@ -7,14 +7,25 @@ export const getTasks = async (
     req: Request,
     res: Response
 ): Promise<void> => {
-    const { projectId } = req.query;
+    // --- UPDATED: Add version to the query parameters ---
+    const { projectId, version } = req.query;
 
-    // --- MODIFICATION: Allow fetching all tasks ---
-    const whereClause = projectId ? { projectId: Number(projectId) } : {};
+    let whereClause: any = {};
+
+    if (projectId) {
+        whereClause.projectId = Number(projectId);
+        // --- NEW: Add version to the where clause if it's provided ---
+        if (version) {
+            whereClause.version = Number(version);
+        }
+    }
+    
+    // If no projectId is provided, we can still fetch all tasks (for other parts of the app)
+    // but the version filter will only apply if a projectId is also present.
 
     try {
         const tasks = await Prisma.task.findMany({
-            where: whereClause, // Use the dynamic where clause
+            where: whereClause,
             include: {
                 author: true,
                 assignee: true,
@@ -27,6 +38,7 @@ export const getTasks = async (
         res.status(500).json({ message: `Error retrieving tasks: ${error}` });
     }
 };
+
 
 // ... keep the rest of the file the same
 export const createTask = async (

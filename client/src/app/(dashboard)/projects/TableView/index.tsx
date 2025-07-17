@@ -1,15 +1,17 @@
+"use client";
+
 import { useAppSelector } from '@/app/redux';
 import Header from '@/components/Header';
 import { dataGridSxStyles } from '@/lib/utils';
-import { useGetTasksQuery } from '@/state/api';
+import { Task } from '@/state/api'; // Import the Task type
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Plus } from 'lucide-react';
 import React, { useMemo } from 'react';
 
 type Props = {
-  id: string;
+  tasks: Task[]; // --- UPDATED: Receive tasks as a prop ---
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
-  searchTerm: string; // New prop for search
+  searchTerm: string; 
 };
 
 const columns: GridColDef[] = [
@@ -67,15 +69,10 @@ const columns: GridColDef[] = [
   },
 ];
 
-const TableView = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
+const TableView = ({ tasks, setIsModalNewTaskOpen, searchTerm }: Props) => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
-  const {
-    data: tasks,
-    error,
-    isLoading,
-  } = useGetTasksQuery({ projectId: Number(id) });
 
-  // Filter tasks based on the search term
+  // The component no longer fetches data. It just filters the props.
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
     if (!searchTerm) return tasks;
@@ -89,9 +86,6 @@ const TableView = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
         (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
     );
   }, [tasks, searchTerm]);
-
-  if (isLoading) return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading Tasks...</div>;
-  if (error || !tasks) return <div className="p-6 text-center text-red-500">An error occurred while fetching tasks.</div>;
 
   return (
     <div className='h-[540px] w-full px-4 pb-8 xl:px-6'>
@@ -114,6 +108,8 @@ const TableView = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
             rows={filteredTasks || []}
             columns={columns}
             sx={dataGridSxStyles(isDarkMode)}
+            // Show a message if no rows are available after filtering
+            localeText={{ noRowsLabel: searchTerm ? 'No tasks match your search' : 'No tasks to display' }}
         />
     </div>
   )

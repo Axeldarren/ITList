@@ -1,27 +1,24 @@
+"use client";
+
 import { useAppSelector } from '@/app/redux';
-import { useGetTasksQuery } from '@/state/api';
-import { DisplayOption, Gantt, Task, ViewMode } from "gantt-task-react";
+import { DisplayOption, Gantt, Task as GanttTask, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
 import { Plus } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import ModalEditTask from '@/components/ModalEditTask';
+import { Task as TaskType } from '@/state/api'; // Renamed to avoid conflict with Gantt's Task type
 
 type Props = {
-    id: string;
+    tasks: TaskType[]; // --- UPDATED: Receive tasks as a prop ---
     setIsModalNewTaskOpen: (isOpen: boolean) => void;
-    searchTerm: string; // New prop for search
+    searchTerm: string;
 }
 
 type TaskTypeItems = "task" | "milestone" | "project";
 
-const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
+const TimelineView = ({ tasks, setIsModalNewTaskOpen, searchTerm }: Props) => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
-  const {
-    data: tasks,
-    error,
-    isLoading,
-  } = useGetTasksQuery({ projectId: Number(id) });
-
+  
   const [displayOptions, setDisplayOptions] = useState<DisplayOption>({
     viewMode: ViewMode.Month,
     locale: "en-US"
@@ -29,6 +26,7 @@ const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
   
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
+  // The component no longer fetches its own data. It just filters and maps the props.
   const ganttTasks = useMemo(() => {
     if (!tasks) return [];
     
@@ -50,13 +48,13 @@ const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
         name: task.title,
         id: `${task.id}`,
         type: "task" as TaskTypeItems,
-        progress: task.points ? task.points / 100 : 0,
+        progress: task.status === 'Completed' ? 100 : (task.points ? (task.points / 10) * 100 : 50), // Example progress logic
         isDisabled: false
       })) || []
     )
   }, [tasks, searchTerm]);
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = (task: GanttTask) => {
     setSelectedTaskId(Number(task.id));
   };
 
@@ -73,15 +71,12 @@ const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
     }));
   };
 
-  if (isLoading) return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading Tasks...</div>;
-  if (error) return <div className="p-6 text-center text-red-500">An error occurred while fetching tasks.</div>;
-
   return (
-    <div className='px-4 xl:px-6'>
+    <div className='px-4 xl:px-6 py-6'>
       {selectedTaskId && (
         <ModalEditTask taskId={selectedTaskId} onClose={handleCloseModal} />
       )}
-      <div className='flex flex-wrap items-center justify-between gap-2 py-5'>
+      <div className='flex flex-wrap items-center justify-between gap-2 mb-4'>
         <h1 className='me-2 text-lg font-bold dark:text-white'>
           Project Tasks Timeline
         </h1>
@@ -107,8 +102,8 @@ const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
                 onClick={handleTaskClick}
                 columnWidth={displayOptions.viewMode === ViewMode.Month ? 150 : 100}
                 listCellWidth="100px"
-                barBackgroundColor={isDarkMode ? "#101214" : "#aeb8c2"}
-                barBackgroundSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
+                projectProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}
+                projectProgressSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
             />
           ) : (
             <div className="flex h-full items-center justify-center p-6">
@@ -118,7 +113,7 @@ const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
             </div>
           )}
         </div>
-        <div className="px-4 pb-5 pt-1">
+        <div className="px-4 pb-5 pt-3">
           <button
             className="flex items-center gap-2 rounded-md bg-[#0275ff] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
             onClick={() => setIsModalNewTaskOpen(true)}
@@ -132,4 +127,4 @@ const Timeline = ({ id, setIsModalNewTaskOpen, searchTerm }: Props) => {
   )
 }
 
-export default Timeline;
+export default TimelineView;

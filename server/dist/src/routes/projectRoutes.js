@@ -8,8 +8,10 @@ router.use(authMiddleware_1.protect);
 // Project Routes
 router.get("/", projectController_1.getProjects);
 router.get("/:projectId/users", projectController_1.getProjectUsers);
+router.get("/:projectId/versions", projectController_1.getProjectVersionHistory);
 // Create Project
 router.post("/", projectController_1.createProject);
+router.post("/:projectId/archive", projectController_1.archiveAndIncrementVersion);
 // Delete Project
 router.delete("/:projectId", projectController_1.deleteProject);
 // Update Project Version and Project

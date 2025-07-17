@@ -18,8 +18,6 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 const signToken = (id) => {
-    // --- THIS IS THE FIX ---
-    // We must ensure the JWT_SECRET is not undefined before using it.
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
         throw new Error('JWT_SECRET is not defined in the environment variables.');
