@@ -124,12 +124,10 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
   };
 
   const handleDeleteAttachment = (attachmentId: number) => {
-    if (window.confirm("Are you sure you want to delete this attachment?")) {
-      deleteAttachment(attachmentId)
-        .unwrap()
-        .then(() => toast.success("Attachment deleted!"))
-        .catch(() => toast.error("Failed to delete attachment."));
-    }
+    deleteAttachment(attachmentId)
+      .unwrap()
+      .then(() => toast.success("Attachment deleted!"))
+      .catch(() => toast.error("Failed to delete attachment."));
   };
 
   const handleEditComment = (comment: CommentType) => {
