@@ -1,11 +1,13 @@
 import { Router } from "express";
-import { getUserById, getUsers, updateUser, uploadProfilePicture } from "../controller/userController";
+import { createUser, getUserById, getUsers, updateUser, uploadProfilePicture } from "../controller/userController";
 import upload from "../middleware/upload";
-import { protect } from "../middleware/authMiddleware";
+import { protect, restrictToAdmin } from "../middleware/authMiddleware";
 
 const router = Router();
 
 router.use(protect);
+
+router.post("/", restrictToAdmin, createUser);
 
 router.get("/", getUsers);
 router.get("/:userId", getUserById);

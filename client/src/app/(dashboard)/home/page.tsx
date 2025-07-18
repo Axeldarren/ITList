@@ -1,5 +1,8 @@
 "use client";
 
+import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
 import {
   Priority,
   Project,
@@ -7,19 +10,22 @@ import {
   useGetAllTasksQuery,
   useGetProjectsQuery,
   useGetTasksByUserQuery,
-  useGetUserByIdQuery, // 1. Import the new hook
+  useGetUserByIdQuery,
+  useGetTeamsQuery,
+  useGetUsersQuery,
 } from "@/state/api";
-import React, { useMemo, useState } from "react";
 import { useAppSelector } from "../../redux";
-import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
+import { selectCurrentUser } from "@/state/authSlice";
+import toast from "react-hot-toast";
+import { exportAllProjectsToPDF } from "@/lib/recapPdfGenerator";
+
+// Component Imports
 import Header from "@/components/Header";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
-import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, FileDown } from "lucide-react";
 import Link from "next/link";
 import { differenceInDays, format } from "date-fns";
-import { useRouter } from "next/navigation";
-import { selectCurrentUser } from "@/state/authSlice";
 
 // --- Expandable Stats Card Component ---
 interface ExpandableStatsCardProps<T> {
@@ -73,7 +79,6 @@ const ExpandableStatsCard = <T,>({ title, value, icon, color, description, items
     );
 };
 
-
 const taskColumns: GridColDef[] = [
     { field: "title", headerName: "Title", width: 200 },
     { field: "projectName", headerName: "Project", width: 150 },
@@ -89,6 +94,39 @@ const taskColumns: GridColDef[] = [
 
 const priorities: Priority[] = [Priority.Backlog, Priority.Low, Priority.Medium, Priority.High, Priority.Urgent];
 
+/**
+ * Home Page Component for the Dashboard
+ * 
+ * This component serves as the main dashboard for the project management application.
+ * It displays a summary of user tasks, ongoing projects, and important metrics.
+ * 
+ * Features:
+ * - Personal task overview with priority filtering
+ * - Task completion toggle
+ * - Project progress tracking
+ * - Status cards showing overdue tasks, upcoming deadlines, at-risk projects, and completed tasks
+ * - Quick access to ongoing and overdue projects
+ * - Export functionality for project recap reports
+ * - New project creation
+ * 
+ * The component uses various data fetching hooks to retrieve:
+ * - User information
+ * - User-assigned tasks
+ * - All projects
+ * - All tasks
+ * - Teams
+ * - Users
+ * 
+ * It also calculates various derived metrics like:
+ * - Tasks that are overdue
+ * - Tasks due within the next week
+ * - Projects at risk
+ * - Completed tasks
+ * - Project completion percentages
+ * 
+ * @returns React component that renders the home dashboard
+ */
+
 const HomePage = () => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<Priority | "all" | "Completed">("all");
@@ -98,49 +136,34 @@ const HomePage = () => {
   const loggedInUser = useAppSelector(selectCurrentUser);
   const UserID = loggedInUser?.userId;
 
-  // 2. Fetch full user data using the ID from the auth state
-  const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(
-      UserID!,
-      { skip: !UserID }
-  );
-
-  const { data: userTasks, isLoading: tasksLoading, isError: tasksError } = useGetTasksByUserQuery(
-    UserID!,
-    { skip: !UserID }
-  );
+  const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });
+  const { data: userTasks = [], isLoading: tasksLoading } = useGetTasksByUserQuery(UserID!, { skip: !UserID });
   
-  const { data: projects, isLoading: projectsLoading, isError: projectsError } = useGetProjectsQuery();
-  const { data: allTasks, isLoading: allTasksLoading, isError: allTasksError } = useGetAllTasksQuery();
+  // Fetch all data required for the dashboard and recap report
+  const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
+  const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();
+  const { data: teams = [], isLoading: teamsLoading } = useGetTeamsQuery();
+  const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
 
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
-  const projectMap = useMemo(() => {
-    if (!projects) return new Map();
-    return new Map(projects.map(p => [p.id, p.name]));
-  }, [projects]);
   
-  const tasksWithProjectName = useMemo(() => {
-    if (!userTasks) return [];
-    return userTasks.map(task => ({
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
+  
+  const tasksWithProjectName = useMemo(() => userTasks.map(task => ({
       ...task,
       projectName: projectMap.get(task.projectId) || "Unknown Project",
-    }));
-  }, [userTasks, projectMap]);
+  })), [userTasks, projectMap]);
 
   const filteredTasks = useMemo(() => {
     const sourceTasks = showCompleted 
       ? tasksWithProjectName.filter(task => task.status === "Completed")
       : tasksWithProjectName.filter(task => task.status !== "Completed");
 
-    if (activeFilter === "all" || showCompleted) {
-        return sourceTasks;
-    }
-
+    if (activeFilter === "all" || showCompleted) return sourceTasks;
     return sourceTasks.filter(task => task.priority === activeFilter);
   }, [tasksWithProjectName, activeFilter, showCompleted]);
 
   const { tasksOverdue, tasksDueThisWeek, projectsAtRisk, tasksCompleted } = useMemo(() => {
-    if (!userTasks || !projects || !allTasks) return { tasksOverdue: [], tasksDueThisWeek: [], projectsAtRisk: [], tasksCompleted: [] };
-    
     const now = new Date();
     const overdue = userTasks.filter(t => t.dueDate && new Date(t.dueDate) < now && t.status !== 'Completed');
     const dueThisWeek = userTasks.filter(t => t.dueDate && differenceInDays(new Date(t.dueDate), now) <= 7 && differenceInDays(new Date(t.dueDate), now) >= 0);
@@ -149,12 +172,10 @@ const HomePage = () => {
         return p.endDate && new Date(p.endDate) < now && !isCompleted;
     });
     const completed = userTasks.filter(t => t.status === 'Completed');
-    
     return { tasksOverdue: overdue, tasksDueThisWeek: dueThisWeek, projectsAtRisk: atRisk, tasksCompleted: completed };
   }, [userTasks, projects, allTasks]);
   
   const { ongoingProjects, overdueProjects } = useMemo(() => {
-    if (!projects || !allTasks) return { ongoingProjects: [], overdueProjects: [] };
     const now = new Date();
     const processedProjects = projects.map(project => {
       const projectTasks = allTasks.filter(t => t.projectId === project.id);
@@ -171,36 +192,41 @@ const HomePage = () => {
   }, [projects, allTasks]);
 
   const handleRowClick = (params: GridRowParams) => {
-    const task = params.row as Task;
-    router.push(`/projects/${task.projectId}`);
+    router.push(`/projects/${(params.row as Task).projectId}`);
   };
 
-  // 3. Update loading and error logic to include the new user query
-  if (projectsLoading || allTasksLoading || userLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading dashboard...</div>;
-  }
-  
-  if (tasksLoading) {
-      return <div className="flex items-center justify-center h-screen">Loading your tasks...</div>;
-  }
-  
-  if (projectsError || allTasksError || tasksError || !fullCurrentUser) {
-      return <div className="flex items-center justify-center h-screen">Error fetching data. Please try again later.</div>;
-  }
+  const isLoading = projectsLoading || allTasksLoading || userLoading || teamsLoading || usersLoading;
+
+  const handleExportRecap = () => {
+    if (isLoading) {
+        toast.error("Please wait for all data to load before exporting.");
+        return;
+    }
+    exportAllProjectsToPDF(projects, allTasks, teams, users);
+  };
 
   return (
     <div className="h-full w-full bg-transparent p-8">
       <ModalNewProject isOpen={isNewProjectModalOpen} onClose={() => setIsNewProjectModalOpen(false)} />
       
       <Header 
-        name={`Hi, ${fullCurrentUser.username}`} // 4. Use the data from the new hook
+        name={`Hi, ${fullCurrentUser?.username}`}
         buttonComponent={
-          <button 
-            className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
-            onClick={() => setIsNewProjectModalOpen(true)}
-          >
-            <Plus size={18} /> Add Project
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+              onClick={handleExportRecap}
+              disabled={isLoading}
+            >
+              <FileDown size={18} /> Export Recap
+            </button>
+            <button 
+              className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+              onClick={() => setIsNewProjectModalOpen(true)}
+            >
+              <Plus size={18} /> Add Project
+            </button>
+          </div>
         }
       />
       

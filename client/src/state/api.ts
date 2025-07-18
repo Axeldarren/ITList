@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '@/app/redux';
+
 export interface Project {
     id: number;
     name: string;
@@ -293,7 +294,13 @@ export const api = createApi({
 
         getUsers: build.query<User[], void>({
             query: () => 'users',
-            providesTags: ["Users"]
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ userId }) => ({ type: 'Users' as const, id: userId })),
+                        { type: 'Users', id: 'LIST' },
+                      ]
+                    : [{ type: 'Users', id: 'LIST' }],
         }),
         getUserById: build.query<User, number>({
             query: (userId) => `users/${userId}`,
@@ -306,10 +313,21 @@ export const api = createApi({
                 method: 'PATCH',
                 body: patch,
             }),
-            invalidatesTags: (result, error, { userId }) => [{ type: 'Users', id: userId }],
+            invalidatesTags: (result, error, { userId }) => [
+                { type: 'Users', id: 'LIST' }, 
+                { type: 'Users', id: userId }
+            ],
         }),
 
-        // --- NEW: Mutation for uploading a profile picture ---
+        createUser: build.mutation<User, Partial<User>>({
+            query: (newUser) => ({
+                url: 'users',
+                method: 'POST',
+                body: newUser,
+            }),
+            invalidatesTags: ['Users'], // Invalidate the Users tag to refetch the list
+        }),
+
         uploadProfilePicture: build.mutation<User, { userId: number; file: File }>({
             query: ({ userId, file }) => {
                 const formData = new FormData();
@@ -329,7 +347,6 @@ export const api = createApi({
             providesTags: ["Teams"]
         }),
 
-        // --- NEW: Team Mutations ---
         createTeam: build.mutation<Team, Partial<Team>>({
             query: (team) => ({
                 url: 'teams',
@@ -422,7 +439,7 @@ export const {
     useArchiveAndIncrementVersionMutation,
     useGetProjectVersionHistoryQuery,
     useGetAllProjectVersionsQuery,
-    useGetAllTasksQuery, // Export the new query
+    useGetAllTasksQuery,
     useGetTasksQuery,
     useGetTaskByIdQuery,
     useGetTasksByUserQuery,
@@ -435,6 +452,7 @@ export const {
     useGetSearchSuggestionsQuery,
     useGetUsersQuery,
     useGetUserByIdQuery,
+    useCreateUserMutation,
     useUpdateUserMutation,
     useUploadProfilePictureMutation,
     useGetTeamsQuery,

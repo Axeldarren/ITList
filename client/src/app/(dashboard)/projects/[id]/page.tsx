@@ -13,20 +13,23 @@ import ArchiveView from '../ArchiveView';
 import ModalNewTask from '@/components/ModalNewTask';
 import ModalEditProject from '../ModalEditProject';
 import ModalNewVersion from '../ModalNewVersion';
+import { exportProjectToPDF } from '@/lib/pdfGenerator';
 
 // State and API Imports
-import {
+import { 
     useGetProjectsQuery, 
     useGetTasksQuery, 
     useArchiveAndIncrementVersionMutation, 
     useGetProjectVersionHistoryQuery,
+    useGetTeamsQuery, // Fetch all teams to find the correct one
+    useGetUsersQuery, // Fetch all users to find PM/PO
     Project as ProjectType
 } from '@/state/api';
 
 const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const { id } = use(params);
 
-    // State
+    // Component State
     const [activeTab, setActiveTab] = useState("Board");
     const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
@@ -34,11 +37,12 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const [localSearchTerm, setLocalSearchTerm] = useState('');
 
     // API Hooks
-    const { data: projects, isLoading: projectsLoading } = useGetProjectsQuery();
-    const currentProject = useMemo(() => projects?.find((p: ProjectType) => p.id === Number(id)), [projects, id]);
+    const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
+    const { data: teams = [], isLoading: teamsLoading } = useGetTeamsQuery();
+    const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
+    
+    const currentProject = useMemo(() => projects.find((p: ProjectType) => p.id === Number(id)), [projects, id]);
 
-    // **THE FIX**: Fetch ALL tasks for the project ID and let the frontend filter them.
-    // This simplifies the logic and ensures all views have access to all data they might need.
     const { data: allTasksForProject, isLoading: tasksLoading } = useGetTasksQuery(
         { projectId: Number(id) },
         { skip: !currentProject }
@@ -56,7 +60,7 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
         return activeTasks.every(task => task.status === 'Completed');
     }, [activeTasks]);
     
-    // Handlers
+    // Event Handlers
     const handleArchiveClick = () => {
         if (!allActiveTasksCompleted) {
             toast.error("All tasks must be marked as 'Completed' before starting a new version.");
@@ -74,7 +78,28 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
         setIsNewVersionModalOpen(false);
     };
 
-    const isLoading = projectsLoading || tasksLoading;
+    const handleExport = () => {
+        if (!currentProject || !activeTasks || !teams || !users) {
+            toast.error("Data is not yet available for the report.");
+            return;
+        }
+
+        const teamDetails = teams.find(team => team.id === currentProject.teamId);
+        if (!teamDetails) {
+            toast.error("Could not find team details for this project.");
+            return;
+        }
+
+        const projectManager = users.find(u => u.userId === teamDetails.projectManagerUserId);
+        const productOwner = users.find(u => u.userId === teamDetails.productOwnerUserId);
+        
+        const developerIds = new Set(activeTasks.map(t => t.assignedUserId).filter(Boolean));
+        const developers = users.filter(u => developerIds.has(u.userId));
+
+        exportProjectToPDF(currentProject, activeTasks, projectManager, productOwner, developers);
+    };
+
+    const isLoading = projectsLoading || tasksLoading || teamsLoading || usersLoading;
     if (isLoading) {
         return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading project details...</div>;
     }
@@ -99,6 +124,7 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 onEdit={() => setEditModalOpen(true)}
                 onArchive={handleArchiveClick}
                 isArchivable={allActiveTasksCompleted && !isArchiving}
+                onExportPDF={handleExport}
                 localSearchTerm={localSearchTerm}
                 setLocalSearchTerm={setLocalSearchTerm}
             />
@@ -107,7 +133,6 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 <ArchiveView versionHistory={versionHistory} tasks={archivedTasks} />
             ) : (
                 <>
-                    {/* --- Passing the correct 'activeTasks' prop to all views --- */}
                     { activeTab === "Board" && <BoardView id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} /> }
                     { activeTab === "List" && <ListView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} /> }
                     { activeTab === "Table" && <TableView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} /> }

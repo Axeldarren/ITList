@@ -1,7 +1,7 @@
 "use client";
 
 import Header from '@/components/Header';
-import { Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, PlusSquare } from 'lucide-react';
+import { Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, PlusSquare, FileDown } from 'lucide-react';
 import React, { useState } from 'react';
 import ModalNewProject from './ModalNewProject';
 
@@ -16,6 +16,7 @@ type Props = {
     isArchivable: boolean;
     localSearchTerm: string;
     setLocalSearchTerm: (term: string) => void;
+    onExportPDF: () => void;
 }
 
 const ProjectHeader = ({ 
@@ -29,6 +30,7 @@ const ProjectHeader = ({
     isArchivable, 
     localSearchTerm, 
     setLocalSearchTerm,
+    onExportPDF
 }: Props) => {
     const [isModalNewProjectOpen, setIsModalNewProjectOpen] = useState(false);
   
@@ -42,6 +44,12 @@ const ProjectHeader = ({
                 <Header name={projectName}
                     buttonComponent={
                         <div className="flex space-x-2">
+                            <button
+                                className='flex items-center rounded-md bg-purple-600 px-3 py-2 text-white hover:bg-purple-700'
+                                onClick={onExportPDF}
+                            >
+                                <FileDown className='mr-2 size-5' /> Export Report
+                            </button>
                             <button
                                 className={`flex items-center rounded-md px-3 py-2 text-white ${
                                     isArchivable ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'

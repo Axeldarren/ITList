@@ -67,7 +67,7 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
         if (!user || !(yield bcryptjs_1.default.compare(password, user.password))) {
             return res.status(401).json({ message: 'Incorrect email or password' });
         }
-        createSendToken({ userId: user.userId, password: user.password }, 200, res);
+        createSendToken({ userId: user.userId, password: user.password, isAdmin: user.isAdmin }, 200, res);
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

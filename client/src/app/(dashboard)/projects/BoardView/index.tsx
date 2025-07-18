@@ -14,13 +14,13 @@ import {
   Trash2,
   Edit,
   Paperclip,
-} from "lucide-react"; // <-- Import Edit icon
+} from "lucide-react"; 
 import { format } from "date-fns";
 import Image from "next/image";
 import BoardViewSkeleton from "./BoardViewSkeleton";
 import toast from "react-hot-toast";
 import ModalConfirm from "@/components/ModalConfirm";
-import ModalEditTask from "@/components/ModalEditTask"; // <-- Import the edit modal
+import ModalEditTask from "@/components/ModalEditTask"; 
 
 type BoardProps = {
   id: string;

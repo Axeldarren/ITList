@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Task, ProjectVersion } from '@/state/api';
-import TaskCard from '@/components/TaskCard'; // Ensure this is imported
+import TaskCard from '@/components/TaskCard';
 import { format } from 'date-fns';
 
 type Props = {
@@ -29,7 +29,6 @@ const ArchiveView = ({ versionHistory, tasks }: Props) => {
                         {versionTasks.length > 0 ? (
                             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
                                 {versionTasks.map(task => (
-                                    // --- UPDATED: Pass the isArchived prop ---
                                     <TaskCard key={task.id} task={task} isArchived={true} />
                                 ))}
                             </div>

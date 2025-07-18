@@ -8,14 +8,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadProfilePicture = exports.updateUser = exports.getUserById = exports.getUsers = void 0;
+exports.createUser = exports.uploadProfilePicture = exports.updateUser = exports.getUserById = exports.getUsers = void 0;
 const client_1 = require("@prisma/client");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 const getUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -49,18 +61,38 @@ exports.getUserById = getUserById;
 // --- Function to update user profile information ---
 const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userId } = req.params;
-    // Only handles text-based fields
-    const { username, email, NIK } = req.body;
+    const loggedInUser = req.user;
+    const { username, email, NIK, isAdmin } = req.body;
+    if (!loggedInUser) {
+        res.status(401).json({ message: 'Not authorized' });
+        return;
+    }
     try {
+        const dataToUpdate = {
+            username,
+            email,
+            NIK: NIK ? Number(NIK) : undefined,
+        };
+        // --- THIS IS THE FIX ---
+        // Securely handle the isAdmin flag
+        if (loggedInUser.isAdmin) {
+            // Only an admin can change the isAdmin status
+            if (typeof isAdmin === 'boolean') {
+                dataToUpdate.isAdmin = isAdmin;
+            }
+        }
+        else if (isAdmin === true && !loggedInUser.isAdmin) {
+            // A non-admin cannot make themselves an admin
+            res.status(403).json({ message: 'You do not have permission to change admin status.' });
+            return;
+        }
         const updatedUser = yield prisma.user.update({
             where: { userId: Number(userId) },
-            data: {
-                username,
-                email,
-                NIK: NIK ? Number(NIK) : undefined
-            },
+            data: dataToUpdate,
         });
-        res.status(200).json(updatedUser);
+        // Ensure the password is not sent back to the client
+        const { password } = updatedUser, userWithoutPassword = __rest(updatedUser, ["password"]);
+        res.status(200).json(userWithoutPassword);
     }
     catch (error) {
         if (error.code === 'P2002') {
@@ -105,3 +137,35 @@ const uploadProfilePicture = (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.uploadProfilePicture = uploadProfilePicture;
+const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { username, email, password, NIK, isAdmin } = req.body;
+    if (!username || !email || !password) {
+        res.status(400).json({ message: 'Username, email, and password are required.' });
+        return;
+    }
+    try {
+        // Hash the password before saving
+        const hashedPassword = yield bcryptjs_1.default.hash(password, 12);
+        const newUser = yield prisma.user.create({
+            data: {
+                username,
+                email,
+                password: hashedPassword,
+                NIK: NIK ? Number(NIK) : 0,
+                isAdmin: isAdmin || false,
+            },
+        });
+        // Remove password from the returned object
+        const { password: _ } = newUser, userWithoutPassword = __rest(newUser, ["password"]);
+        res.status(201).json(userWithoutPassword);
+    }
+    catch (error) {
+        if (error.code === 'P2002') { // Handle unique constraint errors (e.g., email already exists)
+            res.status(409).json({ message: 'A user with this email or username already exists.' });
+        }
+        else {
+            res.status(500).json({ message: 'Error creating user', error: error.message });
+        }
+    }
+});
+exports.createUser = createUser;

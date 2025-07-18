@@ -9,6 +9,7 @@ const upload_1 = __importDefault(require("../middleware/upload"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
 router.use(authMiddleware_1.protect);
+router.post("/", authMiddleware_1.restrictToAdmin, userController_1.createUser);
 router.get("/", userController_1.getUsers);
 router.get("/:userId", userController_1.getUserById);
 router.patch("/:userId", userController_1.updateUser);

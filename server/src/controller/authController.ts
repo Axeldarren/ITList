@@ -17,7 +17,7 @@ const signToken = (id: number) => {
     });
 };
 
-const createSendToken = (user: { userId: number, password?: string }, statusCode: number, res: Response) => {
+const createSendToken = (user: { userId: number, password?: string, isAdmin: boolean }, statusCode: number, res: Response) => {
     const token = signToken(user.userId);
 
     const cookieOptions = {
@@ -70,7 +70,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             return res.status(401).json({ message: 'Incorrect email or password' });
         }
 
-        createSendToken({ userId: user.userId, password: user.password }, 200, res);
+        createSendToken({ userId: user.userId, password: user.password, isAdmin: user.isAdmin }, 200, res);
 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
