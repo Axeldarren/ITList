@@ -1,4 +1,12 @@
 node_modules
+dist
+build
+coverage
+.DS_Store
+npm-debug.log
+yarn-error.log
+.env.local
+.env.development.local
 # Keep environment variables out of version control
 .env
 
