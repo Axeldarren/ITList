@@ -21,16 +21,18 @@ import BoardViewSkeleton from "./BoardViewSkeleton";
 import toast from "react-hot-toast";
 import ModalConfirm from "@/components/ModalConfirm";
 import ModalEditTask from "@/components/ModalEditTask"; 
+import ModalViewTask from "@/components/ModalViewTask";
 
 type BoardProps = {
   id: string;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
   searchTerm: string;
+  isProjectActive: boolean;
 };
 
 const taskStatus = ["To Do", "Work In Progress", "Under Review", "Completed"];
 
-const BoardView = ({ id, setIsModalNewTaskOpen, searchTerm }: BoardProps) => {
+const BoardView = ({ id, setIsModalNewTaskOpen, searchTerm, isProjectActive }: BoardProps) => {
   const {
     data: tasks,
     isLoading,
@@ -84,6 +86,7 @@ const BoardView = ({ id, setIsModalNewTaskOpen, searchTerm }: BoardProps) => {
             setIsModalNewTaskOpen={setIsModalNewTaskOpen}
             openMenuId={openMenuId}
             onMenuToggle={handleMenuToggle}
+            isProjectActive={isProjectActive} 
           />
         ))}
       </div>
@@ -98,6 +101,7 @@ interface TaskColumnProps {
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
   openMenuId: number | null;
   onMenuToggle: (taskId: number) => void;
+  isProjectActive: boolean;
 }
 
 const TaskColumn = ({
@@ -107,9 +111,11 @@ const TaskColumn = ({
   setIsModalNewTaskOpen,
   openMenuId,
   onMenuToggle,
+  isProjectActive,
 }: TaskColumnProps) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "task",
+    canDrop: () => isProjectActive,
     drop: (item: { id: number }) => moveTask(item.id, status),
     collect: (monitor: import("react-dnd").DropTargetMonitor) => ({
       isOver: !!monitor.isOver(),
@@ -161,6 +167,7 @@ const TaskColumn = ({
           <Task
             key={task.id}
             task={task}
+            isProjectActive={isProjectActive}
             openMenuId={openMenuId}
             onMenuToggle={onMenuToggle}
           />
@@ -173,16 +180,19 @@ type TaskProps = {
   task: TaskType;
   openMenuId: number | null;
   onMenuToggle: (taskId: number) => void;
+  isProjectActive: boolean;
 };
 
-const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
+const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) => {
   const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false); // <-- State for the edit modal
+  const [isViewModalOpen, setViewModalOpen] = useState(false);
 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "task",
     item: { id: task.id },
+    canDrag: isProjectActive,
     collect: (monitor: import("react-dnd").DragSourceMonitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -190,7 +200,11 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
 
   // --- Handlers for opening and closing the modal ---
   const handleCardClick = () => {
-    setEditModalOpen(true);
+    if (isProjectActive) {
+      setEditModalOpen(true);
+    } else {
+      setViewModalOpen(true);
+    }
   };
 
   const handleCloseModal = () => {
@@ -212,9 +226,7 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
   const handleConfirmDelete = () => {
     const promise = deleteTask(task.id).unwrap();
     toast.promise(promise, {
-      loading: "Deleting task...",
-      success: "Task deleted successfully!",
-      error: "Failed to delete task.",
+      loading: "Deleting task...", success: "Task deleted successfully!", error: "Failed to delete task.",
     });
     setConfirmModalOpen(false);
   };
@@ -254,6 +266,7 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
       {isEditModalOpen && (
         <ModalEditTask taskId={task.id} onClose={handleCloseModal} />
       )}
+      {isViewModalOpen && <ModalViewTask taskId={task.id} onClose={() => setViewModalOpen(false)} />}
       <ModalConfirm
         isOpen={isConfirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
@@ -269,7 +282,6 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
         onClick={handleCardClick} // <-- Open modal on card click
         className={`dark:bg-dark-secondary mb-4 cursor-pointer rounded-md bg-white shadow hover:shadow-xl ${isDragging ? "opacity-50" : "opacity-100"}`}
       >
-        {/* ... existing task content ... */}
         <div className="p-4 md:p-6">
           <div className="flex items-start justify-between">
             <div className="flex flex-1 flex-wrap items-center gap-2">
@@ -287,43 +299,26 @@ const Task = ({ task, openMenuId, onMenuToggle }: TaskProps) => {
               </div>
             </div>
             <div className="relative flex-shrink-0">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMenuToggle(task.id);
-                }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                <MoreVertical size={20} />
-              </button>
-              {openMenuId === task.id && (
-                <div className="dark:bg-dark-tertiary absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg">
-                  <div
-                    className="py-1"
-                    role="menu"
-                    aria-orientation="vertical"
-                    aria-labelledby="options-menu"
-                  >
-                    {/* --- Edit Button --- */}
-                    <button
-                      onClick={handleEditClick}
-                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
-                      role="menuitem"
-                    >
-                      <Edit className="mr-3 h-5 w-5" />
-                      <span>Edit</span>
-                    </button>
-                    {/* --- Delete Button --- */}
-                    <button
-                      onClick={handleDeleteClick}
-                      className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
-                      role="menuitem"
-                    >
-                      <Trash2 className="mr-3 h-5 w-5" />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </div>
+              {isProjectActive && (
+                <>
+                  <button onClick={(e) => { e.stopPropagation(); onMenuToggle(task.id); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <MoreVertical size={20} />
+                  </button>
+                  {openMenuId === task.id && (
+                    <div className="dark:bg-dark-tertiary absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg">
+                      <div className="py-1" role="menu">
+                        <button onClick={handleEditClick} className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600" role="menuitem">
+                          <Edit className="mr-3 h-5 w-5" />
+                          <span>Edit</span>
+                        </button>
+                        <button onClick={handleDeleteClick} className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600" role="menuitem">
+                          <Trash2 className="mr-3 h-5 w-5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

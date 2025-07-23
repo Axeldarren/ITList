@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import fs from 'fs';
-import path from 'path';
 
 const Prisma = new PrismaClient();
 
@@ -36,29 +34,16 @@ export const createAttachment = async (req: Request, res: Response) => {
 
 export const deleteAttachment = async (req: Request, res: Response) => {
     const { attachmentId } = req.params;
+    const loggedInUser = req.user;
 
     try {
-        // First, find the attachment to get the file path
-        const attachment = await Prisma.attachment.findUnique({
+        await Prisma.attachment.update({
             where: { id: Number(attachmentId) },
+            data: {
+                deletedAt: new Date(),
+                deletedById: loggedInUser?.userId
+            }
         });
-
-        if (!attachment) {
-            return res.status(404).json({ message: "Attachment not found." });
-        }
-
-        // Delete the attachment record from the database
-        await Prisma.attachment.delete({
-            where: { id: Number(attachmentId) },
-        });
-
-        // Construct the full path to the file on the server
-        const filePath = path.join(__dirname, '../../public', attachment.fileURL);
-
-        // Delete the file from the filesystem
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
 
         res.status(200).json({ message: "Attachment deleted successfully." });
     } catch (error: any) {

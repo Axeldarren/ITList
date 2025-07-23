@@ -8,7 +8,14 @@ export interface Project {
     startDate?: string;
     endDate?: string;
     version: number;
-    teamId?: number; 
+    teamId?: number;
+    status: ProjectStatus; 
+    deletedAt?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+    createdById?: number;
+    updatedById?: number;
+    deletedById?: number;
 
     versions?: ProjectVersion[];
 }
@@ -22,6 +29,7 @@ export interface ProjectVersion {
     endDate: string;
     archivedAt: string;
     projectId: number;
+    status: ProjectStatus; // Add status to ProjectVersion
 }
 
 export enum Priority {
@@ -30,6 +38,14 @@ export enum Priority {
     Medium = 'Medium',
     Low = 'Low',
     Backlog = 'Backlog',
+}
+
+export enum ProjectStatus {
+  Start = 'Start',
+  OnProgress = 'OnProgress',
+  Resolve = 'Resolve',
+  Finish = 'Finish',
+  Cancel = 'Cancel',
 }
 
 export enum Status {
@@ -51,7 +67,7 @@ export interface User {
 
 export interface Attachment {
     id: number;
-    fileUrl: string;
+    fileURL: string;
     fileName: string;
     taskId: number;
     uploadedById: number;
@@ -186,6 +202,19 @@ export const api = createApi({
             invalidatesTags: (result, error, { id }) => [
                 { type: "Projects", id },
                 { type: 'Users', id: `PROJECT_${id}` }
+            ],
+        }),
+
+        updateProjectStatus: build.mutation<{ message: string }, { projectId: number; status: string }>({
+            query: ({ projectId, status }) => ({
+                url: `projects/${projectId}/status`,
+                method: 'PATCH',
+                body: { status },
+            }),
+            // Invalidate both the specific project and the main list to ensure UI consistency
+            invalidatesTags: (result, error, { projectId }) => [
+                { type: 'Projects', id: 'LIST' },
+                { type: 'Projects', id: projectId }
             ],
         }),
         
@@ -436,6 +465,7 @@ export const {
     useCreateProjectMutation,
     useDeleteProjectMutation,
     useUpdateProjectMutation,
+    useUpdateProjectStatusMutation,
     useArchiveAndIncrementVersionMutation,
     useGetProjectVersionHistoryQuery,
     useGetAllProjectVersionsQuery,

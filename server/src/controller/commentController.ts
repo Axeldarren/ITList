@@ -6,10 +6,11 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const createComment = async (req: Request, res: Response) => {
-    const { text, taskId, userId } = req.body;
+    const { text, taskId } = req.body;
+    const loggedInUser = req.user;
 
-    if (!text || !taskId || !userId) {
-        return res.status(400).json({ message: "Missing required fields." });
+    if (!text || !taskId || !loggedInUser) {
+        return res.status(400).json({ message: "Missing required fields or user not logged in." });
     }
 
     try {
@@ -17,9 +18,10 @@ export const createComment = async (req: Request, res: Response) => {
             data: {
                 text,
                 taskId: Number(taskId),
-                userId: Number(userId),
+                userId: loggedInUser.userId, // This is the "createdBy"
+                updatedById: loggedInUser.userId, // The creator is the first updater
             },
-            include: { user: true }, // Include user details on creation
+            include: { user: true },
         });
         res.status(201).json(newComment);
     } catch (error: any) {
@@ -30,6 +32,7 @@ export const createComment = async (req: Request, res: Response) => {
 export const updateComment = async (req: Request, res: Response) => {
     const { commentId } = req.params;
     const { text } = req.body;
+    const loggedInUser = req.user;
 
     if (!text) {
         return res.status(400).json({ message: "Comment text cannot be empty." });
@@ -38,7 +41,10 @@ export const updateComment = async (req: Request, res: Response) => {
     try {
         const updatedComment = await prisma.comment.update({
             where: { id: Number(commentId) },
-            data: { text },
+            data: { 
+                text,
+                updatedById: loggedInUser?.userId, // Stamp the updater
+            },
             include: { user: true },
         });
         res.status(200).json(updatedComment);
@@ -49,10 +55,15 @@ export const updateComment = async (req: Request, res: Response) => {
 
 export const deleteComment = async (req: Request, res: Response) => {
     const { commentId } = req.params;
+    const loggedInUser = req.user;
 
     try {
-        await prisma.comment.delete({
+        await prisma.comment.update({
             where: { id: Number(commentId) },
+            data: {
+                deletedAt: new Date(),
+                deletedById: loggedInUser?.userId,
+            },
         });
         res.status(200).json({ message: "Comment deleted successfully." });
     } catch (error: any) {

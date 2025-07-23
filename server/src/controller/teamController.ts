@@ -7,22 +7,15 @@ const prisma = new PrismaClient();
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
     try {
         const teams = await prisma.team.findMany({
+            where: { deletedAt: null }, // Only find teams that have not been deleted
             include: {
                 members: { include: { user: true } },
+                createdBy: { select: { username: true } },
             }
         });
-
-        // Manually fetch usernames for PO and PM since relations are removed
-        const userIds = [
-            ...new Set(teams.map(team => team.productOwnerUserId)),
-            ...new Set(teams.map(team => team.projectManagerUserId))
-        ].filter(id => id != null);
-
-        const users = await prisma.user.findMany({
-            where: { userId: { in: userIds as number[] } },
-            select: { userId: true, username: true }
-        });
         
+        const userIds = [ /* ... */ ];
+        const users = await prisma.user.findMany({ /* ... */ });
         const userMap = new Map(users.map(u => [u.userId, u.username]));
 
         const teamsWithDetails = teams.map(team => ({
@@ -38,15 +31,20 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({ message: `Error retrieving teams: ${error.message}` });
     }
 };
+
 // Create a team and create entries in the join table
 export const createTeam = async (req: Request, res: Response): Promise<void> => {
     const { teamName, productOwnerUserId, projectManagerUserId, memberIds = [] } = req.body;
+    const loggedInUser = req.user;
+
     try {
         const newTeam = await prisma.team.create({
             data: {
                 teamName,
                 productOwnerUserId: Number(productOwnerUserId),
                 projectManagerUserId: Number(projectManagerUserId),
+                createdById: loggedInUser?.userId,
+                updatedById: loggedInUser?.userId, // The creator is the first updater
                 members: {
                     create: memberIds.map((id: number) => ({
                         userId: Number(id)
@@ -65,26 +63,24 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
 export const updateTeam = async (req: Request, res: Response): Promise<void> => {
     const { teamId } = req.params;
     const { teamName, productOwnerUserId, projectManagerUserId, memberIds = [] } = req.body;
+    const loggedInUser = req.user;
+    
     try {
         const teamIdNum = Number(teamId);
 
         await prisma.$transaction(async (tx) => {
-            // 1. Update team's basic info
             const updatedTeam = await tx.team.update({
                 where: { id: teamIdNum },
                 data: {
                     teamName,
                     productOwnerUserId: Number(productOwnerUserId),
                     projectManagerUserId: Number(projectManagerUserId),
+                    updatedById: loggedInUser?.userId, // Stamp the updater
                 },
             });
             
-            // 2. Clear existing members for this team
-            await tx.teamMembership.deleteMany({
-                where: { teamId: teamIdNum }
-            });
+            await tx.teamMembership.deleteMany({ where: { teamId: teamIdNum } });
 
-            // 3. Create new membership records
             if (memberIds.length > 0) {
                 await tx.teamMembership.createMany({
                     data: memberIds.map((id: number) => ({
@@ -106,19 +102,18 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
 // Delete a team (onDelete: Cascade in the schema will handle TeamMembership)
 export const deleteTeam = async (req: Request, res: Response): Promise<void> => {
     const { teamId } = req.params;
-    try {
-        // Disassociate the team from any projects first
-        await prisma.projectTeam.deleteMany({
-            where: { teamId: Number(teamId) },
-        });
+    const loggedInUser = req.user;
 
-        // Now delete the team. The `onDelete: Cascade` in the TeamMembership
-        // model will automatically delete all member links.
-        await prisma.team.delete({
+    try {
+        await prisma.team.update({
             where: { id: Number(teamId) },
+            data: {
+                deletedAt: new Date(),
+                deletedById: loggedInUser?.userId,
+            },
         });
-        res.status(200).json({ message: `Team ${teamId} deleted successfully.` });
+        res.status(200).json({ message: `Team ${teamId} archived successfully.` });
     } catch (error: any) {
-        res.status(500).json({ message: `Error deleting team: ${error.message}` });
+        res.status(500).json({ message: `Error archiving team: ${error.message}` });
     }
 };

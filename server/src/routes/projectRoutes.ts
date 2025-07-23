@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { archiveAndIncrementVersion, createProject, deleteProject, getAllProjectVersions, getProjects, getProjectUsers, getProjectVersionHistory, incrementProjectVersion, updateProject } from "../controller/projectController";
+import { archiveAndIncrementVersion, createProject, deleteProject, getAllProjectVersions, getProjects, getProjectUsers, getProjectVersionHistory, incrementProjectVersion, updateProject, updateProjectStatus } from "../controller/projectController";
 import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -23,5 +23,6 @@ router.delete("/:projectId", deleteProject);
 // Update Project Version and Project
 router.patch("/:projectId/version", incrementProjectVersion);
 router.patch("/:projectId", updateProject);
+router.patch("/:projectId/status", updateProjectStatus);
 
 export default router;

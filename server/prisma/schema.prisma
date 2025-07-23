@@ -1,32 +1,143 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql" // Changed from postgresql to mysql
+  provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+// Enum for the new project status lifecycle
+enum ProjectStatus {
+  Start
+  OnProgress
+  Resolve
+  Finish
+  Cancel
 }
 
 model User {
   userId               Int            @id @default(autoincrement())
-  username             String         @unique // Kept this as per your previous request
-  email                String         @unique // Added email field
-  password             String         // Added password field (will store hashed password)
-  NIK                  Int         @unique // Added NIK (Employee Identification Number) field
-  profilePictureUrl    String?        // Kept this field if you still need it
-  // teamId               Int?
-  isAdmin              Boolean        @default(false) // Added isAdmin field
+  username             String         @unique
+  email                String         @unique
+  password             String
+  NIK                  Int?           @unique
+  profilePictureUrl    String?
+  isAdmin              Boolean        @default(false)
 
-  authoredTasks        Task[]         @relation("TaskAuthor")
-  assignedTasks        Task[]         @relation("TaskAssignee")
+  // --- Relations for Auditing ---
+  createdProjects        Project[]      @relation("CreatedProjects")
+  updatedProjects        Project[]      @relation("UpdatedProjects")
+  deletedProjects        Project[]      @relation("DeletedProjects")
+  createdTeams           Team[]         @relation("CreatedTeams")
+  updatedTeams           Team[]         @relation("UpdatedTeams")
+  deletedTeams           Team[]         @relation("DeletedTeams")
+  authoredTasks          Task[]         @relation("AuthoredTasks")
+  updatedTasks           Task[]         @relation("UpdatedTasks")
+  deletedTasks           Task[]         @relation("DeletedTasks")
+  authoredComments       Comment[]      @relation("AuthoredComments")
+  updatedComments        Comment[]      @relation("UpdatedComments")
+  deletedComments        Comment[]      @relation("DeletedComments")
+  statusChanges          ProjectStatusHistory[]
+  deletedAttachments   Attachment[]   @relation("DeletedAttachments")
+  
+  // --- Existing Relations ---
+  assignedTasks        Task[]         @relation("AssignedTasks")
   taskAssignments      TaskAssignment[]
   attachments          Attachment[]
-  comments             Comment[]
-  teams             TeamMembership[]
-  // team                 Team?          @relation(fields: [teamId], references: [id])
+  teams                TeamMembership[]
+}
+
+model Project {
+  id              Int           @id @default(autoincrement())
+  name            String
+  description     String?
+  startDate       DateTime?
+  endDate         DateTime?
+  version         Int           @default(1)
+  status          ProjectStatus @default(Start)
+
+  // --- Audit Trail Fields ---
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt // <-- FIX: Added @default(now())
+  createdById     Int?
+  createdBy       User?         @relation("CreatedProjects", fields: [createdById], references: [userId])
+  updatedById     Int?
+  updatedBy       User?         @relation("UpdatedProjects", fields: [updatedById], references: [userId])
+  deletedAt       DateTime?
+  deletedById     Int?
+  deletedBy       User?         @relation("DeletedProjects", fields: [deletedById], references: [userId])
+
+  // --- Relations ---
+  projectTeams    ProjectTeam[]
+  tasks           Task[]
+  versions        ProjectVersion[]
+  statusHistory   ProjectStatusHistory[]
+}
+
+model ProjectStatusHistory {
+  id          Int           @id @default(autoincrement())
+  projectId   Int
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status      ProjectStatus
+  changedAt   DateTime      @default(now())
+  changedById Int
+  changedBy   User          @relation(fields: [changedById], references: [userId])
+
+  @@index([projectId])
+}
+
+model Task {
+  id              Int       @id @default(autoincrement())
+  title           String
+  description     String?
+  status          String?
+  priority        String?
+  tags            String?
+  startDate       DateTime?
+  dueDate         DateTime?
+  points          Int?
+  version         Int
+  projectId       Int
+  
+  // --- Audit Trail Fields ---
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt // <-- FIX: Added @default(now())
+  authorUserId    Int       
+  author          User      @relation("AuthoredTasks", fields: [authorUserId], references: [userId])
+  updatedById     Int?
+  updatedBy       User?     @relation("UpdatedTasks", fields: [updatedById], references: [userId])
+  deletedAt       DateTime?
+  deletedById     Int?
+  deletedBy       User?     @relation("DeletedTasks", fields: [deletedById], references: [userId])
+
+  // --- Relations ---
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedUserId  Int?
+  assignee        User?     @relation("AssignedTasks", fields: [assignedUserId], references: [userId])
+  comments        Comment[]
+  attachments     Attachment[]
+  taskAssignments TaskAssignment[]
+}
+
+model Comment {
+  id          Int       @id @default(autoincrement())
+  text        String
+  taskId      Int
+  
+  // --- Audit Trail Fields ---
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt // <-- FIX: Added @default(now())
+  userId      Int       
+  user        User      @relation("AuthoredComments", fields: [userId], references: [userId])
+  updatedById Int?
+  updatedBy   User?     @relation("UpdatedComments", fields: [updatedById], references: [userId])
+  deletedAt   DateTime?
+  deletedById Int?
+  deletedBy   User?     @relation("DeletedComments", fields: [deletedById], references: [userId])
+
+  // --- Relations ---
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model Team {
@@ -34,10 +145,40 @@ model Team {
   teamName             String
   productOwnerUserId   Int?
   projectManagerUserId Int?
-  projectTeams         ProjectTeam[]
+  
+  // --- Audit Trail Fields ---
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt // <-- FIX: Added @default(now())
+  createdById Int?
+  createdBy   User?     @relation("CreatedTeams", fields: [createdById], references: [userId])
+  updatedById Int?
+  updatedBy   User?     @relation("UpdatedTeams", fields: [updatedById], references: [userId])
+  deletedAt   DateTime?
+  deletedById Int?
+  deletedBy   User?     @relation("DeletedTeams", fields: [deletedById], references: [userId])
 
+  // --- Relations ---
+  projectTeams         ProjectTeam[]
   members              TeamMembership[]
 }
+
+model ProjectVersion {
+  id          Int      @id @default(autoincrement())
+  version     Int
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  archivedAt  DateTime @default(now())
+  status      ProjectStatus @default(Finish) 
+  
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   Int
+  
+  @@index([projectId])
+}
+
+// --- Join Tables and Other Models ---
 
 model TeamMembership {
   id     Int @id @default(autoincrement())
@@ -49,67 +190,14 @@ model TeamMembership {
   @@unique([userId, teamId])
 }
 
-model ProjectVersion {
-  id          Int      @id @default(autoincrement())
-  version     Int
-  name        String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  archivedAt  DateTime @default(now())
-  
-  project     Project @relation(fields: [projectId], references: [id])
-  projectId   Int
-  
-  @@index([projectId])
-}
-
-model Project {
-  id           Int           @id @default(autoincrement())
-  name         String
-  description  String?
-  startDate    DateTime?
-  endDate      DateTime?
-  version      Int?
-            
-  tasks        Task[]
-  projectTeams ProjectTeam[]
-
-  versions      ProjectVersion[]
-}
-
 model ProjectTeam {
   id        Int     @id @default(autoincrement())
   teamId    Int
   projectId Int
   
   team      Team    @relation(fields: [teamId], references: [id])
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
-
-model Task {
-  id             Int          @id @default(autoincrement())
-  title          String
-  description    String?
-  status         String?
-  priority       String?
-  tags           String?
-  startDate      DateTime?
-  dueDate        DateTime?
-  points         Int?
-  version        Int?         // Added version field as requested
-  projectId      Int
-  authorUserId   Int
-  assignedUserId Int?
-
-  project         Project          @relation(fields: [projectId], references: [id])
-  author          User             @relation("TaskAuthor", fields: [authorUserId], references: [userId])
-  assignee        User?            @relation("TaskAssignee", fields: [assignedUserId], references: [userId])
-  taskAssignments TaskAssignment[]
-  attachments     Attachment[]
-  comments        Comment[]
-}
-
 
 model TaskAssignment {
   id     Int @id @default(autoincrement())
@@ -117,7 +205,7 @@ model TaskAssignment {
   taskId Int
 
   user   User @relation(fields: [userId], references: [userId])
-  task   Task @relation(fields: [taskId], references: [id])
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model Attachment {
@@ -127,16 +215,13 @@ model Attachment {
   taskId       Int
   uploadedById Int
 
-  task         Task     @relation(fields: [taskId], references: [id])
+  // --- NEW: Audit Trail Fields ---
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  deletedById Int?
+  deletedBy   User?     @relation("DeletedAttachments", fields: [deletedById], references: [userId])
+
+  // --- Relations ---
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   uploadedBy   User     @relation(fields: [uploadedById], references: [userId])
-}
-
-model Comment {
-  id     Int    @id @default(autoincrement())
-  text   String
-  taskId Int
-  userId Int
-
-  task   Task @relation(fields: [taskId], references: [id])
-  user   User @relation(fields: [userId], references: [userId])
 }

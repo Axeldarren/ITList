@@ -1,9 +1,12 @@
 "use client";
 
 import Header from '@/components/Header';
-import { Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, PlusSquare, FileDown } from 'lucide-react';
-import React, { useState } from 'react';
-import ModalNewProject from './ModalNewProject';
+import { ProjectStatus } from '@/state/api'; // Import your ProjectStatus enum/type
+import { 
+    Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, 
+    FileDown, Play, Check, XCircle, Zap, Power, CheckCircle 
+} from 'lucide-react';
+import React from 'react';
 
 type Props = {
     activeTab: string;
@@ -11,12 +14,32 @@ type Props = {
     projectName: string;
     description: string | undefined;
     version: number | undefined;
-    onEdit: () => void;
-    onArchive: () => void;
+    status: ProjectStatus | string | undefined; // NEW: The project's current status
     isArchivable: boolean;
     localSearchTerm: string;
     setLocalSearchTerm: (term: string) => void;
+    onEdit: () => void;
+    onArchive: () => void;
     onExportPDF: () => void;
+    onStatusChange: (newStatus: ProjectStatus | string) => void; // NEW: Handler for status changes
+}
+
+// Helper to get style and icon for each status
+const getStatusProps = (status: ProjectStatus | string | undefined) => {
+    switch (status) {
+        case 'Start':
+            return { color: 'bg-gray-500', icon: <Power size={14} />, text: 'Start' };
+        case 'OnProgress':
+            return { color: 'bg-blue-500', icon: <Zap size={14} />, text: 'On Progress' };
+        case 'Resolve':
+            return { color: 'bg-yellow-500', icon: <Check size={14} />, text: 'Resolved' };
+        case 'Finish':
+            return { color: 'bg-green-500', icon: <CheckCircle size={14} />, text: 'Finished' };
+        case 'Cancel':
+            return { color: 'bg-red-500', icon: <XCircle size={14} />, text: 'Canceled' };
+        default:
+            return { color: 'bg-gray-400', icon: null, text: 'Unknown' };
+    }
 }
 
 const ProjectHeader = ({ 
@@ -25,60 +48,95 @@ const ProjectHeader = ({
     projectName, 
     description, 
     version, 
+    status,
     onEdit, 
     onArchive, 
     isArchivable, 
     localSearchTerm, 
     setLocalSearchTerm,
-    onExportPDF
+    onExportPDF,
+    onStatusChange
 }: Props) => {
-    const [isModalNewProjectOpen, setIsModalNewProjectOpen] = useState(false);
+    
+    const statusProps = getStatusProps(status);
+
+    // Conditionally render action buttons based on the current status
+    const renderActionButtons = () => {
+        switch (status) {
+            case 'Start':
+                return (
+                    <>
+                        <button onClick={() => onStatusChange('OnProgress')} className='flex items-center rounded-md bg-blue-500 px-3 py-2 text-white hover:bg-blue-600'>
+                            <Play className='mr-2 size-5' /> Start Project
+                        </button>
+                        <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-3 py-2 text-white hover:bg-red-600'>
+                            Cancel Project
+                        </button>
+                    </>
+                );
+            case 'OnProgress':
+            case 'Resolve':
+                return (
+                    <>
+                        {status === 'Resolve' && (
+                            <>
+                                <button 
+                                    onClick={() => onStatusChange('Finish')} 
+                                    className='flex items-center rounded-md bg-green-500 px-3 py-2 text-white hover:bg-green-600'
+                                >
+                                    <CheckCircle className='mr-2 size-5' /> Finish Project
+                                </button>
+                            </>
+                        )}
+                        <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-3 py-2 text-white hover:bg-red-600'>
+                            Cancel Project
+                        </button>
+                    </>
+                );
+            case 'Finish':
+                 return (
+                    <button onClick={onArchive} disabled={!isArchivable} className='flex items-center rounded-md bg-green-600 px-3 py-2 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'>
+                        <Archive className='mr-2 size-5' /> New Version
+                    </button>
+                );
+            case 'Cancel':
+                 return (
+                    <button 
+                        onClick={onArchive} 
+                        disabled={!isArchivable} // 'isArchivable' is now powered by our new logic
+                        title={isArchivable ? "Create a new version of this project" : ""}
+                        className='flex items-center rounded-md bg-green-600 px-3 py-2 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'
+                    >
+                        <Archive className='mr-2 size-5' /> New Version
+                    </button>
+                );
+            default:
+                return null;
+        }
+    };
   
     return (
         <div className='px-4 xl:px-6'>
-            <ModalNewProject
-                isOpen={isModalNewProjectOpen}
-                onClose={() => setIsModalNewProjectOpen(false)}
-            />
             <div className='pb-6 pt-6 lg:pb-4 lg:pt-8'>
                 <Header name={projectName}
                     buttonComponent={
-                        <div className="flex space-x-2">
-                            <button
-                                className='flex items-center rounded-md bg-purple-600 px-3 py-2 text-white hover:bg-purple-700'
-                                onClick={onExportPDF}
-                            >
-                                <FileDown className='mr-2 size-5' /> Export Report
-                            </button>
-                            <button
-                                className={`flex items-center rounded-md px-3 py-2 text-white ${
-                                    isArchivable ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
-                                }`}
-                                onClick={onArchive}
-                                disabled={!isArchivable}
-                                title={isArchivable ? "Archive this version and start a new one" : "All tasks must be completed to start a new version"}
-                            >
-                                <Archive className='mr-2 size-5' /> New Version
-                            </button>
-                            <button
-                                className='flex items-center rounded-md bg-gray-500 px-3 py-2 text-white hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600'
-                                onClick={onEdit}
-                            >
-                                <Edit className='mr-2 size-5' /> Edit
-                            </button>
-                            <button
-                                className='flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600'
-                                onClick={() => setIsModalNewProjectOpen(true)}
-                            >
-                                <PlusSquare className='mr-2 size-5' /> New Board
-                            </button>
+                        <div className="flex items-center flex-wrap justify-end gap-2">
+                            {renderActionButtons()}
+                            <div className="h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
+                            <button onClick={onEdit} className='flex items-center rounded-md bg-gray-500 px-3 py-2 text-white hover:bg-gray-600'><Edit className='mr-2 size-5' /> Edit</button>
+                            <button onClick={onExportPDF} className='flex items-center rounded-md bg-purple-600 px-3 py-2 text-white hover:bg-purple-700'><FileDown className='mr-2 size-5' /> Report</button>
                         </div>
                     }
                 />
-                <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                    <p className='max-w-2xl'>{description || "No description available."}</p>
+                <div className="mt-2 flex items-center space-x-4 text-sm">
+                    {/* Status Badge */}
+                    <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-white text-xs font-semibold ${statusProps.color}`}>
+                        {statusProps.icon}
+                        <span>{statusProps.text}</span>
+                    </div>
+                    <p className='max-w-2xl text-gray-500 dark:text-gray-400'>{description || "No description."}</p>
                     {version != null && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                             <GitBranch className="h-4 w-4" />
                             <span>Version {version}</span>
                         </div>
@@ -95,7 +153,6 @@ const ProjectHeader = ({
                     <TabButton name="History" icon={<History className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                 </div>
                 <div className='flex items-center gap-2'>
-                    {/* --- UPDATED: Show search bar unless History tab is active --- */}
                     {activeTab !== 'History' && (
                         <div className='relative'>
                             <input 

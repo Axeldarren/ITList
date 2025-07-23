@@ -23,9 +23,9 @@ import { exportAllProjectsToPDF } from "@/lib/recapPdfGenerator";
 import Header from "@/components/Header";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
-import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, FileDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, FileDown, Check } from "lucide-react";
 import Link from "next/link";
-import { differenceInDays, format } from "date-fns";
+import { differenceInDays } from "date-fns";
 
 // --- Expandable Stats Card Component ---
 interface ExpandableStatsCardProps<T> {
@@ -129,67 +129,92 @@ const priorities: Priority[] = [Priority.Backlog, Priority.Low, Priority.Medium,
 
 const HomePage = () => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<Priority | "all" | "Completed">("all");
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<Priority | "all">("all");
   const router = useRouter();
   
   const loggedInUser = useAppSelector(selectCurrentUser);
   const UserID = loggedInUser?.userId;
 
+  // --- THIS IS THE FIX ---
+  // A single state to control the visibility of all inactive tasks
+  const [showInactive, setShowInactive] = useState(false);
+
   const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });
   const { data: userTasks = [], isLoading: tasksLoading } = useGetTasksByUserQuery(UserID!, { skip: !UserID });
-  
-  // Fetch all data required for the dashboard and recap report
   const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
   const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();
   const { data: teams = [], isLoading: teamsLoading } = useGetTeamsQuery();
   const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
-
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   
-  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
-  
-  const tasksWithProjectName = useMemo(() => userTasks.map(task => ({
-      ...task,
-      projectName: projectMap.get(task.projectId) || "Unknown Project",
-  })), [userTasks, projectMap]);
+  // --- Simplified Filtering Logic ---
 
-  const filteredTasks = useMemo(() => {
-    const sourceTasks = showCompleted 
-      ? tasksWithProjectName.filter(task => task.status === "Completed")
-      : tasksWithProjectName.filter(task => task.status !== "Completed");
+  // 1. Get a set of all inactive project IDs
+  const inactiveProjectIds = useMemo(() => 
+    new Set(projects.filter(p => !!p.deletedAt || p.status === 'Finish' || p.status === 'Cancel').map(p => p.id)), 
+  [projects]);
 
-    if (activeFilter === "all" || showCompleted) return sourceTasks;
-    return sourceTasks.filter(task => task.priority === activeFilter);
-  }, [tasksWithProjectName, activeFilter, showCompleted]);
+  // 2. Create the master list of tasks to display based on the single checkbox.
+  const visibleUserTasks = useMemo(() => {
+    if (showInactive) {
+      return userTasks; // If checkbox is checked, show all user tasks
+    }
+    // Otherwise, filter out any task that is completed OR in an inactive project
+    return userTasks.filter(task => 
+      task.status !== 'Completed' && 
+      task.status !== 'Archived' &&
+      !inactiveProjectIds.has(task.projectId)
+    );
+  }, [userTasks, inactiveProjectIds, showInactive]);
 
-  const { tasksOverdue, tasksDueThisWeek, projectsAtRisk, tasksCompleted } = useMemo(() => {
+  // 3. All stats are now calculated from this single `visibleUserTasks` list.
+  const { tasksOverdue, tasksDueThisWeek, projectsAtRisk } = useMemo((): {
+    tasksOverdue: Task[];
+    tasksDueThisWeek: Task[];
+    projectsAtRisk: Project[];
+  } => {
     const now = new Date();
-    const overdue = userTasks.filter(t => t.dueDate && new Date(t.dueDate) < now && t.status !== 'Completed');
-    const dueThisWeek = userTasks.filter(t => t.dueDate && differenceInDays(new Date(t.dueDate), now) <= 7 && differenceInDays(new Date(t.dueDate), now) >= 0);
-    const atRisk = projects.filter(p => {
-        const isCompleted = allTasks.filter(t => t.projectId === p.id).every(t => t.status === 'Completed');
-        return p.endDate && new Date(p.endDate) < now && !isCompleted;
+    // Use `visibleUserTasks` as the source for all task-based stats
+    const tasksOverdue = visibleUserTasks.filter(t => t.dueDate && new Date(t.dueDate) < now && t.status !== 'Completed');
+    const tasksDueThisWeek = visibleUserTasks.filter(t => t.dueDate && differenceInDays(new Date(t.dueDate), now) <= 7 && differenceInDays(new Date(t.dueDate), now) >= 0);
+
+    // Projects at risk are active projects that are past their deadline
+    const projectsAtRisk = projects.filter(p => {
+        const isProjectCompleted = allTasks.filter(t => t.projectId === p.id).every(t => t.status === 'Completed');
+        return p.endDate && new Date(p.endDate) < now && !isProjectCompleted && !p.deletedAt;
     });
-    const completed = userTasks.filter(t => t.status === 'Completed');
-    return { tasksOverdue: overdue, tasksDueThisWeek: dueThisWeek, projectsAtRisk: atRisk, tasksCompleted: completed };
-  }, [userTasks, projects, allTasks]);
+
+    return { tasksOverdue, tasksDueThisWeek, projectsAtRisk };
+  }, [visibleUserTasks, projects, allTasks]);
   
+  // 4. Project lists are filtered to only show active/ongoing projects.
   const { ongoingProjects, overdueProjects } = useMemo(() => {
     const now = new Date();
-    const processedProjects = projects.map(project => {
+    const activeProjects = projects.filter(p => !p.deletedAt && p.status !== 'Finish' && p.status !== 'Cancel');
+    const processedProjects = activeProjects.map(project => {
       const projectTasks = allTasks.filter(t => t.projectId === project.id);
       const completedTasks = projectTasks.filter(t => t.status === 'Completed').length;
       const totalTasks = projectTasks.length;
       const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-      const isComplete = totalTasks > 0 && completedTasks === totalTasks;
-      return { ...project, percentage, isComplete, daysRemaining: project.endDate ? differenceInDays(new Date(project.endDate), now) : 0 };
+      return { ...project, percentage, daysRemaining: project.endDate ? differenceInDays(new Date(project.endDate), now) : 0 };
     });
     return {
       ongoingProjects: processedProjects.filter(p => p.endDate && new Date(p.endDate) >= now),
-      overdueProjects: processedProjects.filter(p => p.endDate && new Date(p.endDate) < now && !p.isComplete),
+      overdueProjects: processedProjects.filter(p => p.endDate && new Date(p.endDate) < now),
     };
   }, [projects, allTasks]);
+
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
+
+  const tasksWithProjectName = useMemo(() => visibleUserTasks.map(task => ({
+      ...task,
+      projectName: projectMap.get(task.projectId) || "Unknown Project",
+  })), [visibleUserTasks, projectMap]);
+
+  const filteredTasksForGrid = useMemo(() => {
+    if (activeFilter === "all") return tasksWithProjectName;
+    return tasksWithProjectName.filter(task => task.priority === activeFilter);
+  }, [tasksWithProjectName, activeFilter]);
 
   const handleRowClick = (params: GridRowParams) => {
     router.push(`/projects/${(params.row as Task).projectId}`);
@@ -198,11 +223,12 @@ const HomePage = () => {
   const isLoading = projectsLoading || allTasksLoading || userLoading || teamsLoading || usersLoading;
 
   const handleExportRecap = () => {
-    if (isLoading) {
-        toast.error("Please wait for all data to load before exporting.");
-        return;
-    }
-    exportAllProjectsToPDF(projects, allTasks, teams, users);
+      if (isLoading) {
+          toast.error("Please wait for all data to load before exporting.");
+          return;
+      }
+      const activeProjects = projects.filter(p => !p.deletedAt && p.status !== 'Finish' && p.status !== 'Cancel');
+      exportAllProjectsToPDF(activeProjects, allTasks, teams, users);
   };
 
   return (
@@ -213,6 +239,19 @@ const HomePage = () => {
         name={`Hi, ${fullCurrentUser?.username}`}
         buttonComponent={
           <div className="flex items-center gap-2">
+            <label htmlFor="showInactive" className="flex items-center cursor-pointer text-sm font-medium text-gray-600 dark:text-gray-300">
+                <input 
+                    id="showInactive"
+                    type="checkbox" 
+                    checked={showInactive} 
+                    onChange={(e) => setShowInactive(e.target.checked)}
+                    className="h-4 w-4 rounded text-blue-primary focus:ring-blue-primary"
+                />
+                <Check size={16} className="mx-1" />
+                <span>Show Completed & Archived</span>
+            </label>
+            <div className="h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
+            
             <button 
               className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
               onClick={handleExportRecap}
@@ -230,63 +269,10 @@ const HomePage = () => {
         }
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <ExpandableStatsCard<Task> 
-            title="Tasks Overdue"
-            value={tasksOverdue.length}
-            icon={<AlertTriangle />}
-            color="bg-red-500"
-            description="Tasks that are past their due date."
-            items={tasksOverdue}
-            renderItem={(task) => (
-                <li key={task.id} className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-semibold">{task.title}</span> in {projectMap.get(task.projectId)}
-                </li>
-            )}
-            viewAllLink="/tasks/overdue"
-          />
-          <ExpandableStatsCard<Task> 
-            title="Tasks Due This Week"
-            value={tasksDueThisWeek.length}
-            icon={<Clock />}
-            color="bg-yellow-500"
-            description="Tasks with a deadline in the next 7 days."
-            items={tasksDueThisWeek}
-            renderItem={(task) => (
-                <li key={task.id} className="text-sm text-gray-700 dark:text-gray-300">
-                     <span className="font-semibold">{task.title}</span> due {format(new Date(task.dueDate!), 'MMM dd')}
-                </li>
-            )}
-             viewAllLink="/timeline"
-          />
-          <ExpandableStatsCard<Project> 
-            title="Projects at Risk"
-            value={projectsAtRisk.length}
-            icon={<ClipboardList />}
-            color="bg-blue-500"
-            description="Projects that have passed their end date."
-            items={projectsAtRisk}
-            renderItem={(project) => (
-                <li key={project.id} className="text-sm text-gray-700 dark:text-gray-300">
-                     <span className="font-semibold">{project.name}</span>
-                </li>
-            )}
-            viewAllLink="/timeline"
-          />
-          <ExpandableStatsCard<Task> 
-            title="Tasks Completed"
-            value={tasksCompleted.length}
-            icon={<CheckCircle />}
-            color="bg-green-500"
-            description="Tasks you have successfully completed."
-            items={tasksCompleted}
-            renderItem={(task) => (
-                <li key={task.id} className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-semibold">{task.title}</span> in {projectMap.get(task.projectId)}
-                </li>
-            )}
-            viewAllLink="/tasks/completed"
-          />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <ExpandableStatsCard<Task> title="Tasks Overdue" value={tasksOverdue.length} icon={<AlertTriangle />} color="bg-red-500" description="Active tasks past their due date." items={tasksOverdue} renderItem={(task) => (<li key={task.id}>{task.title}</li>)} />
+          <ExpandableStatsCard<Task> title="Tasks Due This Week" value={tasksDueThisWeek.length} icon={<Clock />} color="bg-yellow-500" description="Active tasks due in the next 7 days." items={tasksDueThisWeek} renderItem={(task) => (<li key={task.id}>{task.title}</li>)} />
+          <ExpandableStatsCard<Project> title="Projects at Risk" value={projectsAtRisk.length} icon={<ClipboardList />} color="bg-blue-500" description="Active projects past their end date." items={projectsAtRisk} renderItem={(project) => (<li key={project.id}>{project.name}</li>)} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -294,22 +280,13 @@ const HomePage = () => {
             <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold dark:text-white">Your Tasks</h3>
-                <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Show Completed</span>
-                    <input 
-                        type="checkbox"
-                        checked={showCompleted}
-                        onChange={() => setShowCompleted(!showCompleted)}
-                        className="h-4 w-4 rounded text-blue-primary focus:ring-blue-primary"
-                    />
-                </div>
               </div>
-              <div className={`mb-4 flex flex-wrap gap-2 ${showCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="mb-4 flex flex-wrap gap-2">
                 <button onClick={() => setActiveFilter("all")} className={`rounded-full px-4 py-1 text-sm font-medium ${activeFilter === "all" ? 'bg-blue-primary text-white' : 'bg-gray-200 dark:bg-dark-tertiary dark:text-gray-200'}`}>All</button>
                 {priorities.map(p => <button key={p} onClick={() => setActiveFilter(p)} className={`rounded-full px-4 py-1 text-sm font-medium ${activeFilter === p ? 'bg-blue-primary text-white' : 'bg-gray-200 dark:bg-dark-tertiary dark:text-gray-200'}`}>{p}</button>)}
               </div>
               <div style={{ height: 400, width: "100%" }}>
-                <DataGrid rows={filteredTasks} columns={taskColumns} loading={tasksLoading} onRowClick={handleRowClick} sx={dataGridSxStyles(isDarkMode)} />
+                <DataGrid rows={filteredTasksForGrid} columns={taskColumns} loading={tasksLoading} onRowClick={handleRowClick} sx={dataGridSxStyles(isDarkMode)} />
               </div>
             </div>
         </div>

@@ -10,9 +10,10 @@ type Props = {
     tasks: Task[]; // It now expects a 'tasks' array as a prop
     setIsModalNewTaskOpen: (isOpen: boolean) => void;
     searchTerm: string; 
+    isProjectActive: boolean; // NEW: Prop to check if the project is active
 }
 
-const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm }: Props) => {
+const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }: Props) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   // The component no longer fetches its own data. It just filters the props.
@@ -40,13 +41,17 @@ const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm }: Props) => {
               <Header 
                   name='List'
                   buttonComponent={
-                      <button
-                          className="flex items-center gap-2 rounded-md bg-[#0275ff] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          onClick={() => setIsModalNewTaskOpen(true)}
-                      >
-                          <Plus size={18} />
-                          Add Task
-                      </button>
+                      isProjectActive && (
+                                <div className="px-4 pb-5 pt-3">
+                                  <button
+                                    className="flex items-center gap-2 rounded-md bg-[#0275ff] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    onClick={() => setIsModalNewTaskOpen(true)}
+                                  >
+                                    <Plus size={18} />
+                                    Add Task
+                                  </button>
+                                </div>
+                      )
                   }
               />
           </div>
@@ -59,6 +64,7 @@ const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm }: Props) => {
                           task={task}
                           openMenuId={openMenuId}
                           onMenuToggle={handleMenuToggle}
+                          isProjectActive={isProjectActive} // Pass the new prop
                       />
                   ))
               ) : (

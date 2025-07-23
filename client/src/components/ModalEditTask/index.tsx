@@ -230,7 +230,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                     className="dark:bg-dark-tertiary flex items-center justify-between rounded bg-gray-200 p-2"
                   >
                     <a
-                      href={`${process.env.NEXT_PUBLIC_API_BASE_URL}${att.fileUrl}`}
+                      href={`${process.env.NEXT_PUBLIC_API_BASE_URL}${att.fileURL}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-grow hover:underline dark:text-gray-200"

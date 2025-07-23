@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useMemo } from 'react';
+import React, { use, useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 // Component Imports
@@ -16,27 +16,28 @@ import ModalNewVersion from '../ModalNewVersion';
 import { exportProjectToPDF } from '@/lib/pdfGenerator';
 
 // State and API Imports
-import { 
-    useGetProjectsQuery, 
-    useGetTasksQuery, 
-    useArchiveAndIncrementVersionMutation, 
+import {
+    useGetProjectsQuery,
+    useGetTasksQuery,
+    useArchiveAndIncrementVersionMutation,
     useGetProjectVersionHistoryQuery,
-    useGetTeamsQuery, // Fetch all teams to find the correct one
-    useGetUsersQuery, // Fetch all users to find PM/PO
-    Project as ProjectType
+    useGetTeamsQuery,
+    useGetUsersQuery,
+    useUpdateProjectStatusMutation,
+    Project as ProjectType,
+    ProjectStatus
 } from '@/state/api';
 
 const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const { id } = use(params);
 
-    // Component State
+    // --- State and Hooks ---
     const [activeTab, setActiveTab] = useState("Board");
     const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [isNewVersionModalOpen, setIsNewVersionModalOpen] = useState(false);
     const [localSearchTerm, setLocalSearchTerm] = useState('');
 
-    // API Hooks
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
     const { data: teams = [], isLoading: teamsLoading } = useGetTeamsQuery();
     const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
@@ -44,28 +45,62 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const currentProject = useMemo(() => projects.find((p: ProjectType) => p.id === Number(id)), [projects, id]);
 
     const { data: allTasksForProject, isLoading: tasksLoading } = useGetTasksQuery(
-        { projectId: Number(id) },
-        { skip: !currentProject }
+        { projectId: Number(id) }, { skip: !currentProject }
     );
     
     const [archiveAndIncrement, { isLoading: isArchiving }] = useArchiveAndIncrementVersionMutation();
     const { data: versionHistory = [] } = useGetProjectVersionHistoryQuery(Number(id));
+    const [updateProjectStatus, { isLoading: isUpdatingStatus }] = useUpdateProjectStatusMutation();
 
-    // Derived State
+    // --- Derived State ---
     const activeTasks = useMemo(() => allTasksForProject?.filter(t => t.version === currentProject?.version) || [], [allTasksForProject, currentProject]);
     const archivedTasks = useMemo(() => allTasksForProject?.filter(t => t.version !== currentProject?.version) || [], [allTasksForProject, currentProject]);
-
+    
     const allActiveTasksCompleted = useMemo(() => {
         if (!activeTasks || activeTasks.length === 0) return false;
-        return activeTasks.every(task => task.status === 'Completed');
+        if (activeTasks.every(task => task.status === 'Completed')) return true;
+        console.log("Not all active tasks are completed:", activeTasks);
+        return false;
     }, [activeTasks]);
-    
-    // Event Handlers
-    const handleArchiveClick = () => {
-        if (!allActiveTasksCompleted) {
-            toast.error("All tasks must be marked as 'Completed' before starting a new version.");
-            return;
+
+    const canCreateNewVersion = useMemo(() => {
+        if (currentProject?.status === ProjectStatus.Cancel) return true;
+        if (currentProject?.status === ProjectStatus.Finish) return allActiveTasksCompleted;
+        return false;
+    }, [currentProject?.status, allActiveTasksCompleted]);
+
+    // --- Logic Effects ---
+    // Effect to auto-update status to 'Resolve'
+    useEffect(() => {
+        if (allActiveTasksCompleted && activeTasks.length > 0 && currentProject?.status === ProjectStatus.OnProgress) {
+            updateProjectStatus({ projectId: Number(id), status: ProjectStatus.Resolve });
         }
+    }, [allActiveTasksCompleted, activeTasks, currentProject, id, updateProjectStatus]);
+
+    useEffect(() => {
+        if (!allActiveTasksCompleted && currentProject?.status === ProjectStatus.Resolve) {
+            // Silently move the status back to On Progress
+            updateProjectStatus({ projectId: Number(id), status: ProjectStatus.OnProgress });
+        }
+    }, [allActiveTasksCompleted, currentProject, id, updateProjectStatus]);
+
+    const isProjectActive = useMemo(() => {
+        if (!currentProject) return false;
+        return currentProject.status !== ProjectStatus.Finish && currentProject.status !== ProjectStatus.Cancel;
+    }, [currentProject]);
+
+    // --- Event Handlers ---
+    const handleStatusChange = (newStatus: ProjectStatus | string) => {
+        if (isUpdatingStatus) return;
+        const promise = updateProjectStatus({ projectId: Number(id), status: newStatus }).unwrap();
+        toast.promise(promise, {
+            loading: 'Updating status...',
+            success: `Project status updated to ${newStatus}!`,
+            error: (err) => err.data?.message || 'Failed to update status.'
+        });
+    };
+
+    const handleArchiveClick = () => {
         setIsNewVersionModalOpen(true);
     };
 
@@ -77,7 +112,7 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
         });
         setIsNewVersionModalOpen(false);
     };
-
+    
     const handleExport = () => {
         if (!currentProject || !activeTasks || !teams || !users) {
             toast.error("Data is not yet available for the report.");
@@ -121,10 +156,12 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 projectName={currentProject?.name || 'Project'}
                 description={currentProject?.description}
                 version={currentProject?.version}
+                status={currentProject?.status}
                 onEdit={() => setEditModalOpen(true)}
                 onArchive={handleArchiveClick}
-                isArchivable={allActiveTasksCompleted && !isArchiving}
+                isArchivable={canCreateNewVersion}
                 onExportPDF={handleExport}
+                onStatusChange={handleStatusChange}
                 localSearchTerm={localSearchTerm}
                 setLocalSearchTerm={setLocalSearchTerm}
             />
@@ -133,10 +170,10 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 <ArchiveView versionHistory={versionHistory} tasks={archivedTasks} />
             ) : (
                 <>
-                    { activeTab === "Board" && <BoardView id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} /> }
-                    { activeTab === "List" && <ListView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} /> }
-                    { activeTab === "Table" && <TableView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} /> }
-                    { activeTab === "Timeline" && <Timeline tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} /> }
+                    { activeTab === "Board" && <BoardView id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
+                    { activeTab === "List" && <ListView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
+                    { activeTab === "Table" && <TableView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
+                    { activeTab === "Timeline" && <Timeline tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
                 </>
             )}
         </div>
