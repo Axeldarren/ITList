@@ -46,6 +46,7 @@ model User {
   taskAssignments      TaskAssignment[]
   attachments          Attachment[]
   teams                TeamMembership[]
+  timeLogs TimeLog[]
 }
 
 model Project {
@@ -118,6 +119,7 @@ model Task {
   comments        Comment[]
   attachments     Attachment[]
   taskAssignments TaskAssignment[]
+  timeLogs TimeLog[]
 }
 
 model Comment {
@@ -138,6 +140,7 @@ model Comment {
 
   // --- Relations ---
   task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  timeLog     TimeLog?  @relation("TimeLogComment")
 }
 
 model Team {
@@ -160,6 +163,26 @@ model Team {
   // --- Relations ---
   projectTeams         ProjectTeam[]
   members              TeamMembership[]
+}
+
+model TimeLog {
+  id        Int       @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime? // Optional: will be null if the timer is still running
+  duration  Int?      // In seconds, calculated when timer stops
+  createdAt DateTime  @default(now())
+  
+  taskId    Int
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  userId    Int
+  user      User      @relation(fields: [userId], references: [userId])
+
+  commentId Int?      @unique
+  comment   Comment?  @relation("TimeLogComment", fields: [commentId], references: [id])
+  
+  @@index([taskId])
+  @@index([userId])
 }
 
 model ProjectVersion {

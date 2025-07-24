@@ -161,17 +161,22 @@ export const getTaskById = async (req: Request, res: Response): Promise<void> =>
         const task = await Prisma.task.findFirst({
             where: {
                 id: Number(taskId),
-                deletedAt: null, // Ensure the task itself isn't deleted
+                deletedAt: null,
             },
             include: {
                 author: true,
                 assignee: true,
                 comments: {
-                    where: { deletedAt: null }, // Only include non-deleted comments
+                    where: { deletedAt: null },
                     include: { user: true },
                 },
                 attachments: {
-                    where: { deletedAt: null }, // Only include non-deleted attachments
+                    where: { deletedAt: null },
+                },
+                timeLogs: { // <-- This was the missing piece
+                    include: {
+                        user: { select: { username: true } }
+                    }
                 },
             },
         });
@@ -225,5 +230,29 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
     } catch (error: any) {
         console.error("Error updating task:", error);
         res.status(500).json({ message: `Error updating task: ${error.message}` });
+    }
+};
+
+export const getTaskTimeLogs = async (req: Request, res: Response): Promise<void> => {
+    const { taskId } = req.params;
+    try {
+        const timeLogs = await Prisma.timeLog.findMany({
+            where: { 
+                taskId: Number(taskId) 
+            },
+            include: {
+                user: { // Include the user's name with each log
+                    select: {
+                        username: true
+                    }
+                }
+            },
+            orderBy: {
+                startTime: 'desc' // Show the most recent logs first
+            }
+        });
+        res.status(200).json(timeLogs);
+    } catch (error: any) {
+        res.status(500).json({ message: `Error retrieving time logs: ${error.message}` });
     }
 };

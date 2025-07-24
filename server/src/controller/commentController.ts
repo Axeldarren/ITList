@@ -14,12 +14,28 @@ export const createComment = async (req: Request, res: Response) => {
     }
 
     try {
+        // --- THIS IS THE KEY ---
+        // Before creating a comment, we check if the user has a timer running on this task.
+        const runningTimer = await prisma.timeLog.findFirst({
+            where: {
+                taskId: Number(taskId),
+                userId: loggedInUser.userId,
+                endTime: null, // This signifies an active timer
+            }
+        });
+
+        if (!runningTimer) {
+            // If no timer is running, the user is not allowed to comment.
+            return res.status(403).json({ message: "You must have a timer running on this task to post a comment." });
+        }
+        // --- End of Check ---
+
         const newComment = await prisma.comment.create({
             data: {
                 text,
                 taskId: Number(taskId),
-                userId: loggedInUser.userId, // This is the "createdBy"
-                updatedById: loggedInUser.userId, // The creator is the first updater
+                userId: loggedInUser.userId,
+                updatedById: loggedInUser.userId,
             },
             include: { user: true },
         });

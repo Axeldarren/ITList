@@ -31,6 +31,7 @@ export const exportProjectToPDF = (
         head: [['Detail', 'Information']],
         body: [
             ['Project ID', `${project.id}`],
+            ['Status', project.status], // <-- THIS IS THE FIX
             ['Start Date', project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'],
             ['End Date', project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'],
             ['Project Manager (PM)', projectManager?.username || 'N/A'],

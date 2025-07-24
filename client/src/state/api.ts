@@ -80,6 +80,7 @@ export interface Comment {
     taskId: number;
     userId: number;
     user?: User;
+    createdAt?: string;
 }
 
 // --- NEW: Define the Team interface ---
@@ -111,6 +112,18 @@ export interface Task {
     assignee?: User;
     comments?: Comment[];
     attachments?: Attachment[];
+    timeLogs?: TimeLog[];
+}
+
+export interface TimeLog {
+  id: number;
+  startTime: string;
+  endTime?: string;
+  duration?: number;
+  createdAt: string;
+  taskId: number;
+  userId: number;
+  user?: { username: string };
 }
 
 export interface SearchResults {
@@ -151,7 +164,7 @@ const baseQuery = fetchBaseQuery({
 export const api = createApi({
     baseQuery,
     reducerPath: 'api',
-    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults"],
+    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs"],
     endpoints: (build) => ({
         getProjects: build.query<Project[], void>({
             query: () => 'projects',
@@ -247,7 +260,7 @@ export const api = createApi({
         }),
         getTaskById: build.query<Task, number>({
             query: (taskId) => `tasks/${taskId}`,
-            providesTags: (result, error, id) => [{ type: 'Tasks', id }],
+            providesTags: (result, error, taskId) => [{ type: 'Tasks', id: taskId }],
         }),
         createTask: build.mutation<Task, Partial<Task>>({
             query: (task) => ({
@@ -407,11 +420,11 @@ export const api = createApi({
             }),
             invalidatesTags: (result, error, { id }) => [{ type: 'Tasks', id }, { type: 'Tasks', id: 'LIST' }],
         }),
-        createComment: build.mutation<Comment, Partial<Comment> & { taskId: number }>({
-            query: (comment) => ({
+        createComment: build.mutation<Comment, { taskId: number; text: string; userId: number }>({
+            query: (body) => ({
                 url: 'comments',
                 method: 'POST',
-                body: comment,
+                body,
             }),
             invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }],
         }),
@@ -455,6 +468,32 @@ export const api = createApi({
         logout: build.mutation<{ status: string }, void>({
             query: () => 'auth/logout',
         }),
+
+        getTaskTimeLogs: build.query<TimeLog[], number>({
+            query: (taskId) => `tasks/${taskId}/timelogs`, // You'll need to create this simple GET endpoint
+            providesTags: (result) => result ? [...result.map(({ id }) => ({ type: 'TimeLogs' as const, id }))] : [],
+        }),
+        startTimer: build.mutation<TimeLog, { taskId: number }>({
+            query: (body) => ({
+                url: 'timelogs/start',
+                method: 'POST',
+                body,
+            }),
+            // This invalidates the specific task's cache tag, forcing it to refetch
+            // and get the new 'runningLog' data.
+            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }],
+        }),
+
+        stopTimer: build.mutation<TimeLog, { logId: number; commentText: string }>({
+            query: (body) => ({
+                url: 'timelogs/stop',
+                method: 'POST',
+                body,
+            }),
+            // The server response for stopTimer includes the taskId.
+            // We use it to invalidate the correct task, forcing a refetch.
+            invalidatesTags: (result) => result ? [{ type: 'Tasks', id: result.taskId }] : [],
+        }),
     }),
 });
 
@@ -495,4 +534,7 @@ export const {
     useDeleteCommentMutation,
     useAddAttachmentMutation,
     useDeleteAttachmentMutation,
+    useGetTaskTimeLogsQuery,
+    useStartTimerMutation,
+    useStopTimerMutation,
 } = api;

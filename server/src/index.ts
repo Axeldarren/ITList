@@ -17,6 +17,7 @@ import teamRoutes from './routes/teamRoutes';
 import attachmentRoutes from './routes/attachmentRoutes';
 import commentRoutes from './routes/commentRoutes';
 import authRoutes from './routes/authRoutes';
+import timeLogRoutes from './routes/timeLogRoutes';
 
 // Configurations
 dotenv.config();
@@ -50,6 +51,7 @@ app.use('/users', userRoutes)
 app.use('/teams', teamRoutes);
 app.use('/attachments', attachmentRoutes);
 app.use('/comments', commentRoutes);
+app.use('/timelogs', timeLogRoutes);
 
 // Server
 const port = process.env.PORT || 3000;

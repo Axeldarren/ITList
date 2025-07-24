@@ -6,12 +6,11 @@ import {
   useAddAttachmentMutation,
   useGetProjectUsersQuery,
   useDeleteAttachmentMutation,
-  useUpdateCommentMutation,
-  useDeleteCommentMutation,
   Task as TaskType,
   Priority,
   Status,
-  Comment as CommentType,
+  useStartTimerMutation,
+  useStopTimerMutation,
 } from "@/state/api";
 import {
   X,
@@ -24,12 +23,19 @@ import {
   CircleDot,
   Trash2,
   Tag,
-  Edit,
+  Square,
+  Play,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
+import { differenceInSeconds, format, formatDistanceToNow } from "date-fns";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
+
+const formatDuration = (seconds: number): string => {
+    if (isNaN(seconds) || seconds < 0) return "00:00:00";
+    return new Date(seconds * 1000).toISOString().substring(11, 19);
+};
 
 type Props = {
   taskId: number;
@@ -42,6 +48,10 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
 
   // Queries and Mutations
   const { data: task, isLoading, isError } = useGetTaskByIdQuery(taskId);
+  const [startTimer, { isLoading: isStarting }] = useStartTimerMutation();
+  const [stopTimer, { isLoading: isStopping }] = useStopTimerMutation();
+  const [elapsedTime, setElapsedTime] = useState("00:00:00");
+
   const { data: users, isLoading: usersLoading } = useGetProjectUsersQuery(
     task?.projectId ?? 0,
     { skip: !task || !task.projectId },
@@ -50,14 +60,12 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
   const [createComment] = useCreateCommentMutation();
   const [addAttachment] = useAddAttachmentMutation();
   const [deleteAttachment] = useDeleteAttachmentMutation();
-  const [updateComment] = useUpdateCommentMutation();
-  const [deleteComment] = useDeleteCommentMutation();
 
   // Component State
   const [formData, setFormData] = useState<Partial<TaskType>>({});
   const [newComment, setNewComment] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [editingCommentText, setEditingCommentText] = useState("");
+
+  const runningLog = task?.timeLogs?.find(log => log.userId === loggedInUser?.userId && !log.endTime);
 
   useEffect(() => {
     if (task) {
@@ -72,6 +80,17 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
       });
     }
   }, [task]);
+
+ useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (runningLog) {
+      interval = setInterval(() => {
+        const seconds = differenceInSeconds(new Date(), new Date(runningLog.startTime));
+        setElapsedTime(formatDuration(seconds));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [runningLog]);
 
   // Handlers
   const handleInputChange = (
@@ -91,14 +110,14 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
   };
 
   const handleAddComment = () => {
-    if (!newComment.trim() || !loggedInUser) return;
-    createComment({ taskId, text: newComment, userId: loggedInUser.userId })
-      .unwrap()
-      .then(() => {
-        toast.success("Comment added!");
-        setNewComment("");
-      })
-      .catch(() => toast.error("Failed to add comment."));
+    if (!newComment.trim() || !loggedInUser || !loggedInUser.userId) return;
+    toast.promise(createComment({ taskId, text: newComment, userId: loggedInUser.userId }).unwrap(), {
+      loading: 'Posting comment...',
+      success: 'Comment added!',
+      error: (err) => err.data?.message || "You must start a timer to comment."
+    }).then(() => {
+      setNewComment("");
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,27 +149,26 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
       .catch(() => toast.error("Failed to delete attachment."));
   };
 
-  const handleEditComment = (comment: CommentType) => {
-    setEditingCommentId(comment.id);
-    setEditingCommentText(comment.text);
+  const handleStart = () => {
+    toast.promise(startTimer({ taskId }).unwrap(), {
+      loading: 'Starting timer...',
+      success: 'Timer started!',
+      error: (err) => err.data?.message || "Failed to start timer."
+    });
   };
 
-  const handleSaveComment = (commentId: number) => {
-    if (!editingCommentText.trim()) return;
-    updateComment({ id: commentId, text: editingCommentText })
-      .unwrap()
-      .then(() => {
-        toast.success("Comment updated!");
-        setEditingCommentId(null);
-      })
-      .catch(() => toast.error("Failed to update comment."));
-  };
-
-  const handleDeleteComment = (commentId: number) => {
-    deleteComment(commentId)
-        .unwrap()
-        .then(() => toast.success("Comment deleted!"))
-        .catch(() => toast.error("Failed to delete comment."));
+  const handleStop = () => {
+    if (runningLog && newComment.trim()) {
+      toast.promise(stopTimer({ logId: runningLog.id, commentText: newComment }).unwrap(), {
+        loading: 'Stopping timer...',
+        success: 'Timer stopped & work logged!',
+        error: (err) => err.data?.message || "Failed to stop timer."
+      }).then(() => {
+        setNewComment(""); // Clear the comment box on success
+      });
+    } else {
+      toast.error("Please describe your work before stopping the timer.");
+    }
   };
 
   if (isLoading)
@@ -264,91 +282,64 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
             </div>
 
             <div>
-              <div className="flex items-center gap-3">
-                <MessageSquare size={20} />
-                <h3 className="text-lg font-semibold dark:text-white">
-                  Activity
-                </h3>
-              </div>
-              <div className="mt-4 flex gap-3">
-                <div className="bg-blue-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white">
-                  <User size={18} />
-                </div>
-                <div className="flex w-full gap-4">
+              <h3 className="text-lg font-semibold dark:text-white flex items-center gap-3">
+                <MessageSquare size={20} /> Activity
+              </h3>
+              
+              {/* This entire block changes based on whether a timer is running */}
+              {runningLog ? (
+                <div className="mt-4">
+                  <label className="text-sm font-semibold text-red-600 dark:text-red-400 flex items-center gap-2 mb-2">
+                    <AlertCircle size={16}/>
+                    Work Description (Required to stop timer)
+                  </label>
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Write a comment..."
-                    className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white"
-                    rows={1}
+                    placeholder="e.g., Fixed the bug in the login API..."
+                    className="dark:border-red-500/50 dark:bg-dark-bg w-full rounded border-2 border-red-300 p-2 focus:ring-red-500 focus:border-red-500 dark:text-white"
+                    rows={3}
                   />
-                    <button
-                        onClick={handleAddComment}
-                        className="bg-blue-primary rounded px-4 py-1 text-sm text-white"
-                    >
-                        Send
-                    </button>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-4 flex gap-3">
+                  <div className="bg-blue-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white">
+                    <User size={18} />
+                  </div>
+                  <div className="flex w-full gap-4">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Write a comment... (Timer must be running)"
+                      className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white"
+                      rows={1}
+                    />
+                    <button onClick={handleAddComment} className="bg-blue-primary rounded px-4 py-1 text-sm text-white font-semibold">
+                      Send
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-4 space-y-4">
                 {task.comments?.map((comment) => {
-                  const canEditOrDelete = loggedInUser?.userId === comment.userId;
                   return (
                     <div key={comment.id} className="flex gap-3">
                       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-400 text-white">
                         <User size={18} />
                       </div>
                       <div className="w-full">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold dark:text-gray-200">
-                            {comment.user?.username || "User"}
-                          </span>
-                          {canEditOrDelete && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleEditComment(comment)}
-                                className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteComment(comment.id)}
-                                className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        {editingCommentId === comment.id ? (
-                          <div className="mt-1">
-                            <textarea
-                              value={editingCommentText}
-                              onChange={(e) =>
-                                setEditingCommentText(e.target.value)
-                              }
-                              className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2"
-                            />
-                            <div className="mt-2 space-x-2">
-                              <button
-                                onClick={() => handleSaveComment(comment.id)}
-                                className="bg-blue-primary rounded px-3 py-1 text-sm text-white"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => setEditingCommentId(null)}
-                                className="text-sm hover:underline dark:text-gray-300"
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                          <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold dark:text-gray-200">
+                                  {comment.user?.username || "User"}
+                              </span>
+                              <span className="text-xs text-gray-400 dark:text-gray-500">
+                                  {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'Unknown time'}
+                              </span>
                           </div>
-                        ) : (
-                          <div className="dark:bg-dark-bg mt-1 rounded bg-white p-2 text-gray-800 dark:text-gray-200">
-                            {comment.text}
+                          <div className="dark:bg-dark-bg mt-1 rounded bg-white p-2 text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                              {comment.text}
                           </div>
-                        )}
                       </div>
                     </div>
                   );
@@ -358,6 +349,21 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
           </div>
 
           <div className="space-y-4 md:col-span-1">
+            <div className="rounded bg-white p-3 dark:bg-dark-tertiary shadow">
+              <h3 className="font-semibold mb-2 dark:text-white">Time Tracker</h3>
+              {runningLog ? (
+                <div className="space-y-2">
+                  <div className="text-center text-2xl font-semibold font-mono dark:text-white">{elapsedTime}</div>
+                  <button onClick={handleStop} disabled={isStopping || !newComment.trim()} className="w-full flex items-center justify-center gap-2 rounded bg-red-500 px-4 py-2 text-white font-semibold hover:bg-red-600 disabled:opacity-50">
+                    <Square size={16} /> Stop Timer
+                  </button>
+                </div>
+              ) : (
+                <button onClick={handleStart} disabled={isStarting} className="w-full flex items-center justify-center gap-2 rounded bg-green-500 px-4 py-2 text-white font-semibold hover:bg-green-600">
+                  <Play size={16} /> Start Timer
+                </button>
+              )}
+            </div>
             <h3 className="text-lg font-semibold dark:text-white">Details</h3>
 
             <div className="flex items-center gap-4">

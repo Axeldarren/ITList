@@ -26,27 +26,26 @@ export const exportAllProjectsToPDF = (
         const team = teams.find(t => t.id === project.teamId);
         const pm = users.find(u => u.userId === team?.projectManagerUserId)?.username || 'N/A';
         const po = users.find(u => u.userId === team?.productOwnerUserId)?.username || 'N/A';
-
-        // --- NEW: Get team member names ---
         const teamMembers = team?.users?.map(user => user.username).join(', ') || 'No members assigned';
 
         return [
-            index + 1, // <-- Indexing
-            project.id, // <-- Project ID
+            index + 1,
+            project.id,
             project.name,
+            project.status, // <-- ADDED Project Status
             `V${project.version}`,
             progress,
             project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A',
             project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A',
             po,
             pm,
-            teamMembers, // <-- Team Members
+            teamMembers,
         ];
     });
 
     autoTable(doc, {
         startY: 40,
-        head: [['#', 'ID', 'Project', 'Ver', 'Progress', 'Start', 'End', 'PO', 'PM', 'Team Members']], // <-- Updated Headers
+        head: [['#', 'ID', 'Project', 'Status', 'Ver', 'Progress', 'Start', 'End', 'PO', 'PM', 'Team Members']], // <-- UPDATED Headers
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [22, 160, 133] },
@@ -54,14 +53,25 @@ export const exportAllProjectsToPDF = (
             finalY = data.cursor?.y || 0;
         },
         columnStyles: {
-            // Adjust column widths to fit new content
-            0: { cellWidth: 10 }, // Index
-            1: { cellWidth: 10 }, // ID
-            2: { cellWidth: 40 }, // Project Name
-            3: { cellWidth: 12 }, // Version
-            4: { cellWidth: 20 }, // Progress
-            9: { cellWidth: 60 }, // Team Members
-        }
+            0: { cellWidth: 10 }, 
+            1: { cellWidth: 10 }, 
+            2: { cellWidth: 35 }, // Project Name
+            3: { cellWidth: 25 }, // Status
+            4: { cellWidth: 12 }, // Version
+            5: { cellWidth: 20 }, // Progress
+            10: { cellWidth: 55 }, // Team Members
+        },
+        // --- NEW: Add conditional coloring for the Status cell ---
+        willDrawCell: (data) => {
+            if (data.column.index === 3 && data.cell.section === 'body') {
+                const status = data.cell.text[0];
+                let color = [0, 0, 0]; // Default black
+                if (status === 'Finish') color = [0, 0, 0]; // Forest Green
+                if (status === 'Cancel') color = [0, 0, 0]; // Crimson Red
+                if (status === 'OnProgress') color = [0, 0, 0]; // Blue
+                doc.setTextColor(color[0], color[1], color[2]);
+            }
+        },
     });
 
     // --- Summary Section ---
