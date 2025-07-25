@@ -24,6 +24,7 @@ const Timeline = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(true);
   const [view, setView] = useState<'roadmap' | 'gantt'>('roadmap');
+  const loggedInUser = useAppSelector((state) => state.auth.user);
   
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const router = useRouter();
@@ -96,7 +97,7 @@ const Timeline = () => {
             buttonComponent={
                 <div className="flex items-center gap-4">
                     {/* View Mode Toggle */}
-                    <div className="flex items-center rounded-full bg-gray-100 dark:bg-dark-tertiary p-1">
+                    <div className="flex items-center rounded-full bg-gray-100 dark:bg-dark-tertiary p-1 dark:text-white">
                         <button onClick={() => setView('roadmap')} className={`p-1.5 rounded-full ${view === 'roadmap' ? 'bg-white dark:bg-dark-secondary shadow' : ''}`} title="Roadmap View"><Rows3 size={20} /></button>
                         <button onClick={() => setView('gantt')} className={`p-1.5 rounded-full ${view === 'gantt' ? 'bg-white dark:bg-dark-secondary shadow' : ''}`} title="Gantt View"><LayoutGrid size={20} /></button>
                     </div>
@@ -110,9 +111,11 @@ const Timeline = () => {
                     )}
 
                     {/* Add Project Button */}
-                    <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 rounded-full bg-blue-primary px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-blue-600">
-                        <Plus size={18} /> Add Project
-                    </button>
+                    {loggedInUser?.isAdmin && (
+                        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 rounded-full bg-blue-primary px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-blue-600">
+                            <Plus size={18} /> Add Project
+                        </button>
+                    )}
                 </div>
             }
         />

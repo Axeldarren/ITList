@@ -150,6 +150,15 @@ export interface Suggestion {
     text: string;
     type: 'Project' | 'Task';
 }
+export interface DeveloperStats {
+    userId: number;
+    username: string;
+    totalTasks: number;
+    completedTasks: number;
+    overdueTasks: number;
+    totalTimeLogged: number; // in seconds
+}
+
 const baseQuery = fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
@@ -494,6 +503,13 @@ export const api = createApi({
             // We use it to invalidate the correct task, forcing a refetch.
             invalidatesTags: (result) => result ? [{ type: 'Tasks', id: result.taskId }] : [],
         }),
+        getDeveloperStats: build.query<DeveloperStats[], { month?: string }>({
+            query: ({ month }) => ({
+                url: 'productivity',
+                params: { month }, // Pass the month as a query parameter
+            }),
+            providesTags: ['Users', 'Tasks', 'TimeLogs'],
+        }),
     }),
 });
 
@@ -537,4 +553,5 @@ export const {
     useGetTaskTimeLogsQuery,
     useStartTimerMutation,
     useStopTimerMutation,
+    useGetDeveloperStatsQuery,
 } = api;

@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsSidebarCollapsed } from '@/state';
 import { useGetProjectsQuery, useDeleteProjectMutation, Project } from '@/state/api'; 
-import { AlertCircle, AlertOctagon, AlertTriangle, Briefcase, ChevronDown, ChevronUp, HomeIcon, Layers3, LockIcon, LucideIcon, Settings, ShieldAlert, Trash2, User, Users, X } from 'lucide-react';
+import { AlertCircle, AlertOctagon, AlertTriangle, BarChartHorizontal, Briefcase, ChevronDown, ChevronUp, HomeIcon, Layers3, LockIcon, LucideIcon, Settings, ShieldAlert, Trash2, User, Users, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,6 +11,7 @@ import React, { useState, MouseEvent, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
 import ModalConfirm from '../ModalConfirm'; // Import the new modal
+import { selectCurrentUser } from '@/state/authSlice';
 
 interface ContextMenuProps {
     x: number;
@@ -58,6 +59,8 @@ const Sidebar = () => {
     const isSidebarCollapsed = useAppSelector(
         (state) => state.global.isSidebarCollapsed,
     );
+
+    const currentUser = useAppSelector(selectCurrentUser);
     
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -172,6 +175,9 @@ const Sidebar = () => {
                 {/* NAVBAR LINKS */}
                 <nav className='z-10 w-full'>
                     <SidebarLink icon={HomeIcon} label='Home' href='/' />
+                    {currentUser?.isAdmin && (
+                        <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
+                    )}
                     <SidebarLink icon={Briefcase} label='Timeline' href='/timeline' />
                     <SidebarLink icon={Settings} label='Settings' href='/settings' />
                     <SidebarLink icon={User} label='Users' href='/users' />

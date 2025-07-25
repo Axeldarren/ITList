@@ -341,47 +341,54 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
           <div className="dark:border-stroke-dark mt-4 border-t border-gray-200" />
 
           {/* Users */}
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex -space-x-[6px] overflow-hidden">
+            <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex -space-x-[6px] overflow-hidden">
               {task.assignee && (
                 task.assignee.profilePictureUrl ? (
-                  <Image
-                    key={`assignee-${task.assignee.userId}`}
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${task.assignee.profilePictureUrl}`}
-                    alt={task.assignee.username}
-                    width={24}
-                    height={24}
-                    className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
+                <Image
+                  key={`assignee-${task.assignee.userId}`}
+                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${task.assignee.profilePictureUrl}`}
+                  alt={task.assignee.username}
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
                 ) : (
-                  <div 
-                    key={`assignee-${task.assignee.userId}`}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-blue-500 text-xs font-semibold text-white dark:border-dark-secondary"
-                  >
-                    {task.assignee.username.slice(0, 2).toUpperCase()}
-                  </div>
+                <div 
+                  key={`assignee-${task.assignee.userId}`}
+                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-blue-500 text-xs font-semibold text-white dark:border-dark-secondary"
+                >
+                  {task.assignee.username.slice(0, 2).toUpperCase()}
+                </div>
                 )
               )}
               {task.author && (
                 task.author.profilePictureUrl ? (
-                  <Image
-                    key={`author-${task.author.userId}`}
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${task.author.profilePictureUrl}`}
-                    alt={task.author.username}
-                    width={24}
-                    height={24}
-                    className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
+                <Image
+                  key={`author-${task.author.userId}`}
+                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${task.author.profilePictureUrl}`}
+                  alt={task.author.username}
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
                 ) : (
-                  <div
-                    key={`author-${task.author.userId}`}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-purple-500 text-xs font-semibold text-white dark:border-dark-secondary"
-                  >
-                    {task.author.username.slice(0, 2).toUpperCase()}
-                  </div>
+                <div
+                  key={`author-${task.author.userId}`}
+                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-purple-500 text-xs font-semibold text-white dark:border-dark-secondary"
+                >
+                  {task.author.username.slice(0, 2).toUpperCase()}
+                </div>
                 )
+              )}
+              </div>
+              {task.assignee && (
+              <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
+                {task.assignee.username}
+              </span>
               )}
             </div>
 

@@ -33,8 +33,6 @@ const ProjectLifecycleRow = ({ project, versions, showArchived }: Props) => {
     
     const badgeColor = getStatusBadgeColor(project.status);
 
-    // --- THIS IS THE FIX ---
-    // Determine the active block's style based on the "Cancel" status.
     const activeBlockStyles = project.status === 'Cancel' 
         ? 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300' 
         : 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300';
@@ -60,18 +58,25 @@ const ProjectLifecycleRow = ({ project, versions, showArchived }: Props) => {
 
             {/* Versions Flow */}
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                {/* --- THIS IS THE FIX --- */}
-                {/* Archived Versions now show their true final status */}
                 {showArchived && versions.map(version => {
                     const isCanceled = version.status === 'Cancel';
+                    
                     const versionBlockStyle = isCanceled 
                         ? 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300'
-                        : 'bg-gray-100 dark:bg-dark-tertiary border-gray-200 dark:border-stroke-dark';
+                        : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600';
+                    
+                    const versionTextStyle = isCanceled
+                        ? '' // Already handled by the block style
+                        : 'text-gray-800 dark:text-gray-400';
+                    
+                    const versionSubTextStyle = isCanceled
+                        ? ''
+                        : 'text-gray-600 dark:text-gray-500';
                     
                     return (
                         <div key={version.id} className={`flex-shrink-0 p-3 rounded-md border ${versionBlockStyle}`} title={`Archived on ${format(new Date(version.archivedAt), "MMM d, yyyy")}`}>
-                            <p className="font-semibold">Version {version.version} ({version.status})</p>
-                            <p className="text-xs">
+                            <p className={`font-semibold ${versionTextStyle}`}>Version {version.version} ({version.status})</p>
+                            <p className={`text-xs ${versionSubTextStyle}`}>
                                 {format(new Date(version.startDate), "MMM d, yyyy")} - {format(new Date(version.endDate), "MMM d, yyyy")}
                             </p>
                         </div>

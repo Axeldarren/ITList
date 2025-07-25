@@ -1,7 +1,9 @@
 "use client";
 
+import { useAppSelector } from '@/app/redux';
 import Header from '@/components/Header';
 import { ProjectStatus } from '@/state/api'; // Import your ProjectStatus enum/type
+import { selectCurrentUser } from '@/state/authSlice';
 import { 
     Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, 
     FileDown, Play, Check, XCircle, Zap, Power, CheckCircle 
@@ -69,16 +71,18 @@ const ProjectHeader = ({
                         <button onClick={() => onStatusChange('OnProgress')} className='flex items-center rounded-md bg-blue-500 px-3 py-2 text-white hover:bg-blue-600'>
                             <Play className='mr-2 size-5' /> Start Project
                         </button>
-                        <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-3 py-2 text-white hover:bg-red-600'>
-                            Cancel Project
-                        </button>
+                        {loggedInUser?.isAdmin && (
+                            <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-3 py-2 text-white hover:bg-red-600'>
+                                Cancel Project
+                            </button>
+                        )}
                     </>
                 );
             case 'OnProgress':
             case 'Resolve':
                 return (
                     <>
-                        {status === 'Resolve' && (
+                        {status === 'Resolve' && loggedInUser?.isAdmin && (
                             <>
                                 <button 
                                     onClick={() => onStatusChange('Finish')} 
@@ -88,44 +92,60 @@ const ProjectHeader = ({
                                 </button>
                             </>
                         )}
-                        <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-3 py-2 text-white hover:bg-red-600'>
-                            Cancel Project
-                        </button>
+                        {loggedInUser?.isAdmin && (
+                            <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-3 py-2 text-white hover:bg-red-600'>
+                                Cancel Project
+                            </button>
+                        )}
                     </>
                 );
             case 'Finish':
                  return (
-                    <button onClick={onArchive} disabled={!isArchivable} className='flex items-center rounded-md bg-green-600 px-3 py-2 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'>
-                        <Archive className='mr-2 size-5' /> New Version
-                    </button>
+                    <>
+                        {loggedInUser?.isAdmin && (
+                            <button onClick={onArchive} disabled={!isArchivable} className='flex items-center rounded-md bg-green-600 px-3 py-2 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'>
+                                <Archive className='mr-2 size-5' /> New Version
+                            </button>
+                        )}
+                    </>
                 );
             case 'Cancel':
                  return (
-                    <button 
-                        onClick={onArchive} 
-                        disabled={!isArchivable} // 'isArchivable' is now powered by our new logic
-                        title={isArchivable ? "Create a new version of this project" : ""}
-                        className='flex items-center rounded-md bg-green-600 px-3 py-2 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'
-                    >
-                        <Archive className='mr-2 size-5' /> New Version
-                    </button>
+                    <>
+                        {loggedInUser?.isAdmin && (
+                            <button 
+                                onClick={onArchive} 
+                                disabled={!isArchivable} // 'isArchivable' is now powered by our new logic
+                                title={isArchivable ? "Create a new version of this project" : ""}
+                                className='flex items-center rounded-md bg-green-600 px-3 py-2 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'
+                            >
+                                <Archive className='mr-2 size-5' /> New Version
+                            </button>
+                        )}
+                    </>
                 );
             default:
                 return null;
         }
     };
+
+    const loggedInUser = useAppSelector(selectCurrentUser);
   
     return (
         <div className='px-4 xl:px-6'>
             <div className='pb-6 pt-6 lg:pb-4 lg:pt-8'>
                 <Header name={projectName}
                     buttonComponent={
-                        <div className="flex items-center flex-wrap justify-end gap-2">
-                            {renderActionButtons()}
-                            <div className="h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
-                            <button onClick={onEdit} className='flex items-center rounded-md bg-gray-500 px-3 py-2 text-white hover:bg-gray-600'><Edit className='mr-2 size-5' /> Edit</button>
-                            <button onClick={onExportPDF} className='flex items-center rounded-md bg-purple-600 px-3 py-2 text-white hover:bg-purple-700'><FileDown className='mr-2 size-5' /> Report</button>
-                        </div>
+                            <div className="flex items-center flex-wrap justify-end gap-2">
+                                {renderActionButtons()}
+                                <div className="h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
+                                {loggedInUser?.isAdmin && (
+                                    <>
+                                        <button onClick={onEdit} className='flex items-center rounded-md bg-gray-500 px-3 py-2 text-white hover:bg-gray-600'><Edit className='mr-2 size-5' /> Edit</button>
+                                        <button onClick={onExportPDF} className='flex items-center rounded-md bg-purple-600 px-3 py-2 text-white hover:bg-purple-700'><FileDown className='mr-2 size-5' /> Report</button>
+                                    </>
+                                )}
+                            </div>
                     }
                 />
                 <div className="mt-2 flex items-center space-x-4 text-sm">

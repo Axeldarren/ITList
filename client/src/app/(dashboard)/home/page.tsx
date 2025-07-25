@@ -23,7 +23,7 @@ import { exportAllProjectsToPDF } from "@/lib/recapPdfGenerator";
 import Header from "@/components/Header";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
-import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, FileDown, Check } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, FileDown } from "lucide-react";
 import Link from "next/link";
 import { differenceInDays } from "date-fns";
 
@@ -53,7 +53,7 @@ const ExpandableStatsCard = <T,>({ title, value, icon, color, description, items
                     <p className="text-2xl font-semibold text-gray-800 dark:text-white">{value}</p>
                 </div>
                 {items.length > 0 && (
-                     <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary">
+                     <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary dark:text-gray-400">
                         <ChevronDown className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
                 )}
@@ -62,7 +62,7 @@ const ExpandableStatsCard = <T,>({ title, value, icon, color, description, items
             {isExpanded && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-tertiary">
                     <div className="max-h-40 overflow-y-auto pr-2">
-                        <ul className="space-y-2">
+                        <ul className="space-y-2 dark:text-white">
                             {items.map(renderItem)}
                         </ul>
                     </div>
@@ -94,51 +94,16 @@ const taskColumns: GridColDef[] = [
 
 const priorities: Priority[] = [Priority.Backlog, Priority.Low, Priority.Medium, Priority.High, Priority.Urgent];
 
-/**
- * Home Page Component for the Dashboard
- * 
- * This component serves as the main dashboard for the project management application.
- * It displays a summary of user tasks, ongoing projects, and important metrics.
- * 
- * Features:
- * - Personal task overview with priority filtering
- * - Task completion toggle
- * - Project progress tracking
- * - Status cards showing overdue tasks, upcoming deadlines, at-risk projects, and completed tasks
- * - Quick access to ongoing and overdue projects
- * - Export functionality for project recap reports
- * - New project creation
- * 
- * The component uses various data fetching hooks to retrieve:
- * - User information
- * - User-assigned tasks
- * - All projects
- * - All tasks
- * - Teams
- * - Users
- * 
- * It also calculates various derived metrics like:
- * - Tasks that are overdue
- * - Tasks due within the next week
- * - Projects at risk
- * - Completed tasks
- * - Project completion percentages
- * 
- * @returns React component that renders the home dashboard
- */
-
 const HomePage = () => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<Priority | "all">("all");
+  const [activeFilter, setActiveFilter] = useState<Priority | "all" | "Completed">("all");
+  const [showCompleted, setShowCompleted] = useState(false);
   const router = useRouter();
   
   const loggedInUser = useAppSelector(selectCurrentUser);
   const UserID = loggedInUser?.userId;
 
-  // --- THIS IS THE FIX ---
-  // A single state to control the visibility of all inactive tasks
-  const [showInactive, setShowInactive] = useState(false);
-
+  // --- Data Fetching ---
   const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });
   const { data: userTasks = [], isLoading: tasksLoading } = useGetTasksByUserQuery(UserID!, { skip: !UserID });
   const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
@@ -147,47 +112,61 @@ const HomePage = () => {
   const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   
-  // --- Simplified Filtering Logic ---
+  // --- THIS IS THE FIX: The hooks are now in a logical, dependent order ---
 
-  // 1. Get a set of all inactive project IDs
-  const inactiveProjectIds = useMemo(() => 
-    new Set(projects.filter(p => !!p.deletedAt || p.status === 'Finish' || p.status === 'Cancel').map(p => p.id)), 
-  [projects]);
-
-  // 2. Create the master list of tasks to display based on the single checkbox.
-  const visibleUserTasks = useMemo(() => {
-    if (showInactive) {
-      return userTasks; // If checkbox is checked, show all user tasks
-    }
-    // Otherwise, filter out any task that is completed OR in an inactive project
-    return userTasks.filter(task => 
-      task.status !== 'Completed' && 
-      task.status !== 'Archived' &&
-      !inactiveProjectIds.has(task.projectId)
-    );
-  }, [userTasks, inactiveProjectIds, showInactive]);
-
-  // 3. All stats are now calculated from this single `visibleUserTasks` list.
-  const { tasksOverdue, tasksDueThisWeek, projectsAtRisk } = useMemo((): {
-    tasksOverdue: Task[];
-    tasksDueThisWeek: Task[];
-    projectsAtRisk: Project[];
-  } => {
-    const now = new Date();
-    // Use `visibleUserTasks` as the source for all task-based stats
-    const tasksOverdue = visibleUserTasks.filter(t => t.dueDate && new Date(t.dueDate) < now && t.status !== 'Completed');
-    const tasksDueThisWeek = visibleUserTasks.filter(t => t.dueDate && differenceInDays(new Date(t.dueDate), now) <= 7 && differenceInDays(new Date(t.dueDate), now) >= 0);
-
-    // Projects at risk are active projects that are past their deadline
-    const projectsAtRisk = projects.filter(p => {
-        const isProjectCompleted = allTasks.filter(t => t.projectId === p.id).every(t => t.status === 'Completed');
-        return p.endDate && new Date(p.endDate) < now && !isProjectCompleted && !p.deletedAt;
-    });
-
-    return { tasksOverdue, tasksDueThisWeek, projectsAtRisk };
-  }, [visibleUserTasks, projects, allTasks]);
+  // 1. First, create the helper maps and primary filtered lists.
+const assignedUserTasks = useMemo(() => {
+    if (!UserID) return [];
+    return userTasks.filter(task => task.assignedUserId === UserID);
+  }, [userTasks, UserID]);
   
-  // 4. Project lists are filtered to only show active/ongoing projects.
+  // 2. Create a list of "active" tasks for stats cards (no completed or archived).
+  const activeUserTasks = useMemo(() => {
+    return assignedUserTasks.filter(task => task.status !== 'Completed' && task.status !== 'Archived');
+  }, [assignedUserTasks]);
+  
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
+  
+  // 3. The grid can show completed tasks (but never archived ones).
+  const tasksForGrid = useMemo(() => {
+    return assignedUserTasks.filter(task => task.status !== 'Archived').map(task => ({
+        ...task,
+        projectName: projectMap.get(task.projectId) || "Unknown Project",
+    }));
+  }, [assignedUserTasks, projectMap]);
+  
+  const filteredTasksForGrid = useMemo(() => {
+    const sourceTasks = showCompleted 
+      ? tasksForGrid.filter(task => task.status === "Completed")
+      : tasksForGrid.filter(task => task.status !== "Completed");
+
+    if (activeFilter === "all" || showCompleted) return sourceTasks;
+    return sourceTasks.filter(task => task.priority === activeFilter);
+  }, [tasksForGrid, activeFilter, showCompleted]);
+
+  // 4. All stats cards are now calculated from the correct lists.
+  const { tasksOverdue, tasksDueThisWeek, tasksCompleted } = useMemo(() => {
+    const now = new Date();
+    // Overdue and Due This Week are based on the active-only list.
+    const overdue = activeUserTasks.filter(t => {
+                if (!t.dueDate || t.status === 'Completed') return false;
+                const dueDate = new Date(t.dueDate);
+                dueDate.setHours(23, 59, 59, 999);
+                return dueDate < now;
+            });
+    const dueThisWeek = activeUserTasks.filter(t => t.dueDate && differenceInDays(new Date(t.dueDate), now) <= 7);
+    
+    // The "completed" card shows all non-archived completed tasks assigned to the user.
+    const completed = assignedUserTasks.filter(t => t.status === 'Completed');
+    
+    return { 
+      tasksOverdue: overdue, 
+      tasksDueThisWeek: dueThisWeek, 
+      tasksCompleted: completed 
+    };
+  }, [activeUserTasks, assignedUserTasks]);
+  
+  // 5. Project lists are filtered to only show active/ongoing projects.
   const { ongoingProjects, overdueProjects } = useMemo(() => {
     const now = new Date();
     const activeProjects = projects.filter(p => !p.deletedAt && p.status !== 'Finish' && p.status !== 'Cancel');
@@ -204,23 +183,14 @@ const HomePage = () => {
     };
   }, [projects, allTasks]);
 
-  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
-
-  const tasksWithProjectName = useMemo(() => visibleUserTasks.map(task => ({
-      ...task,
-      projectName: projectMap.get(task.projectId) || "Unknown Project",
-  })), [visibleUserTasks, projectMap]);
-
-  const filteredTasksForGrid = useMemo(() => {
-    if (activeFilter === "all") return tasksWithProjectName;
-    return tasksWithProjectName.filter(task => task.priority === activeFilter);
-  }, [tasksWithProjectName, activeFilter]);
+  // Define projectsAtRisk as an alias for overdueProjects for stats card
+  const projectsAtRisk = overdueProjects;
 
   const handleRowClick = (params: GridRowParams) => {
     router.push(`/projects/${(params.row as Task).projectId}`);
   };
 
-  const isLoading = projectsLoading || allTasksLoading || userLoading || teamsLoading || usersLoading;
+  const isLoading = projectsLoading || allTasksLoading || userLoading || tasksLoading || teamsLoading || usersLoading;
 
   const handleExportRecap = () => {
       if (isLoading) {
@@ -228,9 +198,24 @@ const HomePage = () => {
           return;
       }
       const activeProjects = projects.filter(p => !p.deletedAt && p.status !== 'Finish' && p.status !== 'Cancel');
-      exportAllProjectsToPDF(activeProjects, allTasks, teams, users);
+      exportAllProjectsToPDF(activeProjects, allTasks, teams, users, {
+        includeId: true,
+        includeVersion: true,
+        includeStatus: true,
+        includeProgress: true,
+        includePM: true,
+        includeMembers: true,
+        includeTasks: true,
+        includeDescription: true,
+        includeDates: true,
+        includePO: true
+      });
   };
 
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading dashboard...</div>;
+  }
+  
   return (
     <div className="h-full w-full bg-transparent p-8">
       <ModalNewProject isOpen={isNewProjectModalOpen} onClose={() => setIsNewProjectModalOpen(false)} />
@@ -238,41 +223,31 @@ const HomePage = () => {
       <Header 
         name={`Hi, ${fullCurrentUser?.username}`}
         buttonComponent={
-          <div className="flex items-center gap-2">
-            <label htmlFor="showInactive" className="flex items-center cursor-pointer text-sm font-medium text-gray-600 dark:text-gray-300">
-                <input 
-                    id="showInactive"
-                    type="checkbox" 
-                    checked={showInactive} 
-                    onChange={(e) => setShowInactive(e.target.checked)}
-                    className="h-4 w-4 rounded text-blue-primary focus:ring-blue-primary"
-                />
-                <Check size={16} className="mx-1" />
-                <span>Show Completed & Archived</span>
-            </label>
-            <div className="h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
-            
-            <button 
-              className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
-              onClick={handleExportRecap}
-              disabled={isLoading}
-            >
-              <FileDown size={18} /> Export Recap
-            </button>
-            <button 
-              className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
-              onClick={() => setIsNewProjectModalOpen(true)}
-            >
-              <Plus size={18} /> Add Project
-            </button>
-          </div>
+          loggedInUser?.isAdmin && (
+            <div className="flex items-center gap-2">
+              <button 
+                className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+                onClick={handleExportRecap}
+                disabled={isLoading}
+              >
+                <FileDown size={18} /> Export Recap
+              </button>
+              <button 
+                className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+                onClick={() => setIsNewProjectModalOpen(true)}
+              >
+                <Plus size={18} /> Add Project
+              </button>
+            </div>
+          )
         }
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <ExpandableStatsCard<Task> title="Tasks Overdue" value={tasksOverdue.length} icon={<AlertTriangle />} color="bg-red-500" description="Active tasks past their due date." items={tasksOverdue} renderItem={(task) => (<li key={task.id}>{task.title}</li>)} />
           <ExpandableStatsCard<Task> title="Tasks Due This Week" value={tasksDueThisWeek.length} icon={<Clock />} color="bg-yellow-500" description="Active tasks due in the next 7 days." items={tasksDueThisWeek} renderItem={(task) => (<li key={task.id}>{task.title}</li>)} />
           <ExpandableStatsCard<Project> title="Projects at Risk" value={projectsAtRisk.length} icon={<ClipboardList />} color="bg-blue-500" description="Active projects past their end date." items={projectsAtRisk} renderItem={(project) => (<li key={project.id}>{project.name}</li>)} />
+          <ExpandableStatsCard<Task> title="My Completed Tasks" value={tasksCompleted.length} icon={<CheckCircle />} color="bg-green-500" description="All tasks you have completed." items={tasksCompleted} renderItem={(task) => (<li key={task.id}>{task.title}</li>)} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -280,8 +255,17 @@ const HomePage = () => {
             <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold dark:text-white">Your Tasks</h3>
+                <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Show Completed</span>
+                    <input 
+                        type="checkbox"
+                        checked={showCompleted}
+                        onChange={() => setShowCompleted(!showCompleted)}
+                        className="h-4 w-4 rounded text-blue-primary focus:ring-blue-primary"
+                    />
+                </div>
               </div>
-              <div className="mb-4 flex flex-wrap gap-2">
+              <div className={`mb-4 flex flex-wrap gap-2 ${showCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
                 <button onClick={() => setActiveFilter("all")} className={`rounded-full px-4 py-1 text-sm font-medium ${activeFilter === "all" ? 'bg-blue-primary text-white' : 'bg-gray-200 dark:bg-dark-tertiary dark:text-gray-200'}`}>All</button>
                 {priorities.map(p => <button key={p} onClick={() => setActiveFilter(p)} className={`rounded-full px-4 py-1 text-sm font-medium ${activeFilter === p ? 'bg-blue-primary text-white' : 'bg-gray-200 dark:bg-dark-tertiary dark:text-gray-200'}`}>{p}</button>)}
               </div>

@@ -22,6 +22,7 @@ import { Plus, Edit, Trash2, X, Eye } from "lucide-react"; // Import Eye icon
 import Modal from "@/components/Modal";
 import toast from "react-hot-toast";
 import ModalConfirm from "@/components/ModalConfirm";
+import { selectCurrentUser } from "@/state/authSlice";
 
 // --- NEW: Modal to view all team members ---
 const ViewMembersModal = ({ isOpen, onClose, team }: { isOpen: boolean, onClose: () => void, team: Team | null }) => {
@@ -200,6 +201,7 @@ const Teams = () => {
   const [deleteTeam, { isLoading: isDeleting }] = useDeleteTeamMutation();
 
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
+  const currentUser = useAppSelector(selectCurrentUser);
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -282,19 +284,23 @@ const Teams = () => {
     },
     { field: "productOwnerUsername", headerName: "Product Owner", width: 180 },
     { field: "projectManagerUsername", headerName: "Project Manager", width: 180 },
-    {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
-      width: 120, // Increased width for the new button
-      cellClassName: 'actions',
-      getActions: ({ row }) => [
-        <GridActionsCellItem key="view" icon={<Eye />} label="View" onClick={() => handleViewClick(row)} />,
-        <GridActionsCellItem key="edit" icon={<Edit />} label="Edit" onClick={() => handleEditClick(row)} />,
-        <GridActionsCellItem key="delete" icon={<Trash2 />} label="Delete" onClick={() => handleDeleteClick(row)} />,
-      ],
-    },
   ];
+
+  // Conditionally add the Actions column if the user is an admin
+  if (currentUser?.isAdmin) {
+      columns.push({
+        field: 'actions',
+        type: 'actions',
+        headerName: 'Actions',
+        width: 120,
+        cellClassName: 'actions',
+        getActions: ({ row }) => [
+          <GridActionsCellItem key="view" icon={<Eye />} label="View" onClick={() => handleViewClick(row)} />,
+          <GridActionsCellItem key="edit" icon={<Edit />} label="Edit" onClick={() => handleEditClick(row)} />,
+          <GridActionsCellItem key="delete" icon={<Trash2 />} label="Delete" onClick={() => handleDeleteClick(row)} />,
+        ],
+      });
+  }
 
   if (teamsLoading || usersLoading) return <div>Loading...</div>;
   if (isError || !teams) return <div>Error fetching teams</div>;
@@ -326,9 +332,11 @@ const Teams = () => {
       />
       
       <Header name="Teams" buttonComponent={
-          <button onClick={() => setIsNewModalOpen(true)} className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white">
-              <Plus size={18} /> Add Team
-          </button>
+          currentUser?.isAdmin && (
+            <button onClick={() => setIsNewModalOpen(true)} className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white">
+                <Plus size={18} /> Add Team
+            </button>
+          )
       } />
 
       <div style={{ height: 650, width: "100%" }}>

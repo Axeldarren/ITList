@@ -151,3 +151,20 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({ message: `Error stopping timer: ${error.message}` });
     }
 };
+
+export const getAllTimeLogs = async (req: Request, res: Response) => {
+    try {
+        const timeLogs = await prisma.timeLog.findMany({
+            include: {
+                user: { select: { username: true } },
+                task: { select: { title: true } }
+            },
+            orderBy: {
+                startTime: 'desc'
+            }
+        });
+        res.status(200).json(timeLogs);
+    } catch (error: any) {
+        res.status(500).json({ message: `Error fetching all time logs: ${error.message}` });
+    }
+};

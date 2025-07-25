@@ -365,6 +365,15 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
               )}
             </div>
             <h3 className="text-lg font-semibold dark:text-white">Details</h3>
+            <div className="flex items-center gap-4 mb-2">
+              <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <div className="dark:border-dark-tertiary dark:bg-dark-tertiary w-full rounded border border-gray-300 p-2 dark:text-white bg-gray-100">
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Author: </span>
+              <span>
+                {users?.find(user => user.userId === formData.authorUserId)?.username || "Unknown"}
+              </span>
+              </div>
+            </div>
 
             <div className="flex items-center gap-4">
               <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
@@ -375,10 +384,10 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                 disabled={usersLoading}
                 className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white"
               >
-                <option value="">Unassigned</option>
+              <option value="">Unassigned</option>
                 {users?.map((user) => (
                   <option key={user.userId} value={user.userId!}>
-                    {user.username}
+                  {user.username}
                   </option>
                 ))}
               </select>

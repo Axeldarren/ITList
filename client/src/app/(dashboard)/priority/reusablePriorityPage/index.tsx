@@ -132,7 +132,7 @@ const ReusablePriorityPage = ({ priority }: Props) => {
       ) : view === "list" ? (
         <div className="grid grid-cols-1 gap-4">
           {filteredTasks?.map((task: Task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard key={task.id} task={task} isProjectActive={true} />
           ))}
         </div>
       ) : (
