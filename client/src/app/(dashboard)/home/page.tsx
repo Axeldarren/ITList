@@ -11,19 +11,15 @@ import {
   useGetProjectsQuery,
   useGetTasksByUserQuery,
   useGetUserByIdQuery,
-  useGetTeamsQuery,
-  useGetUsersQuery,
 } from "@/state/api";
 import { useAppSelector } from "../../redux";
 import { selectCurrentUser } from "@/state/authSlice";
-import toast from "react-hot-toast";
-import { exportAllProjectsToPDF } from "@/lib/recapPdfGenerator";
 
 // Component Imports
 import Header from "@/components/Header";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
-import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, FileDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { differenceInDays } from "date-fns";
 
@@ -108,8 +104,6 @@ const HomePage = () => {
   const { data: userTasks = [], isLoading: tasksLoading } = useGetTasksByUserQuery(UserID!, { skip: !UserID });
   const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
   const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();
-  const { data: teams = [], isLoading: teamsLoading } = useGetTeamsQuery();
-  const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   
   // --- THIS IS THE FIX: The hooks are now in a logical, dependent order ---
@@ -190,27 +184,7 @@ const assignedUserTasks = useMemo(() => {
     router.push(`/projects/${(params.row as Task).projectId}`);
   };
 
-  const isLoading = projectsLoading || allTasksLoading || userLoading || tasksLoading || teamsLoading || usersLoading;
-
-  const handleExportRecap = () => {
-      if (isLoading) {
-          toast.error("Please wait for all data to load before exporting.");
-          return;
-      }
-      const activeProjects = projects.filter(p => !p.deletedAt && p.status !== 'Finish' && p.status !== 'Cancel');
-      exportAllProjectsToPDF(activeProjects, allTasks, teams, users, {
-        includeId: true,
-        includeVersion: true,
-        includeStatus: true,
-        includeProgress: true,
-        includePM: true,
-        includeMembers: true,
-        includeTasks: true,
-        includeDescription: true,
-        includeDates: true,
-        includePO: true
-      });
-  };
+  const isLoading = projectsLoading || allTasksLoading || userLoading || tasksLoading;
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading dashboard...</div>;
@@ -225,13 +199,6 @@ const assignedUserTasks = useMemo(() => {
         buttonComponent={
           loggedInUser?.isAdmin && (
             <div className="flex items-center gap-2">
-              <button 
-                className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
-                onClick={handleExportRecap}
-                disabled={isLoading}
-              >
-                <FileDown size={18} /> Export Recap
-              </button>
               <button 
                 className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
                 onClick={() => setIsNewProjectModalOpen(true)}
