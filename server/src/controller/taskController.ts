@@ -58,6 +58,12 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
                 authorUserId: loggedInUser.userId,
                 updatedById: loggedInUser.userId, // The creator is the first updater
             },
+            include: {
+                author: true,
+                assignee: true,
+                comments: { where: { deletedAt: null } },
+                attachments: { where: { deletedAt: null } }
+            }
         });
 
         await Prisma.activity.create({
@@ -93,6 +99,12 @@ export const updateTaskStatus = async (req: Request, res: Response): Promise<voi
             data: {
                 status: status,
                 updatedById: loggedInUser?.userId, // Also stamp the updater here
+            },
+            include: {
+                author: true,
+                assignee: true,
+                comments: { where: { deletedAt: null } },
+                attachments: { where: { deletedAt: null } }
             }
         });
 
@@ -282,6 +294,12 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
         const updatedTask = await Prisma.task.update({
             where: { id: Number(taskId) },
             data: dataToUpdate,
+            include: {
+                author: true,
+                assignee: true,
+                comments: { where: { deletedAt: null } },
+                attachments: { where: { deletedAt: null } }
+            }
         });
 
         // Log the general update activity, unless it was just a status change

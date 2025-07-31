@@ -65,7 +65,13 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   };
 
   const handleSubmit = async () => {
-    if (!title || !loggedInUser?.userId || !(id || projectId)) return;
+    if (!title || !(id || projectId)) return;
+    
+    // Additional check to ensure user is loaded before proceeding
+    if (!loggedInUser?.userId) {
+      toast.error('User session not loaded. Please try again.');
+      return;
+    }
 
     const promise = createTask({
         title,
@@ -92,7 +98,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     });
   };
   
-  const isFormValid = () => title && (id || projectId);
+  const isFormValid = () => title && (id || projectId) && loggedInUser?.userId;
 
   const sharedStyles = "w-full rounded border p-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
   const lightModeStyles = "border-gray-300 bg-white text-black";

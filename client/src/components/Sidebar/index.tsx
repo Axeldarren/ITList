@@ -262,8 +262,8 @@ const SidebarLink = ({
                     <div className='absolute left-0 top-0 h-full w-[5px] bg-blue-200' />
                 )}
 
-                <Icon className='h-6 w-6 text-gray-800 dark:text-gray-100' />
-                <span className={`font-medium text-gray-800 dark:text-gray-100`}>
+                <Icon className='h-6 w-6 flex-shrink-0 text-gray-800 dark:text-gray-100' />
+                <span className={`font-medium text-gray-800 dark:text-gray-100 truncate`}>
                     {label}
                 </span>
             </div>

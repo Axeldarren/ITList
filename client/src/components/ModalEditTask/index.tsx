@@ -370,7 +370,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
               <div className="dark:border-dark-tertiary dark:bg-dark-tertiary w-full rounded border border-gray-300 p-2 dark:text-white bg-gray-100">
               <span className="text-gray-500 dark:text-gray-400 text-sm">Author: </span>
               <span>
-                {users?.find(user => user.userId === formData.authorUserId)?.username || "Unknown"}
+                {task.author?.username || "Unknown"}
               </span>
               </div>
             </div>
