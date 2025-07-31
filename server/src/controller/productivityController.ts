@@ -19,6 +19,9 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
 
     try {
         const users = await prisma.user.findMany({
+            where: {
+                deletedAt: null // Only get active users
+            }
         });
 
         const now = new Date();
@@ -50,6 +53,7 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                     status: true,
                     dueDate: true,
                     createdAt: true, // Needed for monthly filter
+                    points: true, // Include story points
                 }
             });
 
@@ -63,6 +67,10 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
             // "Total Tasks" = In Progress tasks + Completed tasks for the month
             const inProgressTasks = tasksInMonth.filter(t => t.status === 'Work In Progress' || t.status === 'Under Review' || t.status === 'To Do').length;
             const totalTasks = inProgressTasks + completedTasks;
+
+            // Calculate total story points
+            const totalStoryPoints = tasksInMonth.reduce((sum, task) => sum + (task.points || 0), 0);
+            const completedStoryPoints = tasksInMonth.filter(t => t.status === 'Completed').reduce((sum, task) => sum + (task.points || 0), 0);
 
             // Overdue tasks are active tasks that are past their due date.
             const overdueTasks = allAssignedTasks.filter(t => {
@@ -79,6 +87,8 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 completedTasks,
                 overdueTasks,
                 totalTimeLogged,
+                totalStoryPoints,
+                completedStoryPoints,
             };
         }));
 

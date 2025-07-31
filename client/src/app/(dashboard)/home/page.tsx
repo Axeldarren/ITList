@@ -12,6 +12,7 @@ import {
   useGetRunningTimeLogQuery,
   useGetTasksByUserQuery,
   useGetUserByIdQuery,
+  useGetUserWeeklyStatsQuery,
   useStopTimerMutation,
 } from "@/state/api";
 import { useAppSelector } from "../../redux";
@@ -21,7 +22,7 @@ import { selectCurrentUser } from "@/state/authSlice";
 import Header from "@/components/Header";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
-import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, Square } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, Square, ChevronLeft, ChevronRight, TrendingUp, Timer } from "lucide-react";
 import Link from "next/link";
 import { differenceInDays, differenceInSeconds } from "date-fns";
 import toast from "react-hot-toast";
@@ -144,6 +145,107 @@ const RunningTimerCard = () => {
                         <Square size={16} /> Stop Timer
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const WeeklyStatsCard = ({ userId }: { userId: number }) => {
+    const [weekOffset, setWeekOffset] = useState(0);
+    const { data: weeklyStats, isLoading } = useGetUserWeeklyStatsQuery({ userId, weekOffset });
+    
+    const getWeekDateRange = (offset: number) => {
+        const now = new Date();
+        const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+        const targetWeekStart = new Date(currentWeekStart);
+        targetWeekStart.setDate(currentWeekStart.getDate() + (offset * 7));
+        
+        const targetWeekEnd = new Date(targetWeekStart);
+        targetWeekEnd.setDate(targetWeekStart.getDate() + 6);
+        
+        const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        return `${formatDate(targetWeekStart)} - ${formatDate(targetWeekEnd)}`;
+    };
+    
+    const isCurrentWeek = weekOffset === 0;
+    
+    if (isLoading) {
+        return (
+            <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
+                <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 mb-4"></div>
+                    <div className="space-y-3">
+                        <div className="h-4 bg-gray-200 rounded dark:bg-gray-700"></div>
+                        <div className="h-4 bg-gray-200 rounded w-2/3 dark:bg-gray-700"></div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold dark:text-white">Weekly Progress</h3>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setWeekOffset(prev => prev - 1)}
+                        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                        <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[120px] text-center">
+                        {isCurrentWeek ? 'This Week' : getWeekDateRange(weekOffset)}
+                    </span>
+                    <button 
+                        onClick={() => setWeekOffset(prev => prev + 1)}
+                        disabled={weekOffset >= 0}
+                        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
+                    </button>
+                </div>
+            </div>
+            
+            <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <TrendingUp size={20} className="text-blue-600 dark:text-blue-400" />
+                        <span className="font-medium text-blue-800 dark:text-blue-200">Story Points</span>
+                    </div>
+                    <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {weeklyStats?.totalStoryPoints || 0}
+                    </span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <Timer size={20} className="text-green-600 dark:text-green-400" />
+                        <span className="font-medium text-green-800 dark:text-green-200">Hours Logged</span>
+                    </div>
+                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {weeklyStats?.totalHours?.toFixed(1) || '0.0'}h
+                    </span>
+                </div>
+                
+                {weeklyStats?.completedTasks && weeklyStats.completedTasks.length > 0 && (
+                    <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                            Completed Tasks ({weeklyStats.completedTasks.length})
+                        </p>
+                        <div className="max-h-24 overflow-y-auto space-y-1">
+                            {weeklyStats.completedTasks.map((task) => (
+                                <div key={task.id} className="text-xs text-gray-500 dark:text-gray-400 flex justify-between">
+                                    <span className="truncate flex-1">{task.title}</span>
+                                    <span className="ml-2 text-blue-600 dark:text-blue-400">
+                                        {task.points}pts
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -319,6 +421,8 @@ const assignedUserTasks = useMemo(() => {
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-1">
+            {UserID && <WeeklyStatsCard userId={UserID} />}
+            
             <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
                 <h3 className="mb-4 text-lg font-semibold dark:text-white">Ongoing Projects</h3>
                 <div className="space-y-4">

@@ -119,7 +119,12 @@ export const getProjectUsers = async (
         }
 
         const memberships = await Prisma.teamMembership.findMany({
-            where: { teamId: projectTeam.teamId },
+            where: { 
+                teamId: projectTeam.teamId,
+                user: {
+                    deletedAt: null // Only include memberships where user is not deleted
+                }
+            },
             include: { user: true }
         });
         

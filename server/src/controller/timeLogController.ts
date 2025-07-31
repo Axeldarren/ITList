@@ -72,6 +72,19 @@ export const startTimer = async (
         },
       });
 
+      // Broadcast the timer start event
+      broadcast({
+        type: 'TIMELOG_UPDATE',
+        projectId: task.projectId,
+        taskId: Number(taskId),
+        userId: loggedInUser.userId,
+        message: {
+          type: 'TIMER_STARTED',
+          timeLogId: newLog.id,
+          userId: loggedInUser.userId
+        }
+      });
+
       return newLog;
     });
 
@@ -157,6 +170,20 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
                 taskId: log.taskId,
                 type: 'COMMENT_ADDED',
                 description: `commented on task "${log.task.title}"`
+            }
+        });
+
+        // Broadcast the timer stop event
+        broadcast({
+            type: 'TIMELOG_UPDATE',
+            projectId: log.task.projectId,
+            taskId: log.taskId,
+            userId: loggedInUser.userId,
+            message: {
+                type: 'TIMER_STOPPED',
+                timeLogId: Number(logId),
+                duration: durationInSeconds,
+                userId: loggedInUser.userId
             }
         });
 

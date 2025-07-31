@@ -80,6 +80,7 @@ export interface User {
     NIK?: number;
     profilePictureUrl?: string;
     isAdmin?: boolean;
+    deletedAt?: string | null;
 }
 
 export interface Attachment {
@@ -130,6 +131,11 @@ export interface Task {
     comments?: Comment[];
     attachments?: Attachment[];
     timeLogs?: TimeLog[];
+    project?: {
+        id: number;
+        name: string;
+        deletedAt?: string | null;
+    };
 }
 
 export interface TimeLog {
@@ -175,6 +181,8 @@ export interface DeveloperStats {
     completedTasks: number;
     overdueTasks: number;
     totalTimeLogged: number; // in seconds
+    totalStoryPoints: number;
+    completedStoryPoints: number;
 }
 
 const baseQuery = fetchBaseQuery({
@@ -547,6 +555,14 @@ export const api = createApi({
             providesTags: ['RunningTimeLog'],
         }),
 
+        getUserWeeklyStats: build.query<{ totalHours: number; totalStoryPoints: number; timeLogs: TimeLog[]; completedTasks: Task[] }, { userId: number; weekOffset?: number }>({
+            query: ({ userId, weekOffset = 0 }) => ({
+                url: `users/${userId}/weekly-stats`,
+                params: { weekOffset }
+            }),
+            providesTags: ['Users', 'Tasks', 'TimeLogs'],
+        }),
+
         getDeveloperStats: build.query<DeveloperStats[], { month?: string }>({
             query: ({ month }) => ({
                 url: 'productivity',
@@ -595,13 +611,19 @@ export const api = createApi({
                                 dispatch(api.util.invalidateTags([
                                     { type: 'Tasks', id: 'LIST' }, // Invalidate the main task list
                                     { type: 'Tasks', id: `PROJECT_${data.projectId}` }, // Project-specific tasks
-                                    { type: 'Activities', id: data.projectId } // Activities for the project
+                                    { type: 'Activities', id: data.projectId }, // Activities for the project
+                                    'Users', // For assignment page updates
+                                    'TimeLogs' // For productivity stats
                                 ]));
                             }
 
                             // Handle general project list updates
                             if (data.type === 'PROJECT_UPDATE') {
-                                dispatch(api.util.invalidateTags([{ type: 'Projects', id: 'LIST' }]));
+                                dispatch(api.util.invalidateTags([
+                                    { type: 'Projects', id: 'LIST' },
+                                    'Users', // Assignment page might need project data
+                                    'TimeLogs' // Productivity stats might need project data
+                                ]));
                                 if (data.projectId) {
                                      dispatch(api.util.invalidateTags([{ type: 'Projects', id: data.projectId }]));
                                 }
@@ -609,12 +631,27 @@ export const api = createApi({
 
                             // Handle user list updates
                             if (data.type === 'USER_UPDATE') {
-                                dispatch(api.util.invalidateTags([{ type: 'Users', id: 'LIST' }]));
+                                dispatch(api.util.invalidateTags([
+                                    { type: 'Users', id: 'LIST' },
+                                    'TimeLogs' // User changes affect productivity stats
+                                ]));
                             }
 
                             // Handle team list updates
                             if (data.type === 'TEAM_UPDATE') {
-                                dispatch(api.util.invalidateTags([{ type: 'Teams', id: 'LIST' }]));
+                                dispatch(api.util.invalidateTags([
+                                    { type: 'Teams', id: 'LIST' },
+                                    'Users' // Team changes might affect user assignments
+                                ]));
+                            }
+
+                            // Handle time log updates (for real-time productivity)
+                            if (data.type === 'TIMELOG_UPDATE') {
+                                dispatch(api.util.invalidateTags([
+                                    'TimeLogs',
+                                    'Users', // For productivity stats
+                                    { type: 'Tasks', id: 'LIST' } // Tasks might have updated time logs
+                                ]));
                             }
                         } catch (error) {
                             console.error('Error parsing WebSocket message:', error);
@@ -681,6 +718,7 @@ export const {
     useStartTimerMutation,
     useStopTimerMutation,
     useGetRunningTimeLogQuery,
+    useGetUserWeeklyStatsQuery,
     useGetDeveloperStatsQuery,
     useWebSocketQuery,
 } = api;

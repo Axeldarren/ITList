@@ -65,7 +65,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   };
 
   const handleSubmit = async () => {
-    if (!title || !(id || projectId)) return;
+    if (!title || !points || !(id || projectId)) return;
     
     // Additional check to ensure user is loaded before proceeding
     if (!loggedInUser?.userId) {
@@ -98,7 +98,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     });
   };
   
-  const isFormValid = () => title && (id || projectId) && loggedInUser?.userId;
+  const isFormValid = () => title && points && (id || projectId) && loggedInUser?.userId;
 
   const sharedStyles = "w-full rounded border p-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
   const lightModeStyles = "border-gray-300 bg-white text-black";
@@ -143,6 +143,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
               value={points}
               onChange={(e) => setPoints(e.target.value)}
               min="0"
+              required
             />
         </div>
 

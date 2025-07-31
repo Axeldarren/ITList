@@ -206,3 +206,99 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
         res.status(500).json({ message: `Error deleting user: ${error.message}` });
     }
 };
+
+export const getUserWeeklyStats = async (req: Request, res: Response): Promise<void> => {
+    const { userId } = req.params;
+    const { weekOffset = 0 } = req.query;
+    
+    try {
+        const numericUserId = Number(userId);
+        const offset = Number(weekOffset);
+        
+        // Calculate the start and end of the target week
+        const now = new Date();
+        const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay())); // Start of current week (Sunday)
+        currentWeekStart.setHours(0, 0, 0, 0);
+        
+        const targetWeekStart = new Date(currentWeekStart);
+        targetWeekStart.setDate(currentWeekStart.getDate() + (offset * 7));
+        
+        const targetWeekEnd = new Date(targetWeekStart);
+        targetWeekEnd.setDate(targetWeekStart.getDate() + 6);
+        targetWeekEnd.setHours(23, 59, 59, 999);
+        
+        // Get time logs for the week
+        const timeLogs = await prisma.timeLog.findMany({
+            where: {
+                userId: numericUserId,
+                endTime: {
+                    gte: targetWeekStart,
+                    lte: targetWeekEnd
+                }
+            },
+            include: {
+                task: {
+                    select: {
+                        title: true,
+                        points: true,
+                        projectId: true,
+                        project: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Get tasks completed in the target week
+        const completedTasks = await prisma.task.findMany({
+            where: {
+                assignedUserId: numericUserId,
+                status: 'Completed',
+                updatedAt: {
+                    gte: targetWeekStart,
+                    lte: targetWeekEnd
+                }
+            },
+            select: {
+                id: true,
+                title: true,
+                points: true,
+                updatedAt: true,
+                project: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        });
+        
+        // Calculate total hours from time logs
+        const totalSeconds = timeLogs.reduce((acc, log) => {
+            if (log.endTime && log.startTime) {
+                const duration = new Date(log.endTime).getTime() - new Date(log.startTime).getTime();
+                return acc + Math.floor(duration / 1000);
+            }
+            return acc;
+        }, 0);
+        
+        const totalHours = Math.round((totalSeconds / 3600) * 100) / 100; // Round to 2 decimal places
+        
+        // Calculate total story points from completed tasks
+        const totalStoryPoints = completedTasks.reduce((acc, task) => {
+            return acc + (task.points || 0);
+        }, 0);
+        
+        res.json({
+            totalHours,
+            totalStoryPoints,
+            timeLogs,
+            completedTasks
+        });
+    } catch (error: any) {
+        console.error("Error fetching user weekly stats:", error);
+        res.status(500).json({ message: `Error fetching weekly stats: ${error.message}` });
+    }
+};

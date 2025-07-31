@@ -25,7 +25,14 @@ export const getTasks = async (req: Request, res: Response): Promise<void> => {
                 author: true,
                 assignee: true,
                 comments: { where: { deletedAt: null } },
-                attachments: { where: { deletedAt: null } }
+                attachments: { where: { deletedAt: null } },
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                        deletedAt: true
+                    }
+                }
             }
         });
         res.json(tasks);
@@ -62,7 +69,14 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
                 author: true,
                 assignee: true,
                 comments: { where: { deletedAt: null } },
-                attachments: { where: { deletedAt: null } }
+                attachments: { where: { deletedAt: null } },
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                        deletedAt: true
+                    }
+                }
             }
         });
 
@@ -104,7 +118,14 @@ export const updateTaskStatus = async (req: Request, res: Response): Promise<voi
                 author: true,
                 assignee: true,
                 comments: { where: { deletedAt: null } },
-                attachments: { where: { deletedAt: null } }
+                attachments: { where: { deletedAt: null } },
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                        deletedAt: true
+                    }
+                }
             }
         });
 
@@ -140,6 +161,13 @@ export const getUserTasks = async (req: Request, res: Response): Promise<void> =
       include: {
         author: true,
         assignee: true,
+        project: {
+          select: {
+            id: true,
+            name: true,
+            deletedAt: true
+          }
+        }
       },
     });
     res.json(tasks);
@@ -240,6 +268,13 @@ export const getTaskById = async (req: Request, res: Response): Promise<void> =>
                         user: { select: { username: true } }
                     }
                 },
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                        deletedAt: true
+                    }
+                }
             },
         });
 
@@ -298,7 +333,14 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
                 author: true,
                 assignee: true,
                 comments: { where: { deletedAt: null } },
-                attachments: { where: { deletedAt: null } }
+                attachments: { where: { deletedAt: null } },
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                        deletedAt: true
+                    }
+                }
             }
         });
 

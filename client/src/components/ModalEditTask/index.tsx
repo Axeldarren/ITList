@@ -45,6 +45,7 @@ type Props = {
 const ModalEditTask = ({ taskId, onClose }: Props) => {
   // Get the current logged-in user from the Redux store
   const loggedInUser = useAppSelector(selectCurrentUser);
+  const isAdmin = loggedInUser?.isAdmin || false;
 
   // Queries and Mutations
   const { data: task, isLoading, isError } = useGetTaskByIdQuery(taskId);
@@ -465,7 +466,8 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                 placeholder="Story Points"
                 value={formData.points || ""}
                 onChange={handleInputChange}
-                className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white"
+                readOnly={!isAdmin}
+                className={`dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white ${!isAdmin ? 'cursor-default bg-gray-50 dark:bg-gray-800' : ''}`}
               />
             </div>
           </div>
