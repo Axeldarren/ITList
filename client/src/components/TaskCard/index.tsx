@@ -5,13 +5,43 @@ import { format } from 'date-fns';
 import React, { useState } from 'react';
 import {
     Paperclip, MessageSquare, Flag, CircleDot, Calendar as CalendarIcon, User,
-    Users, MoreVertical, GitBranch, Trash2, Edit, Hash,
+    MoreVertical, GitBranch, Trash2, Edit, Hash,
 } from 'lucide-react';
 import { useDeleteTaskMutation } from '@/state/api';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
 import ModalConfirm from '../ModalConfirm';
 import ModalEditTask from '../ModalEditTask';
 import ModalViewTask from '../ModalViewTask'; // <-- Import the new view-only modal
+
+// User Avatar Component
+const UserAvatar = ({ user, size = 20, iconSize = 12 }: { user?: { username?: string; profilePictureUrl?: string }, size?: number, iconSize?: number }) => {
+  const [imageError, setImageError] = useState(false);
+  const hasProfilePicture = user?.profilePictureUrl && !imageError;
+
+  if (hasProfilePicture) {
+    return (
+      <Image
+        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
+        alt={user.username || "User"}
+        width={size}
+        height={size}
+        className={`h-${size/4} w-${size/4} rounded-full object-cover border-2 border-white dark:border-dark-secondary`}
+        style={{ width: `${size}px`, height: `${size}px` }}
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  return (
+    <div 
+      className="flex items-center justify-center rounded-full bg-gray-400 text-white text-xs font-bold border-2 border-white dark:border-dark-secondary"
+      style={{ width: `${size}px`, height: `${size}px` }}
+    >
+      {user?.username ? user.username.substring(0, 2).toUpperCase() : <User size={iconSize} />}
+    </div>
+  );
+};
 
 type Props = {
     task: Task;
@@ -178,12 +208,12 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                         <div className="flex items-center" title={`Author: ${task.author?.username || "Unknown"}`}>
-                            <User className="mr-2 h-5 w-5 rounded-full bg-[#3b3d40] p-0.5 text-gray-300" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{task.author?.username || "N/A"}</span>
+                            <UserAvatar user={task.author} size={20} iconSize={12} />
+                            <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">{task.author?.username || "N/A"}</span>
                         </div>
                         <div className="flex items-center" title={`Assignee: ${task.assignee?.username || "Unassigned"}`}>
-                            <Users className="mr-2 h-5 w-5 rounded-full bg-[#3b3d40] p-0.5 text-gray-300" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{task.assignee?.username || "N/A"}</span>
+                            <UserAvatar user={task.assignee} size={20} iconSize={12} />
+                            <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">{task.assignee?.username || "Unassigned"}</span>
                         </div>
                     </div>
                     <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400">

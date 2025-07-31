@@ -1,12 +1,38 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useGetTaskByIdQuery } from "@/state/api";
 import {
   X, Paperclip, MessageSquare, User, Calendar, Hash, Flag, CircleDot, Tag,
 } from "lucide-react";
 import { format } from "date-fns";
+import Image from "next/image";
 import AttachmentViewer from "../AttachmentViewer"; // We'll reuse this component
+
+// Comment Avatar Component
+const CommentAvatar = ({ user }: { user?: { username?: string; profilePictureUrl?: string } }) => {
+  const [imageError, setImageError] = useState(false);
+  const hasProfilePicture = user?.profilePictureUrl && !imageError;
+
+  if (hasProfilePicture) {
+    return (
+      <Image
+        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
+        alt={user.username || "User"}
+        width={32}
+        height={32}
+        className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-500 text-white text-xs font-bold">
+      {user?.username ? user.username.substring(0, 2).toUpperCase() : <User size={16} />}
+    </div>
+  );
+};
 
 type Props = {
   taskId: number;
@@ -75,9 +101,7 @@ const ModalViewTask = ({ taskId, onClose }: Props) => {
                     <div className="mt-4 space-y-4">
                         {task.comments?.map(comment => (
                             <div key={comment.id} className="flex items-start space-x-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-500 text-white text-xs font-bold">
-                                    {comment.user?.username.substring(0, 2).toUpperCase()}
-                                </div>
+                                <CommentAvatar user={comment.user} />
                                 <div className="flex-1">
                                     <p className="text-sm font-semibold dark:text-white">{comment.user?.username}</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{comment.text}</p>

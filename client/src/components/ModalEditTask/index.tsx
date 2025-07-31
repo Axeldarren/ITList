@@ -31,10 +31,36 @@ import toast from "react-hot-toast";
 import { differenceInSeconds, format, formatDistanceToNow } from "date-fns";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
+import Image from "next/image";
 
 const formatDuration = (seconds: number): string => {
     if (isNaN(seconds) || seconds < 0) return "00:00:00";
     return new Date(seconds * 1000).toISOString().substring(11, 19);
+};
+
+// Comment Avatar Component
+const CommentAvatar = ({ user }: { user?: { username?: string; profilePictureUrl?: string } }) => {
+  const [imageError, setImageError] = useState(false);
+  const hasProfilePicture = user?.profilePictureUrl && !imageError;
+
+  if (hasProfilePicture) {
+    return (
+      <Image
+        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
+        alt={user.username || "User"}
+        width={32}
+        height={32}
+        className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-400 text-white">
+      <User size={18} />
+    </div>
+  );
 };
 
 type Props = {
@@ -304,9 +330,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                 </div>
               ) : (
                 <div className="mt-4 flex gap-3">
-                  <div className="bg-blue-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white">
-                    <User size={18} />
-                  </div>
+                  <CommentAvatar user={{ username: loggedInUser?.username, profilePictureUrl: loggedInUser?.profilePictureUrl }} />
                   <div className="flex w-full gap-4">
                     <textarea
                       value={newComment}
@@ -326,9 +350,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                 {task.comments?.map((comment) => {
                   return (
                     <div key={comment.id} className="flex gap-3">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-400 text-white">
-                        <User size={18} />
-                      </div>
+                      <CommentAvatar user={comment.user} />
                       <div className="w-full">
                           <div className="flex items-center justify-between">
                               <span className="text-sm font-bold dark:text-gray-200">
