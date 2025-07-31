@@ -5,10 +5,13 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { useAppSelector } from "../redux";
 import { useRouter } from "next/navigation";
+import { useWebSocketQuery } from "@/state/api";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { token } = useAppSelector((state) => state.auth);
   const router = useRouter();
+
+  useWebSocketQuery();
   
   const isSidebarCollapsed = useAppSelector(
     (state) => state.global.isSidebarCollapsed,

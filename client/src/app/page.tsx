@@ -13,21 +13,38 @@ export default function HomePage() {
     // Check if token exists and is not expired
     if (token) {
       try {
-      // Basic JWT expiration check (assuming token is JWT format)
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const isExpired = payload.exp * 1000 < Date.now();
-      
-      if (isExpired) {
-        // Token is expired, redirect to login
-        router.replace('/login');
-      } else {
-        // Token is valid, go to dashboard
-        router.replace('/home');
-      }
+        // Basic JWT expiration check (assuming token is JWT format)
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const isExpired = payload.exp * 1000 < Date.now();
+        
+        if (isExpired) {
+          // Token is expired, redirect to login
+          console.log('Token expired, redirecting to login');
+          router.replace('/login');
+        } else {
+          // Token is valid, go to dashboard
+          // Add a failsafe for 401 responses
+          fetch('/api/auth/verify', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+            .then(response => {
+              if (response.status === 401) {
+                console.log('Server rejected token, redirecting to login');
+                router.replace('/login');
+              } else {
+                router.replace('/home');
+              }
+            })
+            .catch(() => {
+              // If the verification fails for any reason, continue to home
+              // The API will handle unauthorized requests
+              router.replace('/home');
+            });
+        }
       } catch (error) {
-      // If token parsing fails, redirect to login
-      console.error('Invalid token format:', error);
-      router.replace('/login');
+        // If token parsing fails, redirect to login
+        console.error('Invalid token format:', error);
+        router.replace('/login');
       }
     } else {
       // No token, redirect to login page

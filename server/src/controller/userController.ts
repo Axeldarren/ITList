@@ -3,12 +3,15 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+import { broadcast } from '../websocket';
 
 const prisma = new PrismaClient();
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
     try {
-        const users = await prisma.user.findMany();
+        const users = await prisma.user.findMany({
+            where: { deletedAt: null }
+        });
         res.json(users);
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -20,7 +23,10 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     const { userId } = req.params;
     try {
         const user = await prisma.user.findUnique({
-            where: { userId: Number(userId) },
+            where: { 
+                userId: Number(userId),
+                deletedAt: null 
+             },
         });
         if (user) {
             res.json(user);
@@ -68,7 +74,9 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
             where: { userId: Number(userId) },
             data: dataToUpdate,
         });
-        
+
+        broadcast({ type: 'USER_UPDATE' }); // Broadcast user update
+
         // Ensure the password is not sent back to the client
         const { password, ...userWithoutPassword } = updatedUser;
         res.status(200).json(userWithoutPassword);
@@ -120,6 +128,8 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
             });
         }
 
+        broadcast({ type: 'USER_UPDATE' });
+
         res.status(200).json(updatedUser);
     } catch (error) {
         res.status(500).json({ message: 'Error uploading profile picture.' });
@@ -151,6 +161,8 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
         // Remove password from the returned object
         const { password: _, ...userWithoutPassword } = newUser;
 
+        broadcast({ type: 'USER_UPDATE' });
+
         res.status(201).json(userWithoutPassword);
     } catch (error: any) {
         if (error.code === 'P2002') { // Handle unique constraint errors (e.g., email already exists)
@@ -158,5 +170,39 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
         } else {
             res.status(500).json({ message: 'Error creating user', error: error.message });
         }
+    }
+};
+
+export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+    const { userId } = req.params;
+    const loggedInUser = req.user;
+    const numericUserId = Number(userId);
+
+    if (!loggedInUser) {
+        res.status(401).json({ message: "Not authorized." });
+        return;
+    }
+
+    // Prevent a user from deleting themselves
+    if (loggedInUser.userId === numericUserId) {
+        res.status(400).json({ message: "You cannot delete your own account." });
+        return;
+    }
+
+    try {
+        await prisma.user.update({
+            where: { userId: numericUserId },
+            data: {
+                deletedAt: new Date(),
+                deletedById: loggedInUser.userId,
+            },
+        });
+        
+        broadcast({ type: 'USER_UPDATE' });
+        
+        res.status(200).json({ message: `User with ID ${userId} has been successfully deleted.` });
+    } catch (error: any) {
+        console.error("Error deleting user:", error);
+        res.status(500).json({ message: `Error deleting user: ${error.message}` });
     }
 };

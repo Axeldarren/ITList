@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { broadcast } from "../websocket";
 
 // Define ProjectStatus type based on allowed values
 type ProjectStatus = 'Start' | 'OnProgress' | 'Resolve' | 'Finish' | 'Cancel';
@@ -50,6 +51,10 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
                 }
             },
         });
+
+        // Broadcast a general project update
+        broadcast({ type: 'PROJECT_UPDATE' });
+
         res.status(201).json(newProject);
     } catch (error) {
         res.status(500).json({ message: `Error creating project: ${error}` });
@@ -183,6 +188,8 @@ export const deleteProject = async (req: Request, res: Response): Promise<void> 
             });
         });
 
+        broadcast({ type: 'PROJECT_UPDATE' });
+
         res.status(200).json({ message: "Project and all its related data have been successfully archived." });
     } catch (error) {
         console.error("Error deleting project:", error);
@@ -214,6 +221,10 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
                     data: { teamId: Number(teamId) },
                 });
             }
+
+            // Broadcast an update for this specific project
+            broadcast({ type: 'PROJECT_UPDATE', projectId: numericProjectId });
+
             res.status(200).json(updatedProject);
         });
     } catch (error) {
@@ -292,6 +303,8 @@ export const updateProjectStatus = async (req: Request, res: Response): Promise<
             });
         });
 
+        broadcast({ type: 'PROJECT_UPDATE', projectId: numericProjectId });
+
         res.status(200).json({ message: `Project status updated to ${status}` });
     } catch (error) {
         console.error("Error updating project status:", error);
@@ -356,6 +369,8 @@ export const archiveAndIncrementVersion = async (
                 data: { status: 'Archived' },
             });
 
+            broadcast({ type: 'PROJECT_UPDATE', projectId: numericProjectId });
+
             res.status(200).json({ message: "New version created successfully" });
         });
     } catch (error) {
@@ -400,5 +415,25 @@ export const getAllProjectVersions = async (req: Request, res: Response): Promis
         res.json(versions);
     } catch (error) {
         res.status(500).json({ message: `Error retrieving all project versions: ${error}` });
+    }
+};
+
+export const getProjectActivities = async (req: Request, res: Response): Promise<void> => {
+    const { projectId } = req.params;
+    try {
+        const activities = await Prisma.activity.findMany({
+            where: { projectId: Number(projectId) },
+            include: {
+                user: { select: { username: true, profilePictureUrl: true } },
+                task: { select: { title: true } }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        res.json(activities);
+    } catch (error) {
+        res.status(500).json({ message: `Error retrieving project activities: ${error}` });
     }
 };

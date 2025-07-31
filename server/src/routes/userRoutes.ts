@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createUser, getUserById, getUsers, updateUser, uploadProfilePicture } from "../controller/userController";
+import { createUser, deleteUser, getUserById, getUsers, updateUser, uploadProfilePicture } from "../controller/userController";
 import upload from "../middleware/upload";
 import { protect, restrictToAdmin } from "../middleware/authMiddleware";
 
@@ -14,5 +14,7 @@ router.get("/:userId", getUserById);
 
 router.patch("/:userId", updateUser);
 router.post("/:userId/picture", upload.single('profilePicture'), uploadProfilePicture);
+
+router.delete("/:userId", restrictToAdmin, deleteUser);
 
 export default router;

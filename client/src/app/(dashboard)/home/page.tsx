@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
 import {
@@ -9,8 +9,10 @@ import {
   Task,
   useGetAllTasksQuery,
   useGetProjectsQuery,
+  useGetRunningTimeLogQuery,
   useGetTasksByUserQuery,
   useGetUserByIdQuery,
+  useStopTimerMutation,
 } from "@/state/api";
 import { useAppSelector } from "../../redux";
 import { selectCurrentUser } from "@/state/authSlice";
@@ -19,9 +21,10 @@ import { selectCurrentUser } from "@/state/authSlice";
 import Header from "@/components/Header";
 import { dataGridSxStyles } from "@/lib/utils";
 import ModalNewProject from "@/app/(dashboard)/projects/ModalNewProject";
-import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, Square } from "lucide-react";
 import Link from "next/link";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, differenceInSeconds } from "date-fns";
+import toast from "react-hot-toast";
 
 // --- Expandable Stats Card Component ---
 interface ExpandableStatsCardProps<T> {
@@ -71,6 +74,77 @@ const ExpandableStatsCard = <T,>({ title, value, icon, color, description, items
                     )}
                 </div>
             )}
+        </div>
+    );
+};
+
+const RunningTimerCard = () => {
+    const { data: runningLog, isLoading } = useGetRunningTimeLogQuery();
+    const [stopTimer, { isLoading: isStopping }] = useStopTimerMutation();
+    const [elapsedTime, setElapsedTime] = useState("00:00:00");
+    const [comment, setComment] = useState('');
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout | undefined;
+        if (runningLog) {
+            interval = setInterval(() => {
+                const seconds = differenceInSeconds(new Date(), new Date(runningLog.startTime));
+                const formatted = new Date(seconds * 1000).toISOString().substring(11, 19);
+                setElapsedTime(formatted);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [runningLog]);
+
+    const handleStopTimer = () => {
+        if (!runningLog || !comment.trim()) {
+            toast.error("A comment is required to describe your work.");
+            return;
+        }
+        toast.promise(
+            stopTimer({ logId: runningLog.id, commentText: comment }).unwrap(),
+            {
+                loading: 'Stopping timer...',
+                success: 'Timer stopped and work logged!',
+                error: (err) => err.data?.message || 'Failed to stop timer.'
+            }
+        ).then(() => setComment(''));
+    };
+
+    if (isLoading || !runningLog) {
+        return null; // Don't render anything if loading or no timer is running
+    }
+
+    return (
+        <div className="mb-8 rounded-lg bg-white p-4 shadow-lg dark:bg-dark-secondary border-l-4 border-green-500">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex-1">
+                    <p className="text-xs font-semibold uppercase text-green-600 dark:text-green-400">Timer Running</p>
+                    <h3 className="text-lg font-bold dark:text-white">{runningLog.task?.title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        in project <Link href={`/projects/${runningLog.task?.projectId}`} className="font-semibold hover:underline">{runningLog.task?.project?.name}</Link>
+                    </p>
+                </div>
+                <div className="text-3xl md:text-4xl font-mono font-bold text-gray-800 dark:text-white tracking-wider">
+                    {elapsedTime}
+                </div>
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+                     <textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder="Describe your work..."
+                        rows={1}
+                        className="w-full md:w-64 rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white"
+                    />
+                    <button 
+                        onClick={handleStopTimer}
+                        disabled={isStopping || !comment.trim()}
+                        className="flex items-center justify-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                    >
+                        <Square size={16} /> Stop Timer
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
@@ -216,6 +290,8 @@ const assignedUserTasks = useMemo(() => {
           <ExpandableStatsCard<Project> title="Projects at Risk" value={projectsAtRisk.length} icon={<ClipboardList />} color="bg-blue-500" description="Active projects past their end date." items={projectsAtRisk} renderItem={(project) => (<li key={project.id}>{project.name}</li>)} />
           <ExpandableStatsCard<Task> title="My Completed Tasks" value={tasksCompleted.length} icon={<CheckCircle />} color="bg-green-500" description="All tasks you have completed." items={tasksCompleted} renderItem={(task) => (<li key={task.id}>{task.title}</li>)} />
       </div>
+
+      <RunningTimerCard />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 lg:col-span-2">

@@ -27,6 +27,7 @@ import {
     Project as ProjectType,
     ProjectStatus
 } from '@/state/api';
+import ActivityView from '../ActivityView';
 
 const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const { id } = use(params);
@@ -59,7 +60,6 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const allActiveTasksCompleted = useMemo(() => {
         if (!activeTasks || activeTasks.length === 0) return false;
         if (activeTasks.every(task => task.status === 'Completed')) return true;
-        console.log("Not all active tasks are completed:", activeTasks);
         return false;
     }, [activeTasks]);
 
@@ -166,9 +166,11 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 setLocalSearchTerm={setLocalSearchTerm}
             />
 
-            {activeTab === "History" ? (
-                <ArchiveView versionHistory={versionHistory} tasks={archivedTasks} />
-            ) : (
+            { activeTab === "Activity" && <ActivityView projectId={Number(id)} /> }
+            { activeTab === "History" && <ArchiveView versionHistory={versionHistory} tasks={archivedTasks} /> }
+
+            {/* Existing views */}
+            { activeTab !== "History" && activeTab !== "Activity" && (
                 <>
                     { activeTab === "Board" && <BoardView id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
                     { activeTab === "List" && <ListView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }

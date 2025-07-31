@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { broadcast } from "../websocket";
 
 const Prisma = new PrismaClient();
 
@@ -25,6 +26,8 @@ export const createAttachment = async (req: Request, res: Response) => {
                 fileURL: `/uploads/${req.file.filename}`, 
             },
         });
+
+        broadcast({ type: 'ATTACHMENT_UPDATE', taskId: Number(taskId) });
         res.status(201).json(newAttachment);
     } catch (error: any) {
         console.error("Error creating attachment:", error);
@@ -45,6 +48,7 @@ export const deleteAttachment = async (req: Request, res: Response) => {
             }
         });
 
+        broadcast({ type: 'ATTACHMENT_UPDATE', attachmentId: Number(attachmentId) });
         res.status(200).json({ message: "Attachment deleted successfully." });
     } catch (error: any) {
         console.error("Error deleting attachment:", error);

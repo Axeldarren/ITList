@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
             {
                 protocol: 'http',
                 hostname: 'localhost',
-                port: '8000', // Make sure this matches your backend server port
+                port: '8008', // Make sure this matches your backend server port
                 pathname: '/uploads/**',
             },
         ],

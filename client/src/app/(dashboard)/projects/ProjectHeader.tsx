@@ -6,7 +6,8 @@ import { ProjectStatus } from '@/state/api'; // Import your ProjectStatus enum/t
 import { selectCurrentUser } from '@/state/authSlice';
 import { 
     Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, 
-    FileDown, Play, Check, XCircle, Zap, Power, CheckCircle 
+    FileDown, Play, Check, XCircle, Zap, Power, CheckCircle, 
+    ActivityIcon
 } from 'lucide-react';
 import React from 'react';
 
@@ -170,6 +171,7 @@ const ProjectHeader = ({
                     <TabButton name="List" icon={<List className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                     <TabButton name="Timeline" icon={<Clock className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                     <TabButton name="Table" icon={<Table className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                    <TabButton name="Activity" icon={<ActivityIcon className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                     <TabButton name="History" icon={<History className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                 </div>
                 <div className='flex items-center gap-2'>

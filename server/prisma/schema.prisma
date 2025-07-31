@@ -16,6 +16,14 @@ enum ProjectStatus {
   Cancel
 }
 
+enum ActivityType {
+  TASK_CREATED
+  TASK_STATUS_UPDATED
+  COMMENT_ADDED
+  TASK_UPDATED
+  TASK_DELETED
+}
+
 model User {
   userId               Int            @id @default(autoincrement())
   username             String         @unique
@@ -25,6 +33,12 @@ model User {
   profilePictureUrl    String?
   isAdmin              Boolean        @default(false)
 
+    // --- Audit Trail Fields ---
+  deletedAt            DateTime?      // NEW: For soft delete
+  deletedById          Int?           // NEW: To track who deleted the user
+  deletedBy            User?          @relation("DeletedUsers", fields: [deletedById], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+  deletedUsers         User[]         @relation("DeletedUsers")
+  
   // --- Relations for Auditing ---
   createdProjects        Project[]      @relation("CreatedProjects")
   updatedProjects        Project[]      @relation("UpdatedProjects")
@@ -46,7 +60,8 @@ model User {
   taskAssignments      TaskAssignment[]
   attachments          Attachment[]
   teams                TeamMembership[]
-  timeLogs TimeLog[]
+  timeLogs             TimeLog[]
+  activities           Activity[] 
 }
 
 model Project {
@@ -74,6 +89,7 @@ model Project {
   tasks           Task[]
   versions        ProjectVersion[]
   statusHistory   ProjectStatusHistory[]
+  activities      Activity[]
 }
 
 model ProjectStatusHistory {
@@ -119,7 +135,8 @@ model Task {
   comments        Comment[]
   attachments     Attachment[]
   taskAssignments TaskAssignment[]
-  timeLogs TimeLog[]
+  timeLogs        TimeLog[]
+  activities      Activity[]
 }
 
 model Comment {
@@ -198,6 +215,24 @@ model ProjectVersion {
   project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId   Int
   
+  @@index([projectId])
+}
+
+model Activity {
+  id          Int          @id @default(autoincrement())
+  type        ActivityType
+  description String
+  createdAt   DateTime     @default(now())
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   Int
+
+  user        User    @relation(fields: [userId], references: [userId])
+  userId      Int
+
+  task        Task?   @relation(fields: [taskId], references: [id])
+  taskId      Int?
+
   @@index([projectId])
 }
 

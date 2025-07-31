@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { broadcast } from "../websocket";
 
 const prisma = new PrismaClient();
 
@@ -52,6 +53,9 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
                 }
             },
         });
+
+        broadcast({ type: 'TEAM_UPDATE' });
+        
         res.status(201).json(newTeam);
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
@@ -68,8 +72,8 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
     try {
         const teamIdNum = Number(teamId);
 
-        await prisma.$transaction(async (tx) => {
-            const updatedTeam = await tx.team.update({
+        const updatedTeam = await prisma.$transaction(async (tx) => {
+            const team = await tx.team.update({
                 where: { id: teamIdNum },
                 data: {
                     teamName,
@@ -90,8 +94,12 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
                 });
             }
 
-            res.status(200).json(updatedTeam);
+            return team;
         });
+
+        // Broadcast after transaction completes successfully
+        broadcast({ type: 'TEAM_UPDATE' });
+        res.status(200).json(updatedTeam);
 
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
@@ -112,6 +120,9 @@ export const deleteTeam = async (req: Request, res: Response): Promise<void> => 
                 deletedById: loggedInUser?.userId,
             },
         });
+
+        broadcast({ type: 'TEAM_UPDATE' });
+        
         res.status(200).json({ message: `Team ${teamId} archived successfully.` });
     } catch (error: any) {
         res.status(500).json({ message: `Error archiving team: ${error.message}` });

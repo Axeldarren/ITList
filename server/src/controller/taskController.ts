@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { broadcast } from "../websocket";
 
 const Prisma = new PrismaClient();
 
@@ -59,6 +60,18 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
             },
         });
 
+        await Prisma.activity.create({
+            data: {
+                projectId: Number(projectId),
+                userId: loggedInUser.userId,
+                taskId: newTask.id,
+                type: 'TASK_CREATED',
+                description: `created task "${newTask.title}"`
+            }
+        });
+
+        broadcast({ type: 'UPDATE', projectId: newTask.projectId });
+
         res.status(201).json(newTask);
     } catch (error) {
         res.status(500).json({ message: `Error creating task: ${error}` });
@@ -70,6 +83,11 @@ export const updateTaskStatus = async (req: Request, res: Response): Promise<voi
     const { status } = req.body;
     const loggedInUser = req.user;
     try {
+        if (!loggedInUser) {
+            res.status(401).json({ message: "Not authorized." });
+            return;
+        }
+        
         const updatedTask = await Prisma.task.update({
             where: { id: Number(taskId) },
             data: {
@@ -77,6 +95,19 @@ export const updateTaskStatus = async (req: Request, res: Response): Promise<voi
                 updatedById: loggedInUser?.userId, // Also stamp the updater here
             }
         });
+
+        await Prisma.activity.create({
+            data: {
+                projectId: updatedTask.projectId,
+                userId: loggedInUser?.userId,
+                taskId: updatedTask.id,
+                type: 'TASK_STATUS_UPDATED',
+                description: `updated status of task "${updatedTask.title}" to "${status}"`
+            }
+        });
+
+        broadcast({ type: 'UPDATE', projectId: updatedTask.projectId });
+        
         res.json(updatedTask);
     } catch (error) {
         res.status(500).json({ message: `Error updating task status: ${error}` });
@@ -116,6 +147,12 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
     }
 
     try {
+        const taskToDelete = await Prisma.task.findUnique({ where: { id: numericTaskId }});
+        if (!taskToDelete) {
+             res.status(404).json({ message: "Task not found" });
+             return;
+        }
+
         await Prisma.$transaction(async (tx) => {
             const deletionDate = new Date();
             const deleterId = loggedInUser.userId;
@@ -146,7 +183,20 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
                     deletedById: deleterId,
                 },
             });
+
+            // Log the deletion activity
+            await tx.activity.create({
+                data: {
+                    projectId: taskToDelete.projectId,
+                    userId: loggedInUser.userId,
+                    taskId: taskToDelete.id,
+                    type: 'TASK_DELETED',
+                    description: `deleted task "${taskToDelete.title}"`
+                }
+            });
         });
+
+        broadcast({ type: 'UPDATE', projectId: taskToDelete.projectId });
 
         res.status(200).json({ message: `Task with ID ${taskId} and its content have been archived.` });
     } catch (error) {
@@ -209,6 +259,13 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
     } = req.body;
 
     try {
+        const originalTask = await Prisma.task.findUnique({ where: { id: Number(taskId) } });
+
+        if (!originalTask || !loggedInUser) {
+            res.status(404).json({ message: "Task not found or user not authenticated." });
+            return;
+        }
+
         const dataToUpdate: any = {
             title,
             description,
@@ -226,6 +283,22 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
             where: { id: Number(taskId) },
             data: dataToUpdate,
         });
+
+        // Log the general update activity, unless it was just a status change
+        if (originalTask.status === updatedTask.status) {
+            await Prisma.activity.create({
+                data: {
+                    projectId: updatedTask.projectId,
+                    userId: loggedInUser.userId,
+                    taskId: updatedTask.id,
+                    type: 'TASK_UPDATED',
+                    description: `updated task "${updatedTask.title}"`
+                }
+            });
+        }
+
+        broadcast({ type: 'UPDATE', projectId: updatedTask.projectId });
+
         res.json(updatedTask);
     } catch (error: any) {
         console.error("Error updating task:", error);

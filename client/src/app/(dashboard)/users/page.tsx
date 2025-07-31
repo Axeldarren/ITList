@@ -1,16 +1,18 @@
 "use client";
 
 import Header from "@/components/Header";
-import { useGetUsersQuery, User } from "@/state/api";
+import { useDeleteUserMutation, useGetUsersQuery, User } from "@/state/api";
 import React, { useState, useEffect } from "react";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { useAppSelector } from "@/app/redux";
 import { dataGridSxStyles } from "@/lib/utils";
 import Image from "next/image";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import ModalNewUser from "@/components/ModalNewUser";
 import ModalEditUser from "@/components/ModalEditUser";
 import { selectCurrentUser } from "@/state/authSlice";
+import toast from "react-hot-toast";
+import ModalConfirm from "@/components/ModalConfirm";
 
 // --- Avatar Cell Component ---
 const AvatarCell = ({ value, username }: { value: string | null; username: string | null }) => {
@@ -47,16 +49,35 @@ const Users = () => {
   
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
   const currentUser = useAppSelector(selectCurrentUser);
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
   const handleEditClick = (user: User) => {
       setSelectedUser(user);
       setIsEditModalOpen(true);
   };
   
-  // --- THIS IS THE FIX ---
-  // Define columns inside the component to access `currentUser`
+  const handleDeleteClick = (user: User) => {
+      setSelectedUser(user);
+      setConfirmModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+      if (!selectedUser || !selectedUser.userId) return;
+
+      toast.promise(deleteUser(selectedUser.userId).unwrap(), {
+          loading: 'Deleting user...',
+          success: `User "${selectedUser.username}" deleted successfully!`,
+          error: (err) => err.data?.message || 'Failed to delete user.'
+      }).finally(() => {
+          setConfirmModalOpen(false);
+          setSelectedUser(null);
+      });
+  };
+
   const columns: GridColDef[] = [
     {
         field: 'index', headerName: '#', width: 60,
@@ -90,6 +111,13 @@ const Users = () => {
             label="Edit"
             onClick={() => handleEditClick(row)}
           />,
+          <GridActionsCellItem
+            key="delete"
+            icon={<Trash2 />}
+            label="Delete"
+            onClick={() => handleDeleteClick(row)}
+            disabled={row.userId === currentUser?.userId} // Prevent admin from deleting themselves
+          />,
         ],
       });
   }
@@ -101,6 +129,15 @@ const Users = () => {
     <div className="flex w-full flex-col p-8">
       <ModalNewUser isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} />
       <ModalEditUser isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={selectedUser} />
+
+      <ModalConfirm 
+        isOpen={isConfirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete the user "${selectedUser?.username}"? This action cannot be undone.`}
+        isLoading={isDeleting}
+      />
 
       <Header 
         name="Users"

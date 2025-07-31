@@ -39,6 +39,20 @@ export const createComment = async (req: Request, res: Response) => {
             },
             include: { user: true },
         });
+
+        const task = await prisma.task.findUnique({ where: { id: Number(taskId) } });
+        if (task) {
+            await prisma.activity.create({
+                data: {
+                    projectId: task.projectId,
+                    userId: loggedInUser.userId,
+                    taskId: Number(taskId),
+                    type: 'COMMENT_ADDED',
+                    description: `commented on task "${task.title}"`
+                }
+            });
+        }
+        
         res.status(201).json(newComment);
     } catch (error: any) {
         res.status(500).json({ message: `Error creating comment: ${error.message}` });

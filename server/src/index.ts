@@ -7,6 +7,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
+import http from 'http';
+import { initWebSocket } from './websocket';
 
 // Route Import
 import projectRoutes from './routes/projectRoutes';
@@ -56,7 +58,12 @@ app.use('/timelogs', timeLogRoutes);
 app.use('/productivity', productivityRoutes);
 
 // Server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const port = process.env.PORT || 8008;
+const server = http.createServer(app);
+
+// Initialize WebSocket Server
+initWebSocket(server);
+
+server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 })

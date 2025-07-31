@@ -1,6 +1,23 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '@/app/redux';
 
+export interface Activity {
+  id: number;
+  type: string;
+  description: string;
+  createdAt: string;
+  projectId: number;
+  userId: number;
+  taskId?: number;
+  user: {
+    username: string;
+    profilePictureUrl?: string;
+  };
+  task?: {
+    title: string;
+  };
+}
+
 export interface Project {
     id: number;
     name: string;
@@ -124,6 +141,7 @@ export interface TimeLog {
   taskId: number;
   userId: number;
   user?: { username: string };
+  task?: Task & { project?: Project };
 }
 
 export interface SearchResults {
@@ -173,7 +191,7 @@ const baseQuery = fetchBaseQuery({
 export const api = createApi({
     baseQuery,
     reducerPath: 'api',
-    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs"],
+    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog"],
     endpoints: (build) => ({
         getProjects: build.query<Project[], void>({
             query: () => 'projects',
@@ -198,6 +216,10 @@ export const api = createApi({
                         { type: 'ProjectVersions', id: 'LIST' },
                     ]
                     : [{ type: 'ProjectVersions', id: 'LIST' }],
+        }),
+        getProjectActivities: build.query<Activity[], number>({
+            query: (projectId) => `projects/${projectId}/activities`,
+            providesTags: (result, error, projectId) => [{ type: 'Activities', id: projectId }],
         }),
 
         createProject: build.mutation<Project, Partial<Project>>({
@@ -259,13 +281,17 @@ export const api = createApi({
                 }
                 return url;
             },
-            providesTags: (result) =>
+            providesTags: (result, error, { projectId }) =>
                 result
                     ? [
                         ...result.map(({ id }) => ({ type: 'Tasks' as const, id })),
                         { type: 'Tasks', id: 'LIST' },
+                        { type: 'Tasks', id: `PROJECT_${projectId}` }, // Add project-specific tag
                     ]
-                    : [{ type: 'Tasks', id: 'LIST' }],
+                    : [
+                        { type: 'Tasks', id: 'LIST' },
+                        { type: 'Tasks', id: `PROJECT_${projectId}` }
+                    ],
         }),
         getTaskById: build.query<Task, number>({
             query: (taskId) => `tasks/${taskId}`,
@@ -277,14 +303,14 @@ export const api = createApi({
                 method: 'POST',
                 body: task
             }),
-            invalidatesTags: [{ type: 'Tasks', id: 'LIST' }],
+            invalidatesTags: (result) => [{ type: 'Tasks', id: 'LIST' }, { type: 'Activities', id: result?.projectId }],
         }),
         deleteTask: build.mutation<{ message: string }, number>({
             query: (taskId) => ({
                 url: `tasks/${taskId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: [{ type: 'Tasks', id: 'LIST' }],
+            invalidatesTags: () => [{ type: 'Tasks' }, { type: 'Activities' }],
         }),
         updateTaskStatus: build.mutation<Task, {taskId: number; status: string}>({
             query: ({ taskId, status }) => ({
@@ -292,7 +318,11 @@ export const api = createApi({
                 method: 'PATCH',
                 body: { status }
             }),
-            invalidatesTags: [{ type: "Tasks", id: 'LIST' }],
+            invalidatesTags: (result) => [
+                { type: "Tasks", id: 'LIST' }, 
+                { type: 'Tasks', id: `PROJECT_${result?.projectId}` }, // Add project-specific invalidation
+                { type: 'Activities', id: result?.projectId }
+            ],
         }),
         getTasksByUser: build.query<Task[], number>({
             query: (userId) => `tasks/user/${userId}`,
@@ -378,6 +408,13 @@ export const api = createApi({
             }),
             invalidatesTags: ['Users'], // Invalidate the Users tag to refetch the list
         }),
+        deleteUser: build.mutation<{ message: string }, number>({
+            query: (userId) => ({
+                url: `users/${userId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: [{ type: 'Users', id: 'LIST' }],
+        }),
 
         uploadProfilePicture: build.mutation<User, { userId: number; file: File }>({
             query: ({ userId, file }) => {
@@ -395,7 +432,13 @@ export const api = createApi({
 
         getTeams: build.query<Team[], void>({
             query: () => 'teams',
-            providesTags: ["Teams"]
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'Teams' as const, id })),
+                        { type: 'Teams', id: 'LIST' },
+                      ]
+                    : [{ type: 'Teams', id: 'LIST' }],
         }),
 
         createTeam: build.mutation<Team, Partial<Team>>({
@@ -404,7 +447,7 @@ export const api = createApi({
                 method: 'POST',
                 body: team,
             }),
-            invalidatesTags: ['Teams'],
+            invalidatesTags: [{ type: 'Teams', id: 'LIST' }],
         }),
         updateTeam: build.mutation<Team, Partial<Team> & { id: number }>({
             query: ({ id, ...patch }) => ({
@@ -412,14 +455,14 @@ export const api = createApi({
                 method: 'PATCH',
                 body: patch,
             }),
-            invalidatesTags: ['Teams'],
+            invalidatesTags: [{ type: 'Teams', id: 'LIST' }],
         }),
         deleteTeam: build.mutation<{ message: string }, number>({
             query: (teamId) => ({
                 url: `teams/${teamId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: ['Teams'],
+            invalidatesTags: [{ type: 'Teams', id: 'LIST' }],
         }),
         updateTask: build.mutation<Task, Partial<Task> & { id: number }>({
             query: ({ id, ...patch }) => ({
@@ -427,7 +470,7 @@ export const api = createApi({
                 method: 'PATCH',
                 body: patch,
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'Tasks', id }, { type: 'Tasks', id: 'LIST' }],
+            invalidatesTags: (result) => [{ type: 'Tasks' }, { type: 'Activities', id: result?.projectId }],
         }),
         createComment: build.mutation<Comment, { taskId: number; text: string; userId: number }>({
             query: (body) => ({
@@ -435,7 +478,7 @@ export const api = createApi({
                 method: 'POST',
                 body,
             }),
-            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }],
+            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }, { type: 'Activities' }],
         }),
         updateComment: build.mutation<Comment, { id: number; text: string }>({
             query: ({ id, ...patch }) => ({
@@ -488,9 +531,7 @@ export const api = createApi({
                 method: 'POST',
                 body,
             }),
-            // This invalidates the specific task's cache tag, forcing it to refetch
-            // and get the new 'runningLog' data.
-            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }],
+            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }, 'RunningTimeLog'],
         }),
 
         stopTimer: build.mutation<TimeLog, { logId: number; commentText: string }>({
@@ -499,16 +540,100 @@ export const api = createApi({
                 method: 'POST',
                 body,
             }),
-            // The server response for stopTimer includes the taskId.
-            // We use it to invalidate the correct task, forcing a refetch.
-            invalidatesTags: (result) => result ? [{ type: 'Tasks', id: result.taskId }] : [],
+            invalidatesTags: (result) => result ? [{ type: 'Tasks', id: result.taskId }, "Activities", 'RunningTimeLog'] : [],
         }),
+        getRunningTimeLog: build.query<TimeLog | null, void>({
+            query: () => 'timelogs/running',
+            providesTags: ['RunningTimeLog'],
+        }),
+
         getDeveloperStats: build.query<DeveloperStats[], { month?: string }>({
             query: ({ month }) => ({
                 url: 'productivity',
                 params: { month }, // Pass the month as a query parameter
             }),
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
+        }),
+
+        webSocket: build.query<null, void>({
+            queryFn: () => ({ data: null }), // Use queryFn instead of query to avoid URL construction
+            async onCacheEntryAdded(
+                arg,
+                { cacheDataLoaded, cacheEntryRemoved, dispatch }
+            ) {
+                // Fix: Connect directly to the WebSocket server root, not /ws endpoint
+                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
+                const wsUrl = baseUrl.replace(/^http/, 'ws');
+                
+                const ws = new WebSocket(wsUrl);
+
+                try {
+                    await cacheDataLoaded;
+
+                    // Wait for WebSocket to open before adding listeners
+                    await new Promise<void>((resolve, reject) => {
+                        ws.onopen = () => {
+                            resolve();
+                        };
+                        ws.onerror = (error) => {
+                            console.error('WebSocket connection failed:', error);
+                            reject(error);
+                        };
+                        ws.onclose = (event) => {
+                            if (event.code !== 1000) {
+                                console.warn('WebSocket closed unexpectedly:', event.code, event.reason);
+                            }
+                        };
+                    });
+
+                    const listener = (event: MessageEvent) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            
+                            // Handle task/activity updates for a specific project
+                            if (data.type === 'UPDATE' && data.projectId) {
+                                dispatch(api.util.invalidateTags([
+                                    { type: 'Tasks', id: 'LIST' }, // Invalidate the main task list
+                                    { type: 'Tasks', id: `PROJECT_${data.projectId}` }, // Project-specific tasks
+                                    { type: 'Activities', id: data.projectId } // Activities for the project
+                                ]));
+                            }
+
+                            // Handle general project list updates
+                            if (data.type === 'PROJECT_UPDATE') {
+                                dispatch(api.util.invalidateTags([{ type: 'Projects', id: 'LIST' }]));
+                                if (data.projectId) {
+                                     dispatch(api.util.invalidateTags([{ type: 'Projects', id: data.projectId }]));
+                                }
+                            }
+
+                            // Handle user list updates
+                            if (data.type === 'USER_UPDATE') {
+                                dispatch(api.util.invalidateTags([{ type: 'Users', id: 'LIST' }]));
+                            }
+
+                            // Handle team list updates
+                            if (data.type === 'TEAM_UPDATE') {
+                                dispatch(api.util.invalidateTags([{ type: 'Teams', id: 'LIST' }]));
+                            }
+                        } catch (error) {
+                            console.error('Error parsing WebSocket message:', error);
+                        }
+                    };
+
+                    ws.addEventListener('message', listener);
+
+                    // Clean up when cache entry is removed
+                    await cacheEntryRemoved;
+                    ws.removeEventListener('message', listener);
+                } catch (error) {
+                    console.error('WebSocket setup failed:', error);
+                } finally {
+                    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                        ws.close();
+                    }
+                }
+            },
         }),
     }),
 });
@@ -524,6 +649,7 @@ export const {
     useArchiveAndIncrementVersionMutation,
     useGetProjectVersionHistoryQuery,
     useGetAllProjectVersionsQuery,
+    useGetProjectActivitiesQuery,
     useGetAllTasksQuery,
     useGetTasksQuery,
     useGetTaskByIdQuery,
@@ -539,6 +665,7 @@ export const {
     useGetUserByIdQuery,
     useCreateUserMutation,
     useUpdateUserMutation,
+    useDeleteUserMutation,
     useUploadProfilePictureMutation,
     useGetTeamsQuery,
     useCreateTeamMutation,
@@ -553,5 +680,7 @@ export const {
     useGetTaskTimeLogsQuery,
     useStartTimerMutation,
     useStopTimerMutation,
+    useGetRunningTimeLogQuery,
     useGetDeveloperStatsQuery,
+    useWebSocketQuery,
 } = api;
