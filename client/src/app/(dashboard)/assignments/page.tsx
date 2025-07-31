@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useGetUsersQuery, useGetAllTasksQuery, useGetProjectsQuery } from '@/state/api';
 import Header from '@/components/Header';
-import { User as UserIcon, AlertTriangle, CheckCircle, Target, Calendar, ArrowRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Target, Calendar, ArrowRight, User } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
