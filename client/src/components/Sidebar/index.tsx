@@ -200,17 +200,71 @@ const Sidebar = () => {
                     )}
                 </button>
                 {/* PROJECTS LIST */}
-                {showProjects && 
-                    projects?.map((project) => (
-                        <div key={project.id} onContextMenu={(e) => handleContextMenu(e, project)}>
-                            <SidebarLink
-                                icon={Briefcase}
-                                label={project.name}
-                                href={`/projects/${project.id}`}
-                                isSelected={project.id === selectedProjectId}
-                            />
+                {showProjects && (
+                    <div className="space-y-1">
+                        {/* Active Projects */}
+                        <div className="flex items-center justify-between px-6 pt-2 pb-1">
+                            <h4 className="text-xs font-semibold uppercase text-gray-500">Active</h4>
+                            <span className="text-xs text-gray-400 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
+                                {projects?.filter(p => p.status === "Start" || p.status === "OnProgress" || p.status === "Resolve").length || 0}
+                            </span>
                         </div>
-                ))}
+                        {projects?.filter(p => p.status === "Start" || p.status === "OnProgress" || p.status === "Resolve").map((project) => (
+                            <div key={project.id} onContextMenu={(e) => handleContextMenu(e, project)}>
+                                <SidebarLink
+                                    icon={Briefcase}
+                                    label={project.name}
+                                    href={`/projects/${project.id}`}
+                                    isSelected={project.id === selectedProjectId}
+                                />
+                            </div>
+                        ))}
+                        
+                        {/* Completed Projects */}
+                        {projects?.some(p => p.status === "Finish") && (
+                            <>
+                                <div className="flex items-center justify-between px-6 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-gray-700">
+                                    <h4 className="text-xs font-semibold uppercase text-gray-500">Completed</h4>
+                                    <span className="text-xs text-gray-400 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
+                                        {projects?.filter(p => p.status === "Finish").length || 0}
+                                    </span>
+                                </div>
+                                {projects?.filter(p => p.status === "Finish").map((project) => (
+                                    <div key={project.id} onContextMenu={(e) => handleContextMenu(e, project)}>
+                                        <SidebarLink
+                                            icon={Briefcase}
+                                            label={project.name}
+                                            href={`/projects/${project.id}`}
+                                            isSelected={project.id === selectedProjectId}
+                                        />
+                                    </div>
+                                ))}
+                            </>
+                        )}
+                        
+                        {/* Cancelled Projects */}
+                        {projects?.some(p => p.status === "Cancel") && (
+                            <>
+                                <div className="flex items-center justify-between px-6 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-gray-700">
+                                    <h4 className="text-xs font-semibold uppercase text-gray-500">Cancelled</h4>
+                                    <span className="text-xs text-gray-400 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
+                                        {projects?.filter(p => p.status === "Cancel").length || 0}
+                                    </span>
+                                </div>
+                                {projects?.filter(p => p.status === "Cancel").map((project) => (
+                                    <div key={project.id} onContextMenu={(e) => handleContextMenu(e, project)}>
+                                        <SidebarLink
+                                            icon={Briefcase}
+                                            label={project.name}
+                                            href={`/projects/${project.id}`}
+                                            isSelected={project.id === selectedProjectId}
+                                        />
+                                    </div>
+                                ))}
+                            </>
+                        )}
+                    </div>
+                )}
                 
                 {/* PRIORITY LINKS */}
                 <button 
