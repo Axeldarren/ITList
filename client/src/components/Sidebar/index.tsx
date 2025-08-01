@@ -201,7 +201,7 @@ const Sidebar = () => {
                 </button>
                 {/* PROJECTS LIST */}
                 {showProjects && (
-                    <div className="space-y-1">
+                    <div className="space-y-1 pl-6">
                         {/* Active Projects */}
                         <div className="flex items-center justify-between px-6 pt-2 pb-1">
                             <h4 className="text-xs font-semibold uppercase text-gray-500">Active</h4>
