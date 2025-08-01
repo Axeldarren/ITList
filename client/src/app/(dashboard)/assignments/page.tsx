@@ -121,7 +121,7 @@ const Assignments = () => {
                                         />
                                     ) : (
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
-                                            {dev.username?.substring(0, 2).toUpperCase() || '??'}
+                                            {dev.username?.substring(0, 2).toUpperCase() || <User size={24} className="text-gray-600 dark:text-gray-300" />}
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">

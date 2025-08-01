@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { token } = useAppSelector((state) => state.auth);
   const router = useRouter();
 
-  useWebSocketQuery();
+  const { error } = useWebSocketQuery();
   
   const isSidebarCollapsed = useAppSelector(
     (state) => state.global.isSidebarCollapsed,
@@ -24,6 +24,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/login');
     }
   }, [token, router]);
+
+  useEffect(() => {
+    // Handle 401 errors or token expiration
+    if (error && 'status' in error && error.status === 401) {
+      router.replace('/login');
+    }
+  }, [error, router]);
 
   useEffect(() => {
     if (isDarkMode) {

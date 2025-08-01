@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useGetDeveloperStatsQuery, useGetUsersQuery } from '@/state/api';
-import { FileDown, Clock, CheckCircle, AlertTriangle, Target } from 'lucide-react';
+import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User } from 'lucide-react';
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -89,7 +89,7 @@ const DeveloperProductivity = () => {
                                             />
                                         ) : (
                                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
-                                                {dev.username.substring(0, 2).toUpperCase()}
+                                                {dev.username ? dev.username.substring(0, 2).toUpperCase() : <User size={24} className="text-gray-600 dark:text-gray-300" />}
                                             </div>
                                         )}
                                         <div>

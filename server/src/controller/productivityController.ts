@@ -20,7 +20,8 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
     try {
         const users = await prisma.user.findMany({
             where: {
-                deletedAt: null // Only get active users
+                deletedAt: null, // Only get active users
+                isAdmin: false // Exclude admins
             }
         });
 
