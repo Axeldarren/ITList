@@ -141,7 +141,7 @@ model Task {
 
 model Comment {
   id          Int       @id @default(autoincrement())
-  text        String
+  text        String    @db.Text
   taskId      Int
   
   // --- Audit Trail Fields ---

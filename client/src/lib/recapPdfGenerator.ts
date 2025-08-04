@@ -2,6 +2,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Project, ProjectVersion, Task, Team, User } from '@/state/api';
 
+const formatDuration = (seconds: number): string => {
+    if (!seconds || seconds < 60) return `0m`;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return [ h > 0 ? `${h}h` : '', m > 0 ? `${m}m` : '' ].filter(Boolean).join(' ');
+};
+
 export type ReportOptions = {
     includeId: boolean;
     includeVersion: boolean;
@@ -13,6 +20,8 @@ export type ReportOptions = {
     includeTasks?: boolean; // NEW: Option to include tasks
     includeDescription?: boolean; // NEW: Option to include project description
     includeMembers: boolean;
+    includeStoryPoints: boolean; // NEW: Option to include total story points
+    includeTimeLogged: boolean; // NEW: Option to include total time logged
 };
 
 export const exportAllProjectsToPDF = (
@@ -29,11 +38,52 @@ export const exportAllProjectsToPDF = (
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
 
+    // Calculate overall summary if story points or time logged are included
+    let summaryY = 40;
+    if (options.includeStoryPoints || options.includeTimeLogged) {
+        let totalStoryPoints = 0;
+        let totalTimeLogged = 0;
+
+        reportItems.forEach(item => {
+            const projectTasks = allTasks.filter(task => task.projectId === item.id && task.version === item.version);
+            
+            if (options.includeStoryPoints) {
+                totalStoryPoints += projectTasks.reduce((sum, task) => sum + (task.points || 0), 0);
+            }
+            
+            if (options.includeTimeLogged) {
+                totalTimeLogged += projectTasks.reduce((sum, task) => {
+                    const taskTimeLogs = task.timeLogs || [];
+                    const taskDuration = taskTimeLogs.reduce((taskSum, log) => taskSum + (log.duration || 0), 0);
+                    return sum + taskDuration;
+                }, 0);
+            }
+        });
+
+        // Summary section
+        doc.setFontSize(14);
+        doc.text('Project Portfolio Summary', 14, summaryY + 5);
+        doc.setFontSize(10);
+        
+        let summaryText = `Total Projects: ${reportItems.length}`;
+        if (options.includeStoryPoints) {
+            summaryText += ` | Total Story Points Across All Projects: ${totalStoryPoints}`;
+        }
+        if (options.includeTimeLogged) {
+            summaryText += ` | Total Time Logged Across All Projects: ${formatDuration(totalTimeLogged)}`;
+        }
+        
+        doc.text(summaryText, 14, summaryY + 12);
+        summaryY += 25;
+    }
+
     const head: string[] = ['#', 'Project'];
     if (options.includeId) head.push('ID');
     if (options.includeStatus) head.push('Status');
     if (options.includeVersion) head.push('Ver');
     if (options.includeProgress) head.push('Progress');
+    if (options.includeStoryPoints) head.push('Total Story Points');
+    if (options.includeTimeLogged) head.push('Total Time Logged');
     if (options.includeDates) { head.push('Start'); head.push('End'); }
     if (options.includePO) head.push('PO');
     if (options.includePM) head.push('PM');
@@ -50,14 +100,28 @@ export const exportAllProjectsToPDF = (
         }
 
         const team = teams.find(t => t.id === teamId);
+        const projectTasks = allTasks.filter(task => task.projectId === item.id && task.version === item.version);
         
         if (options.includeId) row.push(item.id);
         if (options.includeStatus) row.push(item.status);
         if (options.includeVersion) row.push(`V${item.version}`);
         if (options.includeProgress) {
-            const projectTasks = allTasks.filter(task => task.projectId === item.id && task.version === item.version);
             const completedTasks = projectTasks.filter(task => task.status === 'Completed').length;
             row.push(projectTasks.length > 0 ? `${Math.round((completedTasks / projectTasks.length) * 100)}%` : '0%');
+        }
+        if (options.includeStoryPoints) {
+            // Calculate total story points for this project (all tasks, regardless of completion status)
+            const totalStoryPoints = projectTasks.reduce((sum, task) => sum + (task.points || 0), 0);
+            row.push(totalStoryPoints);
+        }
+        if (options.includeTimeLogged) {
+            // Calculate total time logged for all tasks in this project
+            const totalTimeLogged = projectTasks.reduce((sum, task) => {
+                const taskTimeLogs = task.timeLogs || [];
+                const taskDuration = taskTimeLogs.reduce((taskSum, log) => taskSum + (log.duration || 0), 0);
+                return sum + taskDuration;
+            }, 0);
+            row.push(formatDuration(totalTimeLogged));
         }
         if (options.includeDates) {
             row.push(item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A');
@@ -71,11 +135,23 @@ export const exportAllProjectsToPDF = (
     });
 
     autoTable(doc, {
-        startY: 40,
+        startY: summaryY,
         head: [head],
         body: body,
         theme: 'grid',
         headStyles: { fillColor: [22, 160, 133] },
+        columnStyles: {
+            // Center align numeric columns
+            0: { halign: 'center' }, // #
+            ...(options.includeId && { [head.indexOf('ID')]: { halign: 'center' } }),
+            ...(options.includeStoryPoints && { [head.indexOf('Total Story Points')]: { halign: 'center' } }),
+            ...(options.includeTimeLogged && { [head.indexOf('Total Time Logged')]: { halign: 'center' } }),
+            ...(options.includeProgress && { [head.indexOf('Progress')]: { halign: 'center' } }),
+        },
+        styles: {
+            fontSize: 8,
+            cellPadding: 2,
+        }
     });
     
     doc.save(`Custom_Project_Recap_${new Date().toISOString().split('T')[0]}.pdf`);

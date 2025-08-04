@@ -14,26 +14,42 @@ export const exportProductivityToPDF = (stats: DeveloperStats[], month: string) 
     const doc = new jsPDF();
     const monthName = format(parseISO(`${month}-01`), 'MMMM yyyy');
 
-    // --- NEW: Dynamic Title ---
+    // Title and Header
     doc.setFontSize(20);
     doc.text(`Developer Productivity Report: ${monthName}`, 14, 22);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
 
+    // Calculate totals for summary
+    const totalTimeLogged = stats.reduce((sum, s) => sum + s.totalTimeLogged, 0);
+    const totalCompletedTasks = stats.reduce((sum, s) => sum + s.completedTasks, 0);
+
+    // Summary Section
+    doc.setFontSize(14);
+    doc.text('Summary', 14, 45);
+    doc.setFontSize(10);
+    doc.text(`Total Time Logged: ${formatDuration(totalTimeLogged)}`, 14, 52);
+    doc.text(`Total Tasks Completed: ${totalCompletedTasks}`, 14, 58);
+
+    // Developer Details Table
     const tableData = stats.map(s => [
         s.username,
-        s.totalTasks,
+        formatDuration(s.totalTimeLogged),
         s.completedTasks,
         s.overdueTasks,
-        formatDuration(s.totalTimeLogged),
     ]);
 
     autoTable(doc, {
-        startY: 40,
-        head: [['Developer', 'Total Tasks', 'Completed', 'Overdue', 'Time Logged']],
+        startY: 70,
+        head: [['Developer', 'Time Logged', 'Tasks Completed', 'Overdue']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [41, 128, 185] },
+        columnStyles: {
+            1: { halign: 'center' }, // Time Logged
+            2: { halign: 'center' }, // Tasks Completed
+            3: { halign: 'center' }, // Overdue
+        }
     });
 
     doc.save(`Developer_Productivity_${month}.pdf`);

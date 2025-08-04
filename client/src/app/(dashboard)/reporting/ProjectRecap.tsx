@@ -28,6 +28,8 @@ const ProjectRecap = () => {
         includeVersion: true,
         includeStatus: true,
         includeProgress: true,
+        includeStoryPoints: true,
+        includeTimeLogged: true,
         includeDates: true,
         includePO: true,
         includePM: true,
@@ -69,6 +71,33 @@ const ProjectRecap = () => {
         
         return byStatus;
     }, [projects, allVersions, includeArchived, selectedStatuses, dateRange]);
+
+    // Calculate summary totals
+    const summaryTotals = useMemo(() => {
+        let totalStoryPoints = 0;
+        let totalTimeLogged = 0;
+
+        filteredReportData.forEach(item => {
+            const projectTasks = allTasks.filter(task => task.projectId === item.id && task.version === item.version);
+            
+            totalStoryPoints += projectTasks.reduce((sum, task) => sum + (task.points || 0), 0);
+            
+            totalTimeLogged += projectTasks.reduce((sum, task) => {
+                const taskTimeLogs = task.timeLogs || [];
+                const taskDuration = taskTimeLogs.reduce((taskSum, log) => taskSum + (log.duration || 0), 0);
+                return sum + taskDuration;
+            }, 0);
+        });
+
+        return { totalStoryPoints, totalTimeLogged };
+    }, [filteredReportData, allTasks]);
+
+    const formatDuration = (seconds: number): string => {
+        if (!seconds || seconds < 60) return `0m`;
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return [ h > 0 ? `${h}h` : '', m > 0 ? `${m}m` : '' ].filter(Boolean).join(' ');
+    };
 
 
     const handleExport = () => {
@@ -138,12 +167,39 @@ const ProjectRecap = () => {
                     <OptionCheckbox id="includeVersion" label="Version" />
                     <OptionCheckbox id="includeStatus" label="Status" />
                     <OptionCheckbox id="includeProgress" label="Progress" />
+                    <OptionCheckbox id="includeStoryPoints" label="Story Points" />
+                    <OptionCheckbox id="includeTimeLogged" label="Time Logged" />
                     <OptionCheckbox id="includeDates" label="Start/End Dates" />
                     <OptionCheckbox id="includePO" label="Product Owner" />
                     <OptionCheckbox id="includePM" label="Project Manager" />
                     <OptionCheckbox id="includeMembers" label="Team Members" />
                 </div>
             </div>
+
+            {/* Summary Preview */}
+            {!isLoading && filteredReportData.length > 0 && (options.includeStoryPoints || options.includeTimeLogged) && (
+                <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg mb-6 border border-green-200 dark:border-gray-600">
+                    <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Report Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-blue-600">{filteredReportData.length}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Total Projects</p>
+                        </div>
+                        {options.includeStoryPoints && (
+                            <div className="text-center">
+                                <p className="text-2xl font-bold text-indigo-600">{summaryTotals.totalStoryPoints}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Total Story Points</p>
+                            </div>
+                        )}
+                        {options.includeTimeLogged && (
+                            <div className="text-center">
+                                <p className="text-2xl font-bold text-purple-600">{formatDuration(summaryTotals.totalTimeLogged)}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Total Time Logged</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <button 
                 onClick={handleExport}

@@ -33,12 +33,16 @@ const DeveloperProductivity = () => {
 
     const monthName = format(new Date(`${selectedMonth}-01`), 'MMMM yyyy');
 
+    // Calculate overall totals for summary
+    const totalTimeLogged = stats.reduce((sum, dev) => sum + dev.totalTimeLogged, 0);
+    const totalCompletedTasks = stats.reduce((sum, dev) => sum + dev.completedTasks, 0);
+
     return (
         <div className="p-6 bg-white rounded-lg shadow dark:bg-dark-secondary">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-bold dark:text-white">Developer Productivity</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Performance metrics for {monthName}</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Time logged and tasks completed for {monthName}</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <input 
@@ -57,6 +61,39 @@ const DeveloperProductivity = () => {
                 </div>
             </div>
 
+            {/* Summary Section */}
+            {!isLoading && stats.length > 0 && (
+                <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-6 border border-blue-200 dark:border-gray-600">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Target size={20} className="text-blue-500" />
+                        {monthName} Summary
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="bg-white dark:bg-dark-bg p-4 rounded-lg border border-blue-100 dark:border-gray-600">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Clock size={16} className="text-purple-500" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Time Logged</span>
+                            </div>
+                            <p className="text-2xl font-bold text-purple-600">{formatDuration(totalTimeLogged)}</p>
+                        </div>
+                        <div className="bg-white dark:bg-dark-bg p-4 rounded-lg border border-blue-100 dark:border-gray-600">
+                            <div className="flex items-center gap-2 mb-2">
+                                <CheckCircle size={16} className="text-green-500" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Tasks Completed</span>
+                            </div>
+                            <p className="text-2xl font-bold text-green-600">{totalCompletedTasks}</p>
+                        </div>
+                        <div className="bg-white dark:bg-dark-bg p-4 rounded-lg border border-blue-100 dark:border-gray-600">
+                            <div className="flex items-center gap-2 mb-2">
+                                <User size={16} className="text-blue-500" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Developers</span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-600">{stats.length}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
@@ -73,7 +110,6 @@ const DeveloperProductivity = () => {
                 <div className="grid gap-4">
                     {stats.map((dev) => {
                         const userProfile = getUserProfile(dev.userId);
-                        const completionRate = dev.totalTasks > 0 ? Math.round((dev.completedTasks / dev.totalTasks) * 100) : 0;
                         
                         return (
                             <div key={dev.userId} className="bg-gray-50 dark:bg-dark-tertiary rounded-lg p-4 border border-gray-200 dark:border-gray-600">
@@ -95,7 +131,7 @@ const DeveloperProductivity = () => {
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{dev.username}</h3>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                {completionRate}% completion rate
+                                                {dev.completedTasks} tasks completed
                                             </p>
                                         </div>
                                     </div>
@@ -108,37 +144,8 @@ const DeveloperProductivity = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                                        <div className="flex items-center gap-2">
-                                            <Target size={16} className="text-blue-500" />
-                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Tasks</span>
-                                        </div>
-                                        <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">
-                                            {dev.totalTasks}
-                                        </p>
-                                    </div>
-
-                                    <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                                        <div className="flex items-center gap-2">
-                                            <CheckCircle size={16} className="text-green-500" />
-                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Completed</span>
-                                        </div>
-                                        <p className="text-xl font-bold text-green-600 mt-1">
-                                            {dev.completedTasks}
-                                        </p>
-                                    </div>
-
-                                    <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                                        <div className="flex items-center gap-2">
-                                            <AlertTriangle size={16} className="text-red-500" />
-                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Overdue</span>
-                                        </div>
-                                        <p className="text-xl font-bold text-red-600 mt-1">
-                                            {dev.overdueTasks}
-                                        </p>
-                                    </div>
-
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {/* Time Logged - First Priority */}
                                     <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
                                         <div className="flex items-center gap-2">
                                             <Clock size={16} className="text-purple-500" />
@@ -149,38 +156,26 @@ const DeveloperProductivity = () => {
                                         </p>
                                     </div>
 
+                                    {/* Completed Tasks */}
                                     <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
                                         <div className="flex items-center gap-2">
-                                            <Target size={16} className="text-indigo-500" />
-                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Story Points</span>
+                                            <CheckCircle size={16} className="text-green-500" />
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Tasks Completed</span>
                                         </div>
-                                        <p className="text-xl font-bold text-indigo-600 mt-1">
-                                            {dev.completedStoryPoints}/{dev.totalStoryPoints}
+                                        <p className="text-xl font-bold text-green-600 mt-1">
+                                            {dev.completedTasks}
                                         </p>
                                     </div>
 
+                                    {/* Overdue Tasks */}
                                     <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
                                         <div className="flex items-center gap-2">
-                                            <CheckCircle size={16} className="text-emerald-500" />
-                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Points Rate</span>
+                                            <AlertTriangle size={16} className="text-red-500" />
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Overdue</span>
                                         </div>
-                                        <p className="text-xl font-bold text-emerald-600 mt-1">
-                                            {dev.totalStoryPoints > 0 ? Math.round((dev.completedStoryPoints / dev.totalStoryPoints) * 100) : 0}%
+                                        <p className="text-xl font-bold text-red-600 mt-1">
+                                            {dev.overdueTasks}
                                         </p>
-                                    </div>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="mt-4">
-                                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                        <span>Progress</span>
-                                        <span>{completionRate}%</span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div 
-                                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                            style={{ width: `${completionRate}%` }}
-                                        />
                                     </div>
                                 </div>
                             </div>
