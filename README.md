@@ -384,10 +384,6 @@ project-management-app/
 - **Responsive Design** optimized for all devices
 - **Dark/Light Theme** toggle for user preference
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🎯 Future Enhancements
 
 - [ ] Mobile application (React Native)
