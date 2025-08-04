@@ -1,6 +1,6 @@
-# 🚀 Project Management Application (PM-App)
+# 🚀 Project Management Application (ITList)
 
-A comprehensive project management system built with modern web technologies, featuring real-time collaboration, time tracking, and advanced reporting capabilities.
+ITList is a comprehensive project management system built with modern web technologies, featuring real-time collaboration, time tracking, and advanced reporting capabilities.
 
 ![Project Management Dashboard](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black)
