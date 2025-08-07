@@ -411,22 +411,22 @@ project-management-app/
 ## 📸 Screenshots
 
 ### Dashboard
-![Dashboard Overview - Home page with task overview and timer functionality]
+![DashboardOverview](https://github.com/user-attachments/assets/cd7fd91c-e658-4d82-9544-568d8d13fbba)
 
 ### Project Management
-![Project Management - Project creation, editing, and team assignment]
+![ProjectCreation](https://github.com/user-attachments/assets/e3cf4d9f-c09e-4e39-80f1-a39b1491205f)
 
 ### Task Management
-![Task Management - Task creation, editing, and assignment with attachments]
+![TaskManagement](https://github.com/user-attachments/assets/ba50b7ce-60d6-4a9c-a6e7-86d025102928)
 
 ### Time Tracking
-![Time Tracking - Built-in timer with work session comments]
+![TimeTracking](https://github.com/user-attachments/assets/ef302439-f30a-4933-bda1-5faa0b2b13de)
 
 ### Reporting & Analytics
-![Reporting - Developer productivity and project recap reports]
+![ReportingAnalytics](https://github.com/user-attachments/assets/d0a29e4e-0612-4768-bdbb-441b007c4534)
 
 ### Gantt Timeline
-![Timeline - Visual project timeline with Gantt chart representation]
+![Timeline](https://github.com/user-attachments/assets/4b6a8f22-4450-4fc7-887e-7466a0a0f63d)
 
 ## 🏆 Key Features Highlights
 
