@@ -34,10 +34,15 @@ ITList is a comprehensive project management system built with modern web techno
 - **Priority Management** - Organize tasks by priority levels (Urgent, High, Medium, Low, Backlog)
 
 ### ⏱️ Time Tracking & Productivity
-- **Built-in Timer** - Start/stop timers for tasks with automatic time logging
-- **Time Log Management** - Detailed time tracking with comments and work descriptions
-- **Developer Productivity Reports** - Monthly productivity analytics with time logged and task completion metrics
-- **Work Session Comments** - Add detailed descriptions when stopping timers
+- **Unified Timer System** - Single comprehensive timer for both regular tasks and maintenance operations
+- **Real-time Timer Broadcasting** - Live timer updates via WebSocket across all connected clients
+- **Advanced Time Logging** - Detailed time tracking with mandatory work session comments
+- **Cross-platform Time Management** - Seamless timer functionality for tasks and maintenance activities
+- **Total Time Aggregation** - Display cumulative time logged for tasks, projects, and maintenance items
+- **Comment-linked Time Entries** - Associate detailed work descriptions with every time log
+- **Developer Productivity Reports** - Monthly productivity analytics with comprehensive time metrics
+- **Duration Formatting** - Human-readable time displays with smart formatting (hours, days, minutes)
+- **Maintenance Time Tracking** - Specialized time tracking for IT product maintenance activities
 
 ### 📊 Advanced Reporting & Analytics
 - **Project Recap Reports** - Comprehensive project portfolio analysis
@@ -48,9 +53,23 @@ ITList is a comprehensive project management system built with modern web techno
 
 ### 👥 User Management & Security
 - **Role-Based Access Control** - Admin and regular user permissions
-- **User Authentication** - Secure JWT-based authentication system
+- **JWT Authentication** - Secure token-based authentication system
+- **Advanced Security Protection** - XSS prevention, SQL injection protection, and input sanitization
+- **Rate Limiting** - Brute force attack prevention with progressive delays
+- **Security Monitoring** - Real-time threat detection and logging
+- **Password Security** - Bcrypt hashing with strength validation
 - **Profile Management** - User profiles with avatar support
 - **Audit Trail** - Complete audit logging for all system changes
+
+### ⚡ Enhanced Timer System & Maintenance
+- **Unified Timer Architecture** - Single timer system for both regular tasks and maintenance operations
+- **Product Maintenance Management** - Comprehensive maintenance task tracking for IT products
+- **Maintenance Task Scheduling** - Create, assign, and track maintenance activities
+- **Real-time Timer Broadcasting** - WebSocket-powered live timer updates across all clients
+- **Comment-linked Time Logs** - Associate detailed work descriptions with time entries
+- **Total Time Aggregation** - Display total time logged for tasks, projects, and maintenance items
+- **Duration Formatting** - Human-readable time displays (e.g., "2h 30m", "1d 4h 15m")
+- **Cross-platform Time Tracking** - Seamless timer functionality across regular and maintenance workflows
 
 ### 🎨 User Interface & Experience
 - **Modern Dark/Light Theme** - Toggle between dark and light modes
@@ -83,12 +102,18 @@ ITList is a comprehensive project management system built with modern web techno
 - **[Node.js](https://nodejs.org/)** - JavaScript runtime
 - **[Express.js](https://expressjs.com/)** - Web application framework
 - **[TypeScript](https://www.typescriptlang.org/)** - Type-safe server development
-- **[Prisma](https://www.prisma.io/)** - Next-generation ORM
+- **[Prisma](https://www.prisma.io/)** - Next-generation ORM with unified data modeling
 - **[MySQL](https://www.mysql.com/)** - Relational database
 - **[WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)** - Real-time communication
-- **[JWT](https://jwt.io/)** - JSON Web Tokens for authentication
-- **[Bcrypt](https://github.com/kelektiv/node.bcrypt.js)** - Password hashing
+- **[JWT](https://jwt.io/)** - JSON Web Tokens for secure authentication
+- **[Bcrypt](https://github.com/kelektiv/node.bcrypt.js)** - Advanced password hashing
 - **[Multer](https://github.com/expressjs/multer)** - File upload handling
+- **[Express Rate Limit](https://github.com/express-rate-limit/express-rate-limit)** - Rate limiting middleware
+- **[Express Validator](https://express-validator.github.io/)** - Input validation and sanitization
+- **[Helmet](https://helmetjs.github.io/)** - Security headers and XSS protection
+- **[Express Mongo Sanitize](https://github.com/fiznool/express-mongo-sanitize)** - NoSQL injection prevention
+- **[XSS](https://github.com/leizongmin/js-xss)** - Cross-site scripting protection
+- **[Validator](https://github.com/validatorjs/validator.js)** - String validation and sanitization
 
 ### Development Tools
 - **[ESLint](https://eslint.org/)** - Code linting
@@ -138,9 +163,10 @@ DATABASE_URL="mysql://username:password@localhost:3306/projectmanagement"
 # JWT Configuration
 JWT_SECRET="your-super-secret-jwt-key-here"
 JWT_EXPIRES_IN="7d"
+JWT_COOKIE_EXPIRES_IN="7" # Days
 
 # Server Configuration
-PORT=8000
+PORT=8008
 NODE_ENV="development"
 
 # CORS Configuration
@@ -149,6 +175,12 @@ CLIENT_URL="http://localhost:3000"
 # File Upload Configuration
 UPLOAD_DIR="./public/uploads"
 MAX_FILE_SIZE="10485760" # 10MB in bytes
+
+# Security Configuration
+BCRYPT_SALT_ROUNDS="12"
+RATE_LIMIT_WINDOW="15" # Minutes
+RATE_LIMIT_MAX_REQUESTS="100"
+LOGIN_RATE_LIMIT_MAX="5"
 ```
 
 ### Client Environment Variables
@@ -157,10 +189,10 @@ Create a `.env.local` file in the `client` directory:
 
 ```env
 # API Configuration
-NEXT_PUBLIC_API_BASE_URL="http://localhost:8000"
+NEXT_PUBLIC_API_BASE_URL="http://localhost:8008"
 
 # WebSocket Configuration
-NEXT_PUBLIC_WS_URL="ws://localhost:8000"
+NEXT_PUBLIC_WS_URL="ws://localhost:8008"
 ```
 
 ## 🗄️ Database Setup
@@ -195,7 +227,7 @@ NEXT_PUBLIC_WS_URL="ws://localhost:8000"
    cd server
    npm run dev
    ```
-   Server will run on `http://localhost:8000`
+   Server will run on `http://localhost:8008`
 
 2. **Start the Frontend Application**
    ```bash
@@ -231,6 +263,7 @@ project-management-app/
 │   │   │   ├── (dashboard)/         # Dashboard routes
 │   │   │   │   ├── home/           # Home dashboard
 │   │   │   │   ├── projects/       # Project management
+│   │   │   │   ├── product-maintenance/ # IT product maintenance system
 │   │   │   │   ├── reporting/      # Analytics & reports
 │   │   │   │   ├── timeline/       # Gantt timeline
 │   │   │   │   ├── users/          # User management
@@ -242,9 +275,12 @@ project-management-app/
 │   │   ├── components/             # Reusable UI components
 │   │   │   ├── Header/             # Navigation header
 │   │   │   ├── Sidebar/            # Navigation sidebar
-│   │   │   ├── Modal*/             # Modal components
+│   │   │   ├── Modal*/             # Modal components (Task, User, Maintenance)
 │   │   │   ├── TaskCard/           # Task display components
-│   │   │   └── UserCard/           # User display components
+│   │   │   ├── UserCard/           # User display components
+│   │   │   ├── ProductMaintenanceCard/ # Maintenance item display
+│   │   │   ├── MaintenanceTaskCard/ # Maintenance task display
+│   │   │   └── AttachmentViewer/   # File attachment viewer
 │   │   ├── lib/                    # Utility libraries
 │   │   │   ├── pdfGenerator.ts     # PDF report generation
 │   │   │   └── utils.ts            # Helper functions
@@ -264,13 +300,18 @@ project-management-app/
 │   ├── public/uploads/             # File upload storage
 │   ├── src/
 │   │   ├── controller/             # Route controllers
-│   │   │   ├── authController.ts   # Authentication logic
+│   │   │   ├── authController.ts   # Secure authentication logic
 │   │   │   ├── projectController.ts # Project management
 │   │   │   ├── taskController.ts   # Task management
-│   │   │   ├── userController.ts   # User management
-│   │   │   ├── timeLogController.ts # Time tracking
-│   │   │   └── productivityController.ts # Analytics
+│   │   │   ├── userController.ts   # User management with security
+│   │   │   ├── timeLogController.ts # Unified time tracking
+│   │   │   ├── productMaintenanceController.ts # Maintenance management
+│   │   │   ├── commentController.ts # Comment system with time linking
+│   │   │   └── productivityController.ts # Analytics & reporting
 │   │   ├── middleware/             # Express middleware
+│   │   │   ├── authMiddleware.ts   # JWT authentication
+│   │   │   ├── rateLimiter.ts      # Rate limiting & DDoS protection
+│   │   │   └── securityMiddleware.ts # XSS, validation, monitoring
 │   │   ├── routes/                 # API route definitions
 │   │   ├── index.ts                # Server entry point
 │   │   └── websocket.ts            # WebSocket server
@@ -283,15 +324,14 @@ project-management-app/
 ## 🔌 API Documentation
 
 ### Authentication Endpoints
-- `POST /auth/login` - User login
-- `POST /auth/register` - User registration
-- `GET /auth/profile` - Get user profile
-- `PUT /auth/profile` - Update user profile
+- `POST /auth/login` - Secure user login with rate limiting
+- `GET /auth/verify` - JWT token verification
+- `GET /auth/logout` - User logout and session termination
 
 ### Project Management
-- `GET /projects` - Get all projects
+- `GET /projects` - Get all projects with time aggregation
 - `POST /projects` - Create new project
-- `GET /projects/:id` - Get project by ID
+- `GET /projects/:id` - Get project by ID with total time logged
 - `PUT /projects/:id` - Update project
 - `DELETE /projects/:id` - Soft delete project
 
@@ -302,11 +342,26 @@ project-management-app/
 - `PUT /tasks/:id` - Update task
 - `DELETE /tasks/:id` - Delete task
 
-### Time Tracking
-- `POST /time-logs/start` - Start timer for task
-- `POST /time-logs/stop` - Stop timer and log time
-- `GET /time-logs` - Get time logs
-- `GET /time-logs/user/:userId` - Get user's time logs
+### Unified Time Tracking System
+- `POST /timelogs/start` - Start timer for task or maintenance
+- `POST /timelogs/stop` - Stop timer with mandatory comment
+- `GET /timelogs` - Get time logs with comment details
+- `GET /timelogs/running` - Get currently running timers
+- `GET /timelogs/user/:userId` - Get user's time logs
+
+### Product Maintenance System
+- `GET /product-maintenance` - Get all maintenance items
+- `POST /product-maintenance` - Create maintenance item
+- `GET /product-maintenance/:id` - Get maintenance item details
+- `POST /product-maintenance/:id/tasks` - Create maintenance task
+- `POST /maintenance-tasks/:id/timer/start` - Start maintenance timer
+- `POST /maintenance-tasks/:id/timer/stop` - Stop maintenance timer
+
+### Security & User Management
+- `GET /users` - Get users (password-excluded responses)
+- `POST /users` - Create user with validation and sanitization
+- `GET /users/:id` - Get user by ID (secure response)
+- `PUT /users/:id` - Update user with input validation
 
 ### Analytics & Reporting
 - `GET /productivity/developer-stats` - Get developer productivity metrics
@@ -375,32 +430,69 @@ project-management-app/
 
 ## 🏆 Key Features Highlights
 
-- **Real-time Collaboration** with WebSocket integration
-- **Advanced Time Tracking** with detailed work session logging
-- **Comprehensive Reporting** with PDF export capabilities
-- **Story Points Management** for Agile development workflows
-- **Audit Trail System** for complete change tracking
-- **File Upload Support** for task attachments
-- **Responsive Design** optimized for all devices
-- **Dark/Light Theme** toggle for user preference
+- **Enterprise-Grade Security** - XSS protection, SQL injection prevention, rate limiting, and input sanitization
+- **Unified Timer Architecture** - Single comprehensive timer system for tasks and maintenance operations
+- **Real-time Collaboration** - WebSocket integration with live timer broadcasting and updates
+- **Advanced Time Tracking** - Comment-linked time logs with total aggregation across projects
+- **Product Maintenance System** - Complete IT product maintenance workflow management
+- **Comprehensive Reporting** - PDF export capabilities with detailed analytics
+- **Story Points Management** - Agile development workflow support
+- **Audit Trail System** - Complete change tracking and security monitoring
+- **File Upload Support** - Secure file attachment handling for tasks
+- **Responsive Design** - Optimized for all devices with modern UI/UX
+- **Dark/Light Theme** - User preference toggle with persistent settings
+
+## 🔒 Security Features
+
+### Authentication & Authorization
+- **JWT-based Authentication** - Secure token system with configurable expiration
+- **Role-based Access Control** - Admin and user permission levels
+- **Session Management** - Secure cookie handling with httpOnly and sameSite flags
+
+### Input Protection
+- **XSS Prevention** - Real-time script injection detection and blocking
+- **SQL Injection Protection** - Parameterized queries via Prisma ORM
+- **Input Sanitization** - Comprehensive validation and cleaning of user inputs
+- **NoSQL Injection Prevention** - Protection against NoSQL-based attacks
+
+### Rate Limiting & DDoS Protection
+- **Login Rate Limiting** - 5 attempts per 15 minutes with progressive delays
+- **API Rate Limiting** - 100 requests per 15 minutes per IP address
+- **Background Process Protection** - Automated request throttling
+
+### Security Monitoring
+- **Threat Detection** - Real-time suspicious activity monitoring
+- **Security Logging** - Comprehensive audit trails for security events
+- **IP Tracking** - Request origin tracking and logging
+- **User Agent Analysis** - Browser fingerprinting for security assessment
+
+### Data Protection
+- **Password Security** - Bcrypt hashing with configurable salt rounds
+- **Secure Headers** - Helmet.js implementation with CSP policies
+- **CORS Configuration** - Controlled cross-origin resource sharing
+- **File Upload Security** - Size limits and type validation
 
 ## 🎯 Future Enhancements
 
-- [ ] Mobile application (React Native)
-- [ ] Email notifications
-- [ ] Calendar integration
-- [ ] Advanced Gantt chart features
-- [ ] API rate limiting
-- [ ] Docker containerization
-- [ ] CI/CD pipeline setup
-- [ ] Internationalization (i18n)
+- [ ] **Client-side Encryption** - End-to-end encryption for sensitive data transmission
+- [ ] **Mobile Application** - React Native implementation for iOS and Android
+- [ ] **Email Notifications** - SMTP integration for task and deadline alerts
+- [ ] **Calendar Integration** - Sync with Google Calendar, Outlook, and other providers
+- [ ] **Advanced Gantt Features** - Dependencies, critical path analysis, and resource allocation
+- [ ] **Docker Containerization** - Complete containerization for easy deployment
+- [ ] **CI/CD Pipeline** - Automated testing and deployment workflows
+- [ ] **Internationalization (i18n)** - Multi-language support
+- [ ] **Advanced Analytics** - Machine learning-powered productivity insights
+- [ ] **API Documentation Portal** - Interactive Swagger/OpenAPI documentation
+- [ ] **Advanced File Management** - Version control for file attachments
+- [ ] **Backup & Recovery** - Automated database backup and disaster recovery
 
 ## 📞 Support
 
-For support, email support@pm-app.com or create an issue in the GitHub repository.
+For support, please create an issue in the GitHub repository or contact the development team.
 
 ---
 
-**Built with ❤️ by the PM-App Team**
+**Built with ❤️ by Me (Axeldarren)**
 
-*Empowering teams to manage projects efficiently with modern web technologies.*
+*Empowering teams to manage projects efficiently with modern web technologies and enterprise-grade security.*
