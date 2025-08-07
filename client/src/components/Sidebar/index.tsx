@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsSidebarCollapsed } from '@/state';
 import { useGetProjectsQuery, useDeleteProjectMutation, Project } from '@/state/api'; 
-import { AlertCircle, AlertOctagon, AlertTriangle, BarChartHorizontal, Briefcase, ChevronDown, ChevronUp, HomeIcon, Layers3, LockIcon, LucideIcon, Settings, ShieldAlert, Trash2, User, Users, X, UserCheck } from 'lucide-react';
+import { AlertCircle, AlertOctagon, AlertTriangle, BarChartHorizontal, Briefcase, ChevronDown, ChevronUp, HomeIcon, Layers3, LockIcon, LucideIcon, Settings, ShieldAlert, Trash2, User, Users, X, UserCheck, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -182,6 +182,7 @@ const Sidebar = () => {
                         </>
                     )}
                     <SidebarLink icon={Briefcase} label='Timeline' href='/timeline' />
+                    <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
                     <SidebarLink icon={Settings} label='Settings' href='/settings' />
                     <SidebarLink icon={User} label='Users' href='/users' />
                     <SidebarLink icon={Users} label='Team' href='/teams' />

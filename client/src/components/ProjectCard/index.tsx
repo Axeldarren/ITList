@@ -1,7 +1,7 @@
 import { Project, useDeleteProjectMutation } from '@/state/api'; // Import the mutation
 import React from 'react';
 import toast from 'react-hot-toast';
-import { Trash2 } from 'lucide-react'; // Import an icon
+import { Trash2, Clock } from 'lucide-react'; // Import an icon
 
 type Props = {
     project: Project;
@@ -9,6 +9,20 @@ type Props = {
 
 const ProjectCard = ({ project }: Props) => {
     const [deleteProject, { isLoading }] = useDeleteProjectMutation();
+
+    const formatDuration = (seconds: number): string => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m ${remainingSeconds}s`;
+        } else if (minutes > 0) {
+            return `${minutes}m ${remainingSeconds}s`;
+        } else {
+            return `${remainingSeconds}s`;
+        }
+    };
 
     const handleDelete = async () => {
         // IMPORTANT: Always confirm a destructive action
@@ -39,6 +53,12 @@ const ProjectCard = ({ project }: Props) => {
             <p>{project.description}</p>
             <p>Start Date: {project.startDate}</p>
             <p>End Date: {project.endDate}</p>
+            {project.totalTimeLogged && project.totalTimeLogged > 0 && (
+                <div className="flex items-center text-sm text-gray-600 mt-2">
+                    <Clock size={14} className="mr-1" />
+                    <span>Total Time Logged: {formatDuration(project.totalTimeLogged)}</span>
+                </div>
+            )}
         </div>
     );
 };

@@ -28,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     // Handle 401 errors or token expiration
     if (error && 'status' in error && error.status === 401) {
+      localStorage.clear();
       router.replace('/login');
     }
   }, [error, router]);

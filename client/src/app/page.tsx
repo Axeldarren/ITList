@@ -24,7 +24,8 @@ export default function HomePage() {
         } else {
           // Token is valid, go to dashboard
           // Add a failsafe for 401 responses
-          fetch('/api/auth/verify', {
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8008';
+          fetch(`${apiBaseUrl}/auth/verify`, {
             headers: { Authorization: `Bearer ${token}` }
           })
             .then(response => {

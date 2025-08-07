@@ -28,6 +28,8 @@ export interface Project {
     teamId?: number;
     status: ProjectStatus; 
     deletedAt?: string | null;
+    totalTimeLogged?: number; // in seconds, includes both tasks and maintenance
+    totalMaintenanceTimeLogged?: number; // in seconds, just maintenance tasks
     createdAt?: string;
     updatedAt?: string;
     createdById?: number;
@@ -95,10 +97,12 @@ export interface Attachment {
 export interface Comment {
     id: number;
     text: string;
-    taskId: number;
+    taskId?: number; // Optional - either task or maintenance task
+    maintenanceTaskId?: number; // Optional - either task or maintenance task  
     userId: number;
     user?: User;
-    createdAt?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 // --- NEW: Define the Team interface ---
@@ -143,11 +147,16 @@ export interface TimeLog {
   startTime: string;
   endTime?: string;
   duration?: number;
+  description?: string; // Added description field
   createdAt: string;
-  taskId: number;
+  taskId?: number; // Optional - either task or maintenance task
+  maintenanceTaskId?: number; // Optional - either task or maintenance task
   userId: number;
+  commentId?: number; // Link to associated comment
   user?: { username: string };
   task?: Task & { project?: Project };
+  maintenanceTask?: MaintenanceTask;
+  comment?: Comment; // Associated comment
 }
 
 export interface SearchResults {
@@ -185,6 +194,113 @@ export interface DeveloperStats {
     completedStoryPoints: number;
 }
 
+export interface ProductMaintenance {
+    id: number;
+    name: string;
+    description?: string;
+    status: "Active" | "Inactive"; // Updated to use enum values
+    priority?: string; // "Low", "Medium", "High", "Critical"
+    totalTimeLogged?: number; // in seconds, calculated from all maintenance tasks
+    projectId?: number;
+    project?: {
+        id: number;
+        name: string;
+        status: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+    createdById: number;
+    createdBy: {
+        userId: number;
+        username: string;
+        profilePictureUrl?: string;
+    };
+    maintainers: ProductMaintainer[];
+    maintenanceTasks: MaintenanceTask[];
+    _count?: {
+        maintenanceTasks: number;
+    };
+}
+
+export interface ProductMaintainer {
+    id: number;
+    productMaintenanceId: number;
+    userId: number;
+    role: string; // "Lead", "Maintainer", "Support"
+    createdAt: string;
+    user: {
+        userId: number;
+        username: string;
+        profilePictureUrl?: string;
+        email: string;
+    };
+}
+
+export interface MaintenanceTask {
+    id: number;
+    title: string;
+    description?: string;
+    // Removed status field - tasks are now just logs/history
+    priority?: string;
+    type: string; // "Optimize Query", "Database Migration", etc.
+    estimatedHours?: number;
+    actualHours?: number;
+    totalTimeLogged?: number; // in seconds, calculated from time logs
+    productMaintenanceId: number;
+    assignedToId?: number;
+    assignedTo?: {
+        userId: number;
+        username: string;
+        profilePictureUrl?: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+    createdById: number;
+    createdBy: {
+        userId: number;
+        username: string;
+        profilePictureUrl?: string;
+    };
+    timeLogs?: TimeLog[]; // Uses unified TimeLog system
+    comments?: Comment[]; // Uses unified Comment system
+}
+
+export interface CreateProductMaintenancePayload {
+    name: string;
+    description?: string;
+    priority?: string;
+    projectId?: number;
+    maintainerIds?: number[];
+}
+
+export interface UpdateProductMaintenancePayload {
+    name?: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    maintainerIds?: number[];
+}
+
+export interface CreateMaintenanceTaskPayload {
+    title: string;
+    description?: string;
+    priority?: string;
+    type?: string;
+    estimatedHours?: number;
+    assignedToId?: number;
+}
+
+export interface UpdateMaintenanceTaskPayload {
+    title?: string;
+    description?: string;
+    // Removed status field
+    priority?: string;
+    type?: string;
+    estimatedHours?: number;
+    actualHours?: number;
+    assignedToId?: number;
+}
+
 const baseQuery = fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
@@ -199,7 +315,7 @@ const baseQuery = fetchBaseQuery({
 export const api = createApi({
     baseQuery,
     reducerPath: 'api',
-    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog"],
+    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks"],
     endpoints: (build) => ({
         getProjects: build.query<Project[], void>({
             query: () => 'projects',
@@ -251,6 +367,23 @@ export const api = createApi({
                 method: 'PATCH',
                 body: patch,
             }),
+            // Immediate cache invalidation for real-time updates
+            async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    // Force immediate cache refresh
+                    dispatch(api.util.invalidateTags([
+                        { type: 'Projects', id: 'LIST' },
+                        { type: 'Projects', id: 'FINISHED' }, // Include finished projects cache
+                        { type: 'Projects', id },
+                        { type: 'Users', id: `PROJECT_${id}` },
+                        { type: 'Tasks' as const, id: 'LIST' }, // For task-related queries
+                        { type: 'TimeLogs' as const, id: 'LIST' } // For reporting-related queries
+                    ]));
+                } catch {
+                    // Error handling if needed - just ignore for now
+                }
+            },
             invalidatesTags: (result, error, { id }) => [
                 { type: "Projects", id },
                 { type: 'Users', id: `PROJECT_${id}` }
@@ -263,9 +396,27 @@ export const api = createApi({
                 method: 'PATCH',
                 body: { status },
             }),
+            // Immediate cache invalidation for real-time updates
+            async onQueryStarted({ projectId }, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    // Force immediate cache refresh
+                    dispatch(api.util.invalidateTags([
+                        { type: 'Projects', id: 'LIST' },
+                        { type: 'Projects', id: 'FINISHED' }, // Invalidate finished projects for maintenance creation
+                        { type: 'Projects', id: projectId },
+                        { type: 'Users' as const, id: 'LIST' }, // For assignment-related queries
+                        { type: 'Tasks' as const, id: 'LIST' }, // For task-related queries
+                        { type: 'TimeLogs' as const, id: 'LIST' } // For reporting-related queries
+                    ]));
+                } catch {
+                    // Error handling if needed - just ignore for now
+                }
+            },
             // Invalidate both the specific project and the main list to ensure UI consistency
             invalidatesTags: (result, error, { projectId }) => [
                 { type: 'Projects', id: 'LIST' },
+                { type: 'Projects', id: 'FINISHED' },
                 { type: 'Projects', id: projectId }
             ],
         }),
@@ -571,6 +722,166 @@ export const api = createApi({
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),
 
+        // Product Maintenance endpoints
+        getProductMaintenances: build.query<ProductMaintenance[], void>({
+            query: () => 'product-maintenance',
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'ProductMaintenances' as const, id })),
+                        { type: 'ProductMaintenances', id: 'LIST' },
+                      ]
+                    : [{ type: 'ProductMaintenances', id: 'LIST' }],
+        }),
+
+        getProductMaintenanceById: build.query<ProductMaintenance, number>({
+            query: (id) => `product-maintenance/${id}`,
+            providesTags: (result, error, id) => [{ type: 'ProductMaintenances', id }],
+        }),
+
+        getFinishedProjects: build.query<Project[], void>({
+            query: () => 'product-maintenance/finished-projects',
+            providesTags: [{ type: 'Projects', id: 'FINISHED' }],
+        }),
+
+        createProductMaintenance: build.mutation<ProductMaintenance, CreateProductMaintenancePayload>({
+            query: (productMaintenance) => ({
+                url: 'product-maintenance',
+                method: 'POST',
+                body: productMaintenance
+            }),
+            invalidatesTags: [{ type: 'ProductMaintenances', id: 'LIST' }],
+        }),
+
+        updateProductMaintenance: build.mutation<ProductMaintenance, { id: number } & UpdateProductMaintenancePayload>({
+            query: ({ id, ...patch }) => ({
+                url: `product-maintenance/${id}`,
+                method: 'PATCH',
+                body: patch,
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'ProductMaintenances', id },
+                { type: 'ProductMaintenances', id: 'LIST' },
+            ],
+        }),
+
+        deleteProductMaintenance: build.mutation<{ message: string }, number>({
+            query: (id) => ({
+                url: `product-maintenance/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: [{ type: 'ProductMaintenances', id: 'LIST' }],
+        }),
+
+        createMaintenanceTask: build.mutation<MaintenanceTask, { productMaintenanceId: number } & CreateMaintenanceTaskPayload>({
+            query: ({ productMaintenanceId, ...task }) => ({
+                url: `product-maintenance/${productMaintenanceId}/tasks`,
+                method: 'POST',
+                body: task
+            }),
+            invalidatesTags: (result, error, { productMaintenanceId }) => [
+                { type: 'ProductMaintenances', id: productMaintenanceId },
+                { type: 'MaintenanceTasks', id: 'LIST' },
+            ],
+        }),
+
+        updateMaintenanceTask: build.mutation<MaintenanceTask, { id: number } & UpdateMaintenanceTaskPayload>({
+            query: ({ id, ...patch }) => ({
+                url: `product-maintenance/tasks/${id}`,
+                method: 'PATCH',
+                body: patch,
+            }),
+            invalidatesTags: [
+                { type: 'MaintenanceTasks', id: 'LIST' },
+                { type: 'ProductMaintenances', id: 'LIST' },
+            ],
+        }),
+
+        deleteMaintenanceTask: build.mutation<{ message: string }, number>({
+            query: (id) => ({
+                url: `product-maintenance/tasks/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: [
+                { type: 'MaintenanceTasks', id: 'LIST' },
+                { type: 'ProductMaintenances', id: 'LIST' },
+            ],
+        }),
+
+        // Get time logs for maintenance task (uses unified TimeLog system)
+        getMaintenanceTaskTimeLogs: build.query<TimeLog[], number>({
+            query: (maintenanceTaskId) => `product-maintenance/tasks/${maintenanceTaskId}/time-logs`,
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'TimeLogs' as const, id })),
+                        { type: 'TimeLogs', id: 'LIST' },
+                    ]
+                    : [{ type: 'TimeLogs', id: 'LIST' }],
+        }),
+
+        // Get comments for maintenance task
+        getMaintenanceTaskComments: build.query<Comment[], number>({
+            query: (maintenanceTaskId) => `comments/maintenance-task/${maintenanceTaskId}`,
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'Comments' as const, id })),
+                        { type: 'Comments', id: 'LIST' },
+                    ]
+                    : [{ type: 'Comments', id: 'LIST' }],
+        }),
+
+        // Start timer for maintenance task (uses unified TimeLog system)  
+        startMaintenanceTimer: build.mutation<TimeLog, { maintenanceTaskId: number; description?: string }>({
+            query: ({ maintenanceTaskId, description }) => ({
+                url: `product-maintenance/tasks/${maintenanceTaskId}/timer/start`,
+                method: 'POST',
+                body: { description },
+            }),
+            invalidatesTags: [
+                { type: 'TimeLogs', id: 'LIST' },
+                { type: 'MaintenanceTasks', id: 'LIST' },
+            ],
+        }),
+
+        // Stop timer for maintenance task (uses unified TimeLog system)
+        stopMaintenanceTimer: build.mutation<{ timeLog: TimeLog; comment: Comment }, { maintenanceTaskId: number; workDescription: string }>({
+            query: ({ maintenanceTaskId, workDescription }) => ({
+                url: `product-maintenance/tasks/${maintenanceTaskId}/timer/stop`,
+                method: 'POST', 
+                body: { workDescription },
+            }),
+            invalidatesTags: [
+                { type: 'TimeLogs', id: 'LIST' },
+                { type: 'MaintenanceTasks', id: 'LIST' },
+                { type: 'Comments', id: 'LIST' },
+            ],
+        }),
+
+        // Devlog endpoints
+        createDevlogComment: build.mutation<Comment, { text: string; taskId: number }>({
+            query: (comment) => ({
+                url: 'comments/devlog',
+                method: 'POST',
+                body: comment,
+            }),
+            invalidatesTags: [{ type: 'Comments', id: 'LIST' }],
+        }),
+
+        stopDevlogTimer: build.mutation<Comment, number>({
+            query: (commentId) => ({
+                url: `comments/${commentId}/stop-devlog`,
+                method: 'PATCH',
+            }),
+            invalidatesTags: [{ type: 'Comments', id: 'LIST' }],
+        }),
+
+        getActiveDevlogs: build.query<Comment[], void>({
+            query: () => 'comments/active-devlogs',
+            providesTags: [{ type: 'Comments', id: 'ACTIVE_DEVLOGS' }],
+        }),
+
         webSocket: build.query<null, void>({
             queryFn: () => ({ data: null }), // Use queryFn instead of query to avoid URL construction
             async onCacheEntryAdded(
@@ -612,28 +923,34 @@ export const api = createApi({
                                     { type: 'Tasks', id: 'LIST' }, // Invalidate the main task list
                                     { type: 'Tasks', id: `PROJECT_${data.projectId}` }, // Project-specific tasks
                                     { type: 'Activities', id: data.projectId }, // Activities for the project
-                                    'Users', // For assignment page updates
-                                    'TimeLogs' // For productivity stats
+                                    { type: 'Users' as const, id: 'LIST' }, // For assignment page updates
+                                    { type: 'TimeLogs' as const, id: 'LIST' } // For productivity stats
                                 ]));
                             }
 
                             // Handle general project list updates
                             if (data.type === 'PROJECT_UPDATE') {
-                                dispatch(api.util.invalidateTags([
-                                    { type: 'Projects', id: 'LIST' },
-                                    'Users', // Assignment page might need project data
-                                    'TimeLogs' // Productivity stats might need project data
-                                ]));
+                                const tags = [
+                                    { type: 'Projects' as const, id: 'LIST' },
+                                    { type: 'Projects' as const, id: 'FINISHED' }, // Add finished projects cache invalidation
+                                    { type: 'Users' as const, id: 'LIST' }, // Assignment page might need project data
+                                    { type: 'TimeLogs' as const, id: 'LIST' }, // Productivity stats might need project data
+                                    { type: 'Tasks' as const, id: 'LIST' }, // Tasks are related to projects
+                                    { type: 'Comments' as const, id: 'LIST' } // Comments might be related to project tasks
+                                ];
+                                
                                 if (data.projectId) {
-                                     dispatch(api.util.invalidateTags([{ type: 'Projects', id: data.projectId }]));
+                                    tags.push({ type: 'Projects' as const, id: data.projectId });
                                 }
+                                
+                                dispatch(api.util.invalidateTags(tags));
                             }
 
                             // Handle user list updates
                             if (data.type === 'USER_UPDATE') {
                                 dispatch(api.util.invalidateTags([
                                     { type: 'Users', id: 'LIST' },
-                                    'TimeLogs' // User changes affect productivity stats
+                                    { type: 'TimeLogs' as const, id: 'LIST' } // User changes affect productivity stats
                                 ]));
                             }
 
@@ -641,17 +958,66 @@ export const api = createApi({
                             if (data.type === 'TEAM_UPDATE') {
                                 dispatch(api.util.invalidateTags([
                                     { type: 'Teams', id: 'LIST' },
-                                    'Users' // Team changes might affect user assignments
+                                    { type: 'Users' as const, id: 'LIST' } // Team changes might affect user assignments
                                 ]));
                             }
 
                             // Handle time log updates (for real-time productivity)
                             if (data.type === 'TIMELOG_UPDATE') {
                                 dispatch(api.util.invalidateTags([
-                                    'TimeLogs',
-                                    'Users', // For productivity stats
+                                    { type: 'TimeLogs' as const, id: 'LIST' },
+                                    { type: 'Users' as const, id: 'LIST' }, // For productivity stats
                                     { type: 'Tasks', id: 'LIST' } // Tasks might have updated time logs
                                 ]));
+                            }
+
+                            // Handle product maintenance updates
+                            if (data.type === 'PRODUCT_MAINTENANCE_UPDATE') {
+                                dispatch(api.util.invalidateTags([
+                                    { type: 'ProductMaintenances', id: 'LIST' },
+                                ]));
+                                if (data.productMaintenanceId) {
+                                    dispatch(api.util.invalidateTags([
+                                        { type: 'ProductMaintenances', id: data.productMaintenanceId }
+                                    ]));
+                                }
+                            }
+
+                            // Handle maintenance task updates
+                            if (data.type === 'MAINTENANCE_TASK_UPDATE') {
+                                const tags = [
+                                    { type: 'MaintenanceTasks' as const, id: 'LIST' },
+                                    { type: 'ProductMaintenances' as const, id: 'LIST' },
+                                ];
+                                
+                                if (data.taskId) {
+                                    tags.push({ type: 'MaintenanceTasks' as const, id: data.taskId });
+                                }
+                                
+                                if (data.productMaintenanceId) {
+                                    tags.push({ type: 'ProductMaintenances' as const, id: data.productMaintenanceId });
+                                }
+                                
+                                dispatch(api.util.invalidateTags(tags));
+                            }
+
+                            // Handle maintenance time log updates (now uses unified TimeLogs)
+                            if (data.type === 'MAINTENANCE_TIME_LOG_UPDATE') {
+                                const tags = [
+                                    { type: 'TimeLogs' as const, id: 'LIST' },
+                                    { type: 'ProductMaintenances' as const, id: 'LIST' },
+                                    { type: 'MaintenanceTasks' as const, id: 'LIST' },
+                                ];
+                                
+                                if (data.timeLogId) {
+                                    tags.push({ type: 'TimeLogs' as const, id: data.timeLogId });
+                                }
+                                
+                                if (data.productMaintenanceId) {
+                                    tags.push({ type: 'ProductMaintenances' as const, id: data.productMaintenanceId });
+                                }
+                                
+                                dispatch(api.util.invalidateTags(tags));
                             }
                         } catch (error) {
                             console.error('Error parsing WebSocket message:', error);
@@ -720,5 +1086,23 @@ export const {
     useGetRunningTimeLogQuery,
     useGetUserWeeklyStatsQuery,
     useGetDeveloperStatsQuery,
+    useGetProductMaintenancesQuery,
+    useGetProductMaintenanceByIdQuery,
+    useGetFinishedProjectsQuery,
+    useCreateProductMaintenanceMutation,
+    useUpdateProductMaintenanceMutation,
+    useDeleteProductMaintenanceMutation,
+    useCreateMaintenanceTaskMutation,
+    useUpdateMaintenanceTaskMutation,
+    useDeleteMaintenanceTaskMutation,
+    // Unified Timer System hooks (works for both tasks and maintenance)
+    useGetMaintenanceTaskTimeLogsQuery,
+    useGetMaintenanceTaskCommentsQuery,
+    useStartMaintenanceTimerMutation,
+    useStopMaintenanceTimerMutation,
+    // Devlog hooks (kept for compatibility)
+    useCreateDevlogCommentMutation,
+    useStopDevlogTimerMutation,
+    useGetActiveDevlogsQuery,
     useWebSocketQuery,
 } = api;
