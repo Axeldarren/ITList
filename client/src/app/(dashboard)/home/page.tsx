@@ -26,6 +26,8 @@ import { AlertTriangle, ChevronDown, Clock, ClipboardList, Plus, CheckCircle, Sq
 import Link from "next/link";
 import { differenceInDays, differenceInSeconds } from "date-fns";
 import toast from "react-hot-toast";
+import { StatsSkeleton, CardSkeleton } from "@/components/Skeleton";
+import LoadingSpinner, { InlineLoading } from "@/components/LoadingSpinner";
 
 // --- Expandable Stats Card Component ---
 interface ExpandableStatsCardProps<T> {
@@ -363,11 +365,29 @@ const assignedUserTasks = useMemo(() => {
   const isLoading = projectsLoading || allTasksLoading || userLoading || tasksLoading;
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading dashboard...</div>;
+    return (
+      <div className="h-full w-full bg-transparent p-8 page-fade-in">
+        <div className="mb-8">
+          <div className="h-8 w-64 bg-gray-200 dark:bg-gray-700 rounded skeleton mb-4"></div>
+          <div className="h-4 w-96 bg-gray-200 dark:bg-gray-700 rounded skeleton"></div>
+        </div>
+        <StatsSkeleton />
+        <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <InlineLoading height="400px" text="Loading your tasks..." />
+          </div>
+          <div className="space-y-4">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
+      </div>
+    );
   }
   
   return (
-    <div className="h-full w-full bg-transparent p-8">
+    <div className="h-full w-full bg-transparent p-8 page-fade-in">
       <ModalNewProject isOpen={isNewProjectModalOpen} onClose={() => setIsNewProjectModalOpen(false)} />
       
       <Header 

@@ -6,6 +6,7 @@ import { useAppDispatch } from '@/app/redux';
 import { setCredentials } from '@/state/authSlice';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { ButtonSpinner } from '@/components/LoadingSpinner';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -33,7 +34,7 @@ const LoginPage = () => {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md dark:bg-dark-secondary">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md dark:bg-dark-secondary page-fade-in">
                 <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-white">
                     ITList Login
                 </h1>
@@ -73,9 +74,16 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full px-4 py-2 text-white bg-blue-primary rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        className="w-full px-4 py-2 text-white bg-blue-primary rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {isLoading ? 'Signing in...' : 'Sign in'}
+                        {isLoading ? (
+                            <div className="flex items-center justify-center space-x-2">
+                                <ButtonSpinner />
+                                <span>Signing in...</span>
+                            </div>
+                        ) : (
+                            'Sign in'
+                        )}
                     </button>
                 </form>
             </div>

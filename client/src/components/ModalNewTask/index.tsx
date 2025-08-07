@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
 import { X } from "lucide-react";
+import { ButtonSpinner } from "@/components/LoadingSpinner";
 
 type Props = {
   isOpen: boolean;
@@ -185,7 +186,14 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           }`}
           disabled={!isFormValid() || isLoading}
         >
-          {isLoading ? "Creating..." : "Create Task"}
+          {isLoading ? (
+            <div className="flex items-center space-x-2">
+              <ButtonSpinner />
+              <span>Creating...</span>
+            </div>
+          ) : (
+            "Create Task"
+          )}
         </button>
       </form>
     </Modal>

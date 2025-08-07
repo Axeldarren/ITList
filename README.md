@@ -77,6 +77,8 @@ ITList is a comprehensive project management system built with modern web techno
 - **Intuitive Dashboard** - Clean, modern interface with easy navigation
 - **Real-time Notifications** - Toast notifications for user actions
 - **File Attachments** - Upload and manage task attachments
+- **Loading Animations** - Comprehensive loading states with skeletons and spinners
+- **Smooth Transitions** - Fade-in animations and smooth page transitions
 
 ### 📈 Project Tracking Features
 - **Gantt Chart Timeline** - Visual project timeline representation
@@ -275,6 +277,8 @@ project-management-app/
 │   │   ├── components/             # Reusable UI components
 │   │   │   ├── Header/             # Navigation header
 │   │   │   ├── Sidebar/            # Navigation sidebar
+│   │   │   ├── LoadingSpinner/     # Loading animations and spinners
+│   │   │   ├── Skeleton/           # Loading skeleton components
 │   │   │   ├── Modal*/             # Modal components (Task, User, Maintenance)
 │   │   │   ├── TaskCard/           # Task display components
 │   │   │   ├── UserCard/           # User display components
@@ -441,6 +445,8 @@ project-management-app/
 - **File Upload Support** - Secure file attachment handling for tasks
 - **Responsive Design** - Optimized for all devices with modern UI/UX
 - **Dark/Light Theme** - User preference toggle with persistent settings
+- **Loading Animations** - Professional loading states with skeletons and spinners
+- **Smooth Transitions** - Page animations and seamless user experience
 
 ## 🔒 Security Features
 
