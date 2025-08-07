@@ -9,6 +9,8 @@ import morgan from 'morgan';
 import path from 'path';
 import http from 'http';
 import { initWebSocket } from './websocket';
+import { generalLimiter } from './middleware/rateLimiter';
+import { xssProtection, noSQLProtection, securityLogger } from './middleware/securityMiddleware';
 
 // Route Import
 import projectRoutes from './routes/projectRoutes';
@@ -21,6 +23,8 @@ import commentRoutes from './routes/commentRoutes';
 import authRoutes from './routes/authRoutes';
 import timeLogRoutes from './routes/timeLogRoutes';
 import productivityRoutes from './routes/productivityRoutes';
+import productMaintenanceRoutes from './routes/productMaintenanceRoutes';
+import maintenanceTaskRoutes from './routes/maintenanceTaskRoutes';
 
 // Configurations
 dotenv.config();
@@ -28,16 +32,45 @@ const app = express();
 
 const corsOptions = {
   origin: 'http://localhost:3000', // Your frontend's address
-  optionsSuccessStatus: 200 
+  optionsSuccessStatus: 200,
+  credentials: true // Allow cookies
 };
 app.use(cors(corsOptions)); // Use the new options
 
-app.use(express.json());
-app.use(helmet());
-app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
+// Security middleware
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "http:", "https:"],
+            connectSrc: ["'self'", "ws:", "wss:"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+        },
+    },
+}));
+
+// Apply general rate limiting to all routes
+app.use(generalLimiter);
+
+// Security logging middleware
+app.use(securityLogger);
+
+// NoSQL injection protection
+app.use(noSQLProtection);
+
+// XSS protection middleware
+app.use(xssProtection);
+
+app.use(express.json({ limit: '10mb' }));
 app.use(morgan('common'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -56,6 +89,8 @@ app.use('/attachments', attachmentRoutes);
 app.use('/comments', commentRoutes);
 app.use('/timelogs', timeLogRoutes);
 app.use('/productivity', productivityRoutes);
+app.use('/product-maintenance', productMaintenanceRoutes);
+app.use('/maintenance-tasks', maintenanceTaskRoutes);
 
 // Server
 const port = process.env.PORT || 8008;

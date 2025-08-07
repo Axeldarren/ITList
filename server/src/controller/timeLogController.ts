@@ -165,18 +165,18 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
 
         await tx.activity.create({
             data: {
-                projectId: log.task.projectId,
+                projectId: log.task?.projectId || 0, // Safe access with fallback
                 userId: loggedInUser.userId,
                 taskId: log.taskId,
                 type: 'COMMENT_ADDED',
-                description: `commented on task "${log.task.title}"`
+                description: `commented on task "${log.task?.title || 'Unknown Task'}"`
             }
         });
 
         // Broadcast the timer stop event
         broadcast({
             type: 'TIMELOG_UPDATE',
-            projectId: log.task.projectId,
+            projectId: log.task?.projectId,
             taskId: log.taskId,
             userId: loggedInUser.userId,
             message: {
@@ -190,7 +190,7 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
         // Broadcast the task update for the timer stop
         broadcast({
             type: 'UPDATE',
-            projectId: log.task.projectId,
+            projectId: log.task?.projectId,
             taskId: log.taskId,
             message: {
           type: 'TASK_UPDATED',
@@ -200,7 +200,7 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
         // Broadcast the comment addition
         broadcast({
             type: 'UPDATE',
-            projectId: log.task.projectId,
+            projectId: log.task?.projectId,
             taskId: log.taskId,
             message: {
           type: 'COMMENT_ADDED',
@@ -264,5 +264,114 @@ export const getRunningTimeLog = async (req: Request, res: Response): Promise<vo
         res.status(200).json(runningLog); // Will be null if no timer is running
     } catch (error: any) {
         res.status(500).json({ message: `Error fetching running time log: ${error.message}` });
+    }
+};
+
+// Unified stop timer function for both tasks and maintenance tasks
+export const stopTimerById = async (req: Request, res: Response): Promise<void> => {
+    const { logId } = req.params;
+    const { description } = req.body;
+    const loggedInUser = req.user;
+
+    if (!description || !description.trim()) {
+        res.status(400).json({ message: "A description is required to describe the work done." });
+        return;
+    }
+
+    try {
+        const log = await prisma.timeLog.findUnique({
+            where: { id: Number(logId) },
+            include: { 
+                task: { include: { project: true } },
+                maintenanceTask: { include: { productMaintenance: true } }
+            }
+        });
+
+        if (!log || log.userId !== loggedInUser?.userId || log.endTime) {
+            res.status(403).json({
+                message: "Timer not found or you do not have permission to stop it.",
+            });
+            return;
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+            const endTime = new Date();
+            const durationInSeconds = Math.round(
+                (endTime.getTime() - log.startTime.getTime()) / 1000
+            );
+
+            // Update the time log
+            const updatedLog = await tx.timeLog.update({
+                where: { id: Number(logId) },
+                data: {
+                    endTime: endTime,
+                    duration: durationInSeconds,
+                    description: description,
+                }
+            });
+
+            // Create a comment based on whether it's a task or maintenance task
+            let newComment;
+            const formattedDuration = formatDuration(durationInSeconds);
+            const finalCommentText = `[Time Logged: ${formattedDuration}]\n${description}`;
+
+            if (log.taskId) {
+                // Regular task comment
+                newComment = await tx.comment.create({
+                    data: {
+                        text: finalCommentText,
+                        taskId: log.taskId,
+                        userId: loggedInUser!.userId,
+                    }
+                });
+            } else if (log.maintenanceTaskId) {
+                // Maintenance task comment  
+                newComment = await tx.comment.create({
+                    data: {
+                        text: finalCommentText,
+                        maintenanceTaskId: log.maintenanceTaskId,
+                        userId: loggedInUser!.userId,
+                    }
+                });
+            }
+
+            // Link the comment to the time log
+            if (newComment) {
+                await tx.timeLog.update({
+                    where: { id: Number(logId) },
+                    data: { commentId: newComment.id }
+                });
+            }
+
+            return { updatedLog, newComment };
+        });
+
+        // Broadcast appropriate update
+        if (log.taskId) {
+            broadcast({
+                type: 'TIMELOG_UPDATE',
+                projectId: log.task?.projectId,
+                taskId: log.taskId,
+                userId: loggedInUser!.userId,
+                message: {
+                    type: 'TIMER_STOPPED',
+                    timeLogId: Number(logId),
+                    userId: loggedInUser!.userId
+                }
+            });
+        } else if (log.maintenanceTaskId) {
+            broadcast({
+                type: 'MAINTENANCE_TIME_LOG_UPDATE',
+                action: 'stopped',
+                productMaintenanceId: log.maintenanceTask?.productMaintenanceId,
+                maintenanceTaskId: log.maintenanceTaskId,
+                timeLogId: Number(logId),
+                userId: loggedInUser!.userId,
+            });
+        }
+
+        res.json(result.updatedLog);
+    } catch (error: any) {
+        res.status(500).json({ message: `Error stopping timer: ${error.message}` });
     }
 };

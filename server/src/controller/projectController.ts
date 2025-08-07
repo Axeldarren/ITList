@@ -16,11 +16,48 @@ export const getProjects = async (req: Request, res: Response): Promise<void> =>
                 createdBy: { select: { username: true } }, // Include creator's name
             }
         });
-        const projectsWithTeamId = projects.map(p => ({
-            ...p,
-            teamId: p.projectTeams[0]?.teamId || null,
-        }));
-        res.json(projectsWithTeamId);
+        
+        // Calculate total time logged for each project
+        const projectsWithTimeData = await Promise.all(
+            projects.map(async (project) => {
+                // Get total time from regular tasks
+                const taskTimeResult = await Prisma.timeLog.aggregate({
+                    where: {
+                        task: {
+                            projectId: project.id,
+                            deletedAt: null
+                        }
+                    },
+                    _sum: {
+                        duration: true
+                    }
+                });
+
+                // Get total time from maintenance tasks
+                const maintenanceTimeResult = await Prisma.timeLog.aggregate({
+                    where: {
+                        maintenanceTask: {
+                            productMaintenance: {
+                                projectId: project.id
+                            }
+                        }
+                    },
+                    _sum: {
+                        duration: true
+                    }
+                });
+
+                const totalTimeLogged = (taskTimeResult._sum.duration || 0) + (maintenanceTimeResult._sum.duration || 0);
+
+                return {
+                    ...project,
+                    teamId: project.projectTeams[0]?.teamId || null,
+                    totalTimeLogged
+                };
+            })
+        );
+        
+        res.json(projectsWithTimeData);
     } catch (error) {
         res.status(500).json({ message: `Error retrieving projects: ${error}` });
     }

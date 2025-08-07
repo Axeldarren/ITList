@@ -6,51 +6,64 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const createComment = async (req: Request, res: Response) => {
-    const { text, taskId } = req.body;
+    const { text, taskId, maintenanceTaskId } = req.body;
     const loggedInUser = req.user;
 
-    if (!text || !taskId || !loggedInUser) {
+    if (!text || (!taskId && !maintenanceTaskId) || !loggedInUser) {
         return res.status(400).json({ message: "Missing required fields or user not logged in." });
     }
 
     try {
-        // --- THIS IS THE KEY ---
-        // Before creating a comment, we check if the user has a timer running on this task.
-        const runningTimer = await prisma.timeLog.findFirst({
-            where: {
-                taskId: Number(taskId),
-                userId: loggedInUser.userId,
-                endTime: null, // This signifies an active timer
-            }
-        });
+        // Check if the user has a timer running on this task or maintenance task
+        let runningTimer;
+        if (taskId) {
+            runningTimer = await prisma.timeLog.findFirst({
+                where: {
+                    taskId: Number(taskId),
+                    userId: loggedInUser.userId,
+                    endTime: null, // This signifies an active timer
+                }
+            });
+        } else if (maintenanceTaskId) {
+            runningTimer = await prisma.timeLog.findFirst({
+                where: {
+                    maintenanceTaskId: Number(maintenanceTaskId),
+                    userId: loggedInUser.userId,
+                    endTime: null, // This signifies an active timer
+                }
+            });
+        }
 
         if (!runningTimer) {
             // If no timer is running, the user is not allowed to comment.
             return res.status(403).json({ message: "You must have a timer running on this task to post a comment." });
         }
-        // --- End of Check ---
 
         const newComment = await prisma.comment.create({
             data: {
                 text,
-                taskId: Number(taskId),
+                taskId: taskId ? Number(taskId) : null,
+                maintenanceTaskId: maintenanceTaskId ? Number(maintenanceTaskId) : null,
                 userId: loggedInUser.userId,
                 updatedById: loggedInUser.userId,
             },
             include: { user: true },
         });
 
-        const task = await prisma.task.findUnique({ where: { id: Number(taskId) } });
-        if (task) {
-            await prisma.activity.create({
-                data: {
-                    projectId: task.projectId,
-                    userId: loggedInUser.userId,
-                    taskId: Number(taskId),
-                    type: 'COMMENT_ADDED',
-                    description: `commented on task "${task.title}"`
-                }
-            });
+        // Create activity for regular tasks
+        if (taskId) {
+            const task = await prisma.task.findUnique({ where: { id: Number(taskId) } });
+            if (task) {
+                await prisma.activity.create({
+                    data: {
+                        projectId: task.projectId,
+                        userId: loggedInUser.userId,
+                        taskId: Number(taskId),
+                        type: 'COMMENT_ADDED',
+                        description: `commented on task "${task.title}"`
+                    }
+                });
+            }
         }
         
         res.status(201).json(newComment);
@@ -98,5 +111,109 @@ export const deleteComment = async (req: Request, res: Response) => {
         res.status(200).json({ message: "Comment deleted successfully." });
     } catch (error: any) {
         res.status(500).json({ message: `Error deleting comment: ${error.message}` });
+    }
+};
+
+// ===== LEGACY DEVLOG FUNCTIONALITY (Kept for API compatibility) =====
+// Note: These functions are kept for backward compatibility but now use the unified timer system
+
+export const createDevlogComment = async (req: Request, res: Response) => {
+    const { text, taskId } = req.body;
+    const loggedInUser = req.user;
+
+    if (!text || !taskId || !loggedInUser) {
+        return res.status(400).json({ message: "Missing required fields or user not logged in." });
+    }
+
+    try {
+        // Just create a regular comment - devlog functionality is now handled by the unified timer system
+        const newComment = await prisma.comment.create({
+            data: {
+                text,
+                taskId: Number(taskId),
+                userId: loggedInUser.userId,
+                updatedById: loggedInUser.userId,
+            },
+            include: { user: true },
+        });
+
+        const task = await prisma.task.findUnique({ where: { id: Number(taskId) } });
+        if (task) {
+            await prisma.activity.create({
+                data: {
+                    projectId: task.projectId,
+                    userId: loggedInUser.userId,
+                    taskId: Number(taskId),
+                    type: 'COMMENT_ADDED',
+                    description: `added comment on task "${task.title}"`
+                }
+            });
+        }
+        
+        res.status(201).json(newComment);
+    } catch (error: any) {
+        res.status(500).json({ message: `Error creating comment: ${error.message}` });
+    }
+};
+
+export const stopDevlogTimer = async (req: Request, res: Response) => {
+    const { commentId } = req.params;
+    const loggedInUser = req.user;
+
+    if (!loggedInUser) {
+        return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    try {
+        // This endpoint is now deprecated - return appropriate message
+        res.status(410).json({ 
+            message: "Devlog timer functionality has been replaced by the unified timer system. Please use the regular timer endpoints." 
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: `Error: ${error.message}` });
+    }
+};
+
+export const getActiveDevlogs = async (req: Request, res: Response) => {
+    const loggedInUser = req.user;
+
+    if (!loggedInUser) {
+        return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    try {
+        // Return empty array since devlogs are now handled by the unified timer system
+        res.json([]);
+    } catch (error: any) {
+        res.status(500).json({ message: `Error retrieving active devlogs: ${error.message}` });
+    }
+};
+
+// Get comments for maintenance task
+export const getMaintenanceTaskComments = async (req: Request, res: Response): Promise<void> => {
+    const { maintenanceTaskId } = req.params;
+
+    try {
+        const comments = await prisma.comment.findMany({
+            where: {
+                maintenanceTaskId: Number(maintenanceTaskId),
+            },
+            include: {
+                user: {
+                    select: {
+                        userId: true,
+                        username: true,
+                        profilePictureUrl: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'asc',
+            },
+        });
+
+        res.json(comments);
+    } catch (error: any) {
+        res.status(500).json({ message: `Error fetching maintenance task comments: ${error.message}` });
     }
 };

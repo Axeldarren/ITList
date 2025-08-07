@@ -4,13 +4,23 @@ import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import { broadcast } from '../websocket';
+import validator from 'validator';
 
 const prisma = new PrismaClient();
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const users = await prisma.user.findMany({
-            where: { deletedAt: null }
+            where: { deletedAt: null },
+            select: {
+                userId: true,
+                username: true,
+                email: true,
+                profilePictureUrl: true,
+                isAdmin: true,
+                NIK: true
+                // Explicitly exclude password
+            }
         });
         res.json(users);
     } catch (error) {
@@ -27,6 +37,15 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
                 userId: Number(userId),
                 deletedAt: null 
              },
+            select: {
+                userId: true,
+                username: true,
+                email: true,
+                profilePictureUrl: true,
+                isAdmin: true,
+                NIK: true
+                // Explicitly exclude password
+            }
         });
         if (user) {
             res.json(user);
@@ -139,36 +158,117 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
 export const createUser = async (req: Request, res: Response): Promise<void> => {
     const { username, email, password, NIK, isAdmin } = req.body;
 
+    // Input validation
     if (!username || !email || !password) {
-        res.status(400).json({ message: 'Username, email, and password are required.' });
+        res.status(400).json({ 
+            status: 'error',
+            message: 'Username, email, and password are required.' 
+        });
         return;
     }
 
+    // Validate email format
+    if (!validator.isEmail(email)) {
+        res.status(400).json({ 
+            status: 'error',
+            message: 'Please provide a valid email address' 
+        });
+        return;
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+        res.status(400).json({ 
+            status: 'error',
+            message: 'Password must be at least 8 characters long' 
+        });
+        return;
+    }
+
+    // Validate username
+    if (username.length < 3 || username.length > 50) {
+        res.status(400).json({ 
+            status: 'error',
+            message: 'Username must be between 3 and 50 characters' 
+        });
+        return;
+    }
+
+    // Sanitize inputs
+    const sanitizedEmail = validator.normalizeEmail(email, {
+        all_lowercase: true,
+        gmail_remove_dots: false
+    });
+
+    if (!sanitizedEmail) {
+        res.status(400).json({ 
+            status: 'error',
+            message: 'Invalid email format' 
+        });
+        return;
+    }
+
+    const sanitizedUsername = validator.escape(username.trim());
+
     try {
+        // Check if user already exists
+        const existingUser = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: sanitizedEmail },
+                    { username: sanitizedUsername }
+                ]
+            }
+        });
+
+        if (existingUser) {
+            res.status(409).json({ 
+                status: 'error',
+                message: 'User with this email or username already exists' 
+            });
+            return;
+        }
+
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const newUser = await prisma.user.create({
             data: {
-                username,
-                email,
+                username: sanitizedUsername,
+                email: sanitizedEmail,
                 password: hashedPassword,
                 NIK: NIK ? Number(NIK) : 0,
                 isAdmin: isAdmin || false,
             },
+            select: {
+                userId: true,
+                username: true,
+                email: true,
+                profilePictureUrl: true,
+                isAdmin: true,
+                NIK: true
+                // Explicitly exclude password
+            }
         });
-        
-        // Remove password from the returned object
-        const { password: _, ...userWithoutPassword } = newUser;
 
         broadcast({ type: 'USER_UPDATE' });
 
-        res.status(201).json(userWithoutPassword);
+        res.status(201).json({
+            status: 'success',
+            data: { user: newUser }
+        });
     } catch (error: any) {
-        if (error.code === 'P2002') { // Handle unique constraint errors (e.g., email already exists)
-            res.status(409).json({ message: 'A user with this email or username already exists.' });
+        console.error('Create user error:', error);
+        if (error.code === 'P2002') {
+            res.status(409).json({ 
+                status: 'error',
+                message: 'User with this email or username already exists' 
+            });
         } else {
-            res.status(500).json({ message: 'Error creating user', error: error.message });
+            res.status(500).json({ 
+                status: 'error',
+                message: 'Internal server error' 
+            });
         }
     }
 };
