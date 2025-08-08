@@ -25,7 +25,7 @@ export const loginSlowDown = slowDown({
 // General API rate limiting
 export const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per window per IP
+    max: 100000000, // 100 requests per window per IP
     message: {
         status: 'error',
         message: 'Too many requests. Please try again later.'

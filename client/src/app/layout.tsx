@@ -10,7 +10,8 @@ export const metadata: Metadata = {
   title: "ITList",
   description: "An IT Task Management App",
   icons: {
-    icon: "/favicon.ico",
+    icon: "Code.svg",
+    apple: "Code.svg",
   },
 };
 

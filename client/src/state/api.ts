@@ -130,6 +130,7 @@ export interface Task {
     authorUserId?: number;
     assignedUserId?: number;
     version: number;
+    updatedAt?: string;
     author?: User;
     assignee?: User;
     comments?: Comment[];
@@ -722,6 +723,20 @@ export const api = createApi({
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),
 
+        getTimeLogs: build.query<TimeLog[], { userId?: number; month?: string }>({
+            query: ({ userId, month }) => ({
+                url: 'timelogs',
+                params: { userId, month },
+            }),
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'TimeLogs' as const, id })),
+                        { type: 'TimeLogs', id: 'LIST' },
+                      ]
+                    : [{ type: 'TimeLogs', id: 'LIST' }],
+        }),
+
         // Product Maintenance endpoints
         getProductMaintenances: build.query<ProductMaintenance[], void>({
             query: () => 'product-maintenance',
@@ -1086,6 +1101,7 @@ export const {
     useGetRunningTimeLogQuery,
     useGetUserWeeklyStatsQuery,
     useGetDeveloperStatsQuery,
+    useGetTimeLogsQuery,
     useGetProductMaintenancesQuery,
     useGetProductMaintenanceByIdQuery,
     useGetFinishedProjectsQuery,

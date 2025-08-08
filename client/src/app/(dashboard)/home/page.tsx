@@ -27,7 +27,7 @@ import Link from "next/link";
 import { differenceInDays, differenceInSeconds } from "date-fns";
 import toast from "react-hot-toast";
 import { StatsSkeleton, CardSkeleton } from "@/components/Skeleton";
-import LoadingSpinner, { InlineLoading } from "@/components/LoadingSpinner";
+import { InlineLoading } from "@/components/LoadingSpinner";
 
 // --- Expandable Stats Card Component ---
 interface ExpandableStatsCardProps<T> {
@@ -115,7 +115,7 @@ const RunningTimerCard = () => {
     };
 
     if (isLoading || !runningLog) {
-        return null; // Don't render anything if loading or no timer is running
+         return null;
     }
 
     return (
@@ -321,7 +321,7 @@ const assignedUserTasks = useMemo(() => {
     const now = new Date();
     // Overdue and Due This Week are based on the active-only list.
     const overdue = activeUserTasks.filter(t => {
-                if (!t.dueDate || t.status === 'Completed') return false;
+                if (!t.dueDate || t.status === 'Completed' || t.status === 'Under Review') return false;
                 const dueDate = new Date(t.dueDate);
                 dueDate.setHours(23, 59, 59, 999);
                 return dueDate < now;

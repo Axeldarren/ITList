@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppSelector } from './redux';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 // This component acts as a gatekeeper for your application's entry point.
 export default function HomePage() {
@@ -54,5 +55,9 @@ export default function HomePage() {
     }, [token, router]);
 
   // Display a loading indicator while the redirect happens.
-  return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-dark-bg">
+      <LoadingSpinner size="lg" color="primary" text="Redirecting..." />
+    </div>
+  );
 }

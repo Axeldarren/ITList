@@ -1,7 +1,7 @@
 "use client";
 
 import type { Task } from '@/state/api';
-import { format } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 import React, { useState } from 'react';
 import {
     Paperclip, MessageSquare, Flag, CircleDot, Calendar as CalendarIcon, User,
@@ -58,6 +58,14 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
     
     const attachmentCount = task.attachments?.length || 0;
     const commentCount = task.comments?.length || 0;
+
+    // Check if task is overdue (excluding "Under Review" status)
+    const isOverdue = task.id && // Ensure task has an ID (not a new task)
+                     task.dueDate && 
+                     task.status !== "Under Review" && 
+                     task.status !== "Completed" &&
+                     new Date(task.dueDate).getTime() > 0 && // Ensure valid date
+                     isAfter(new Date(), new Date(task.dueDate));
 
     const handleCardClick = () => {
         // --- THIS IS THE FIX: Decide which modal to open ---
@@ -116,12 +124,21 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
 
             <div 
                 onClick={handleCardClick}
-                className={`flex flex-col rounded-lg bg-white p-4 shadow-md dark:bg-[#1d1f21] ${
+                className={`relative flex flex-col rounded-lg bg-white p-4 shadow-md dark:bg-[#1d1f21] ${
                     isProjectActive 
                         ? 'cursor-pointer transition-shadow duration-200 hover:shadow-xl'
                         : 'cursor-pointer' // Still clickable to view, but no hover effect
-                }`}
+                } ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : ''}`}
             >
+                {/* Overdue Stamp */}
+                {isOverdue && (
+                    <div className="absolute top-2 right-2 z-[1]">
+                        <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg transform rotate-12">
+                            OVERDUE
+                        </div>
+                    </div>
+                )}
+
                 <div className="mb-2 flex items-start justify-between">
                     <h3 className='pr-2 text-lg font-bold text-gray-900 dark:text-gray-100'>{task.title}</h3>
                     
@@ -137,7 +154,7 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
                             {openMenuId === task.id && (
                                 <div 
                                     onClick={(e) => e.stopPropagation()}
-                                    className="absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-tertiary"
+                                    className="absolute right-0 z-[5] mt-2 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-tertiary"
                                 >
                                     <div className="py-1" role="menu" aria-orientation="vertical">
                                         <button onClick={handleEditClick} className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600" role="menuitem">

@@ -15,7 +15,7 @@ import {
   Edit,
   Paperclip,
 } from "lucide-react"; 
-import { format } from "date-fns";
+import { format, isAfter } from "date-fns";
 import Image from "next/image";
 import BoardViewSkeleton from "./BoardViewSkeleton";
 import toast from "react-hot-toast";
@@ -189,6 +189,14 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
   const [isEditModalOpen, setEditModalOpen] = useState(false); // <-- State for the edit modal
   const [isViewModalOpen, setViewModalOpen] = useState(false);
 
+  // Check if task is overdue (excluding "Under Review" status)
+  const isOverdue = task.id && // Ensure task has an ID (not a new task)
+                   task.dueDate && 
+                   task.status !== "Under Review" && 
+                   task.status !== "Completed" &&
+                   new Date(task.dueDate).getTime() > 0 && // Ensure valid date
+                   isAfter(new Date(), new Date(task.dueDate));
+
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "task",
     item: { id: task.id },
@@ -280,8 +288,17 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
           drag(instance);
         }}
         onClick={handleCardClick} // <-- Open modal on card click
-        className={`dark:bg-dark-secondary mb-4 cursor-pointer rounded-md bg-white shadow hover:shadow-xl ${isDragging ? "opacity-50" : "opacity-100"}`}
+        className={`relative dark:bg-dark-secondary mb-4 cursor-pointer rounded-md bg-white shadow hover:shadow-xl ${isDragging ? "opacity-50" : "opacity-100"} ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : ''}`}
       >
+        {/* Overdue Stamp */}
+        {isOverdue && (
+          <div className="absolute top-2 right-2 z-[1]">
+            <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg transform rotate-12">
+              OVERDUE
+            </div>
+          </div>
+        )}
+        
         <div className="p-4 md:p-6">
           <div className="flex items-start justify-between">
             <div className="flex flex-1 flex-wrap items-center gap-2">
@@ -305,7 +322,7 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
                     <MoreVertical size={20} />
                   </button>
                   {openMenuId === task.id && (
-                    <div className="dark:bg-dark-tertiary absolute right-0 z-10 mt-2 w-48 rounded-md bg-white py-1 shadow-lg">
+                    <div className="dark:bg-dark-tertiary absolute right-0 z-[5] mt-2 w-48 rounded-md bg-white py-1 shadow-lg">
                       <div className="py-1" role="menu">
                         <button onClick={handleEditClick} className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600" role="menuitem">
                           <Edit className="mr-3 h-5 w-5" />

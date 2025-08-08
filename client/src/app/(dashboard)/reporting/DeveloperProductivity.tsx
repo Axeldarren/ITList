@@ -6,6 +6,8 @@ import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User } from 'lucid
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import ModalViewTimeLogs from '@/components/ModalViewTimeLogs';
+import ModalViewCompletedTasks from '@/components/ModalViewCompletedTasks';
 
 const formatDuration = (seconds: number): string => {
     if (!seconds || seconds < 60) return `0m`;
@@ -17,6 +19,10 @@ const formatDuration = (seconds: number): string => {
 const DeveloperProductivity = () => {
     // State for the month filter
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+    
+    // Modal states
+    const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string } } | null>(null);
+    const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string } } | null>(null);
 
     const { data: stats = [], isLoading } = useGetDeveloperStatsQuery({ 
         month: selectedMonth 
@@ -29,6 +35,30 @@ const DeveloperProductivity = () => {
 
     const getUserProfile = (userId: number) => {
         return users.find(user => user.userId === userId);
+    };
+
+    const handleTimeLogsClick = (dev: { userId: number; username: string }) => {
+        const userProfile = getUserProfile(dev.userId);
+        setTimeLogsModal({
+            isOpen: true,
+            developer: {
+                userId: dev.userId,
+                username: dev.username,
+                profilePictureUrl: userProfile?.profilePictureUrl
+            }
+        });
+    };
+
+    const handleCompletedTasksClick = (dev: { userId: number; username: string }) => {
+        const userProfile = getUserProfile(dev.userId);
+        setCompletedTasksModal({
+            isOpen: true,
+            developer: {
+                userId: dev.userId,
+                username: dev.username,
+                profilePictureUrl: userProfile?.profilePictureUrl
+            }
+        });
     };
 
     const monthName = format(new Date(`${selectedMonth}-01`), 'MMMM yyyy');
@@ -146,7 +176,10 @@ const DeveloperProductivity = () => {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {/* Time Logged - First Priority */}
-                                    <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                                    <div 
+                                        onClick={() => handleTimeLogsClick(dev)}
+                                        className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:shadow-md hover:border-purple-300 transition-all"
+                                    >
                                         <div className="flex items-center gap-2">
                                             <Clock size={16} className="text-purple-500" />
                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Time Logged</span>
@@ -154,10 +187,14 @@ const DeveloperProductivity = () => {
                                         <p className="text-xl font-bold text-purple-600 mt-1">
                                             {formatDuration(dev.totalTimeLogged)}
                                         </p>
+                                        <p className="text-xs text-gray-500 mt-1">Click to view details</p>
                                     </div>
 
                                     {/* Completed Tasks */}
-                                    <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                                    <div 
+                                        onClick={() => handleCompletedTasksClick(dev)}
+                                        className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:shadow-md hover:border-green-300 transition-all"
+                                    >
                                         <div className="flex items-center gap-2">
                                             <CheckCircle size={16} className="text-green-500" />
                                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Tasks Completed</span>
@@ -165,6 +202,7 @@ const DeveloperProductivity = () => {
                                         <p className="text-xl font-bold text-green-600 mt-1">
                                             {dev.completedTasks}
                                         </p>
+                                        <p className="text-xs text-gray-500 mt-1">Click to view tasks</p>
                                     </div>
 
                                     {/* Overdue Tasks */}
@@ -182,6 +220,25 @@ const DeveloperProductivity = () => {
                         );
                     })}
                 </div>
+            )}
+
+            {/* Modals */}
+            {timeLogsModal && (
+                <ModalViewTimeLogs
+                    isOpen={timeLogsModal.isOpen}
+                    onClose={() => setTimeLogsModal(null)}
+                    developer={timeLogsModal.developer}
+                    selectedMonth={selectedMonth}
+                />
+            )}
+
+            {completedTasksModal && (
+                <ModalViewCompletedTasks
+                    isOpen={completedTasksModal.isOpen}
+                    onClose={() => setCompletedTasksModal(null)}
+                    developer={completedTasksModal.developer}
+                    selectedMonth={selectedMonth}
+                />
             )}
         </div>
     );

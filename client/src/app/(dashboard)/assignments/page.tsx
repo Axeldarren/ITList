@@ -1,14 +1,27 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { useGetUsersQuery, useGetAllTasksQuery, useGetProjectsQuery } from '@/state/api';
+import React, { useMemo, useState } from 'react';
+import { useGetUsersQuery, useGetAllTasksQuery, useGetProjectsQuery, User, Task } from '@/state/api';
 import Header from '@/components/Header';
-import { AlertTriangle, CheckCircle, Target, Calendar, ArrowRight, User } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Target, Calendar, ArrowRight, User as UserIcon, ExternalLink } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import ModalViewAllTasks from '@/components/ModalViewAllTasks';
+
+interface DeveloperAssignment extends User {
+    totalTasks: number;
+    overdueTasks: number;
+    inProgressTasks: number;
+    todoTasks: number;
+    underReviewTasks: number;
+    tasks: Task[];
+    overdue: Task[];
+}
 
 const Assignments = () => {
+    const [selectedDeveloper, setSelectedDeveloper] = useState<DeveloperAssignment | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
     
     const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
@@ -33,10 +46,17 @@ const Assignments = () => {
                 task.status !== 'Completed' && 
                 task.status !== 'Archived' &&
                 !task.project?.deletedAt // Exclude tasks from deleted projects
-            );
+            ).sort((a, b) => {
+                // Sort by due date (earliest first), with tasks without due dates at the end
+                if (!a.dueDate && !b.dueDate) return 0;
+                if (!a.dueDate) return 1;
+                if (!b.dueDate) return -1;
+                return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+            });
 
             const overdueTasks = assignedTasks.filter(task => {
-                if (!task.dueDate) return false;
+                if (!task.id || !task.dueDate || task.status === 'Under Review' || task.status === 'Completed') return false;
+                if (new Date(task.dueDate).getTime() <= 0) return false; // Ensure valid date
                 return isAfter(new Date(), new Date(task.dueDate));
             });
 
@@ -54,6 +74,12 @@ const Assignments = () => {
                 tasks: assignedTasks,
                 overdue: overdueTasks
             };
+        }).sort((a, b) => {
+            // Sort developers: those with tasks first, then by total task count (descending), then by name
+            if (a.totalTasks > 0 && b.totalTasks === 0) return -1;
+            if (a.totalTasks === 0 && b.totalTasks > 0) return 1;
+            if (a.totalTasks !== b.totalTasks) return b.totalTasks - a.totalTasks; // More tasks first
+            return (a.username || '').localeCompare(b.username || ''); // Alphabetical by name
         });
     }, [developers, tasks]);
 
@@ -78,6 +104,24 @@ const Assignments = () => {
         }
     };
 
+    const handleViewAllTasks = (dev: DeveloperAssignment) => {
+        if (dev.userId) {
+            setSelectedDeveloper(dev);
+            setIsModalOpen(true);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedDeveloper(null);
+    };
+
+    const handleTaskClick = (task: Task) => {
+        if (task.projectId) {
+            router.push(`/projects/${task.projectId}`);
+        }
+    };
+
     if (usersLoading || tasksLoading || projectsLoading) {
         return (
             <div className="p-6">
@@ -97,9 +141,25 @@ const Assignments = () => {
                 Overview of current developer workloads and task assignments
             </p>
 
+            {/* Modal for viewing all tasks */}
+            {selectedDeveloper && selectedDeveloper.userId && (
+                <ModalViewAllTasks
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
+                    developer={{
+                        userId: selectedDeveloper.userId,
+                        username: selectedDeveloper.username || '',
+                        email: selectedDeveloper.email || '',
+                        profilePictureUrl: selectedDeveloper.profilePictureUrl
+                    }}
+                    tasks={selectedDeveloper.tasks || []}
+                    projects={projectMap}
+                />
+            )}
+
             {developerAssignments.length === 0 ? (
                 <div className="text-center py-12">
-                    <User size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                    <UserIcon size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                     <p className="text-gray-500 dark:text-gray-400">
                         No developers found
                     </p>
@@ -121,7 +181,7 @@ const Assignments = () => {
                                         />
                                     ) : (
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
-                                            {dev.username?.substring(0, 2).toUpperCase() || <User size={24} className="text-gray-600 dark:text-gray-300" />}
+                                            {dev.username?.substring(0, 2).toUpperCase() || <UserIcon size={24} className="text-gray-600 dark:text-gray-300" />}
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
@@ -182,19 +242,38 @@ const Assignments = () => {
                                         </h4>
                                         {dev.tasks.slice(0, 3).map((task) => {
                                             const project = projectMap.get(task.projectId);
-                                            const isOverdue = task.dueDate && isAfter(new Date(), new Date(task.dueDate));
+                                            const isOverdue = task.id && // Ensure task has an ID (not a new task)
+                                                            task.dueDate && 
+                                                            task.status !== 'Under Review' && 
+                                                            task.status !== 'Completed' &&
+                                                            new Date(task.dueDate).getTime() > 0 && // Ensure valid date
+                                                            isAfter(new Date(), new Date(task.dueDate));
                                             
                                             return (
-                                                <div key={task.id} className="p-2 bg-gray-50 dark:bg-dark-tertiary rounded border">
+                                                <div 
+                                                    key={task.id} 
+                                                    onClick={() => handleTaskClick(task)}
+                                                    className={`p-2 bg-gray-50 dark:bg-dark-tertiary rounded border relative cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-tertiary/80 transition-colors ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}`}
+                                                >
+                                                    {/* Overdue stamp */}
+                                                    {isOverdue && (
+                                                        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full transform rotate-12 shadow-md z-[1]">
+                                                            OVERDUE
+                                                        </div>
+                                                    )}
+                                                    
                                                     <div className="flex items-start justify-between mb-1">
                                                         <span className="text-sm font-medium text-gray-900 dark:text-white truncate flex-1">
                                                             {task.title}
                                                         </span>
-                                                        {task.priority && (
-                                                            <span className={`text-xs ml-2 ${getPriorityColor(task.priority)}`}>
-                                                                {task.priority}
-                                                            </span>
-                                                        )}
+                                                        <div className="flex items-center gap-1 ml-2">
+                                                            {task.priority && (
+                                                                <span className={`text-xs ${getPriorityColor(task.priority)}`}>
+                                                                    {task.priority}
+                                                                </span>
+                                                            )}
+                                                            <ExternalLink size={12} className="text-gray-400 opacity-70" />
+                                                        </div>
                                                     </div>
                                                     
                                                     <div className="flex items-center justify-between">
@@ -224,7 +303,7 @@ const Assignments = () => {
                                         
                                         {dev.tasks.length > 3 && (
                                             <button 
-                                                onClick={() => router.push(`/users?filter=${dev.userId}`)}
+                                                onClick={() => handleViewAllTasks(dev)}
                                                 className="w-full text-center py-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 flex items-center justify-center gap-1"
                                             >
                                                 View all {dev.tasks.length} tasks
