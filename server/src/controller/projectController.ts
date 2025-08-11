@@ -20,39 +20,9 @@ export const getProjects = async (req: Request, res: Response): Promise<void> =>
         // Calculate total time logged for each project
         const projectsWithTimeData = await Promise.all(
             projects.map(async (project) => {
-                // Get total time from regular tasks
-                const taskTimeResult = await Prisma.timeLog.aggregate({
-                    where: {
-                        task: {
-                            projectId: project.id,
-                            deletedAt: null
-                        }
-                    },
-                    _sum: {
-                        duration: true
-                    }
-                });
-
-                // Get total time from maintenance tasks
-                const maintenanceTimeResult = await Prisma.timeLog.aggregate({
-                    where: {
-                        maintenanceTask: {
-                            productMaintenance: {
-                                projectId: project.id
-                            }
-                        }
-                    },
-                    _sum: {
-                        duration: true
-                    }
-                });
-
-                const totalTimeLogged = (taskTimeResult._sum.duration || 0) + (maintenanceTimeResult._sum.duration || 0);
-
                 return {
                     ...project,
                     teamId: project.projectTeams[0]?.teamId || null,
-                    totalTimeLogged
                 };
             })
         );

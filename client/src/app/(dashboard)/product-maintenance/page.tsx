@@ -6,12 +6,16 @@ import { useGetProductMaintenancesQuery } from "@/state/api";
 import ProductMaintenanceCard from "@/components/ProductMaintenanceCard";
 import ModalNewProductMaintenance from "@/components/ModalNewProductMaintenance";
 import Header from "@/components/Header";
+import { useAppSelector } from "../../redux";
+import { selectCurrentUser } from "@/state/authSlice";
 
 const ProductMaintenancePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [isModalNewProductMaintenanceOpen, setIsModalNewProductMaintenanceOpen] = useState(false);
+
+  const loggedInUser = useAppSelector(selectCurrentUser);
 
   const {
     data: productMaintenances,
@@ -39,12 +43,14 @@ const ProductMaintenancePage = () => {
       <Header 
         name="Product Maintenance" 
         buttonComponent={
-          <button
-            className="flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
-            onClick={() => setIsModalNewProductMaintenanceOpen(true)}
-          >
-            <Plus className="mr-2 h-5 w-5" /> New Maintenance
-          </button>
+          loggedInUser?.isAdmin ? (
+            <button
+              className="flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
+              onClick={() => setIsModalNewProductMaintenanceOpen(true)}
+            >
+              <Plus className="mr-2 h-5 w-5" /> New Maintenance
+            </button>
+          ) : null
         }
       />
 

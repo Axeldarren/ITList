@@ -28,9 +28,9 @@ const Assignments = () => {
     const { data: tasks = [], isLoading: tasksLoading } = useGetAllTasksQuery();
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
 
-    // Filter out deleted users and only show developers (non-admin users)
+    // Filter out deleted users (include both developers and admins)
     const developers = useMemo(() => {
-        return users.filter(user => !user.deletedAt && !user.isAdmin);
+        return users.filter(user => !user.deletedAt);
     }, [users]);
 
     // Create project lookup map
@@ -150,7 +150,8 @@ const Assignments = () => {
                         userId: selectedDeveloper.userId,
                         username: selectedDeveloper.username || '',
                         email: selectedDeveloper.email || '',
-                        profilePictureUrl: selectedDeveloper.profilePictureUrl
+                        profilePictureUrl: selectedDeveloper.profilePictureUrl,
+                        isAdmin: selectedDeveloper.isAdmin
                     }}
                     tasks={selectedDeveloper.tasks || []}
                     projects={projectMap}
@@ -185,9 +186,16 @@ const Assignments = () => {
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                                            {dev.username}
-                                        </h3>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                                                {dev.username}
+                                            </h3>
+                                            {dev.isAdmin && (
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                                    Admin
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                                             {dev.email}
                                         </p>

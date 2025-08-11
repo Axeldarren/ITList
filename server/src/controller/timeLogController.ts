@@ -221,10 +221,39 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
 
 export const getAllTimeLogs = async (req: Request, res: Response) => {
   try {
+    const { userId, month } = req.query as { userId?: string; month?: string };
+    
+    // Build the where clause
+    let whereClause: any = {
+      task: {
+        deletedAt: null // Only include time logs for non-deleted tasks
+      }
+    };
+    
+    // Filter by user if userId is provided
+    if (userId) {
+      whereClause.userId = parseInt(userId);
+    }
+    
+    // Filter by month if month is provided
+    if (month) {
+      const startDate = new Date(`${month}-01`);
+      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+      
+      whereClause.startTime = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
+    
     const timeLogs = await prisma.timeLog.findMany({
+      where: whereClause,
       include: {
         user: { select: { username: true } },
-        task: { select: { title: true } },
+        task: { 
+          select: { title: true, deletedAt: true }
+        },
       },
       orderBy: {
         startTime: "desc",
@@ -251,6 +280,9 @@ export const getRunningTimeLog = async (req: Request, res: Response): Promise<vo
             where: {
                 userId: loggedInUser.userId,
                 endTime: null, // The key indicator of a running timer
+                task: {
+                    deletedAt: null // Only include non-deleted tasks
+                }
             },
             include: {
                 task: {

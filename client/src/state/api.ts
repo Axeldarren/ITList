@@ -193,6 +193,7 @@ export interface DeveloperStats {
     totalTimeLogged: number; // in seconds
     totalStoryPoints: number;
     completedStoryPoints: number;
+    isAdmin?: boolean;
 }
 
 export interface ProductMaintenance {
@@ -481,7 +482,10 @@ export const api = createApi({
             invalidatesTags: (result) => [
                 { type: "Tasks", id: 'LIST' }, 
                 { type: 'Tasks', id: `PROJECT_${result?.projectId}` }, // Add project-specific invalidation
-                { type: 'Activities', id: result?.projectId }
+                { type: 'Activities', id: result?.projectId },
+                // Add these tags to refresh developer productivity data
+                'Users', // For developer stats
+                'TimeLogs' // For time tracking stats
             ],
         }),
         getTasksByUser: build.query<Task[], number>({
@@ -630,7 +634,13 @@ export const api = createApi({
                 method: 'PATCH',
                 body: patch,
             }),
-            invalidatesTags: (result) => [{ type: 'Tasks' }, { type: 'Activities', id: result?.projectId }],
+            invalidatesTags: (result) => [
+                { type: 'Tasks' }, 
+                { type: 'Activities', id: result?.projectId },
+                // Add these tags to refresh developer productivity data
+                'Users', // For developer stats
+                'TimeLogs' // For time tracking stats
+            ],
         }),
         createComment: build.mutation<Comment, { taskId: number; text: string; userId: number }>({
             query: (body) => ({
@@ -691,7 +701,11 @@ export const api = createApi({
                 method: 'POST',
                 body,
             }),
-            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }, 'RunningTimeLog'],
+            invalidatesTags: (result, error, { taskId }) => [
+                { type: 'Tasks', id: taskId }, 
+                'RunningTimeLog',
+                'TimeLogs' // For developer productivity stats
+            ],
         }),
 
         stopTimer: build.mutation<TimeLog, { logId: number; commentText: string }>({
@@ -700,7 +714,12 @@ export const api = createApi({
                 method: 'POST',
                 body,
             }),
-            invalidatesTags: (result) => result ? [{ type: 'Tasks', id: result.taskId }, "Activities", 'RunningTimeLog'] : [],
+            invalidatesTags: (result) => result ? [
+                { type: 'Tasks', id: result.taskId }, 
+                "Activities", 
+                'RunningTimeLog',
+                'TimeLogs' // For developer productivity stats
+            ] : [],
         }),
         getRunningTimeLog: build.query<TimeLog | null, void>({
             query: () => 'timelogs/running',
@@ -715,7 +734,7 @@ export const api = createApi({
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),
 
-        getDeveloperStats: build.query<DeveloperStats[], { month?: string }>({
+        getDeveloperStats: build.query<DeveloperStats[], { startMonth?: string; endMonth?: string; month?: string }>({
             query: ({ month }) => ({
                 url: 'productivity',
                 params: { month }, // Pass the month as a query parameter

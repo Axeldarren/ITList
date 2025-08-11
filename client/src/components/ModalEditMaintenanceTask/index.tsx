@@ -7,6 +7,7 @@ import {
   useGetMaintenanceTaskCommentsQuery,
   useStartMaintenanceTimerMutation,
   useStopMaintenanceTimerMutation,
+  useGetProductMaintenanceByIdQuery,
 } from "@/state/api";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
@@ -41,6 +42,14 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
   const { data: users } = useGetUsersQuery();
   const { data: timeLogs } = useGetMaintenanceTaskTimeLogsQuery(task.id);
   const { data: comments } = useGetMaintenanceTaskCommentsQuery(task.id);
+  const { data: productMaintenance } = useGetProductMaintenanceByIdQuery(task.productMaintenanceId);
+
+  // Filter users to only show maintainers of this product maintenance
+  const availableAssignees = productMaintenance?.maintainers 
+    ? users?.filter(user => 
+        productMaintenance.maintainers.some(maintainer => maintainer.userId === user.userId)
+      ) 
+    : users;
 
   // Find running timer for current user
   const runningLog = timeLogs?.find(log => 
@@ -295,7 +304,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
           >
             <option value="">Unassigned</option>
-            {users?.map((user) => (
+            {availableAssignees?.map((user) => (
               <option key={user.userId} value={user.userId}>
                 {user.username}
               </option>

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import Modal from "@/components/Modal";
+import Calendar from "@/components/Calendar";
 import { useGetAllTasksQuery } from "@/state/api";
 import { format, parseISO } from "date-fns";
-import { CheckCircle, Calendar, Flag, Folder, Filter, ExternalLink } from "lucide-react";
+import { CheckCircle, Calendar as CalendarIcon, Flag, Folder, Filter, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -13,6 +14,7 @@ interface ModalViewCompletedTasksProps {
     userId: number;
     username: string;
     profilePictureUrl?: string;
+    isAdmin?: boolean;
   };
   selectedMonth: string;
 }
@@ -124,9 +126,16 @@ const ModalViewCompletedTasks: React.FC<ModalViewCompletedTasksProps> = ({
               </div>
             )}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {developer.username}&apos;s Completed Tasks
-              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {developer.username}&apos;s Completed Tasks
+                </h3>
+                {developer.isAdmin && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                    Admin
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {monthName} • {completedTasks.length} tasks completed
               </p>
@@ -141,18 +150,25 @@ const ModalViewCompletedTasks: React.FC<ModalViewCompletedTasksProps> = ({
                 Filter by completion date:
               </label>
             </div>
-            <select
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-tertiary p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-            >
-              <option value="all">All Dates ({completedTasks.length} tasks)</option>
-              {Object.keys(tasksByDate).map(date => (
-                <option key={date} value={date}>
-                  {format(new Date(date), 'EEEE, MMM dd')} ({tasksByDate[date].length} tasks)
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedDate('all')}
+                className={`px-3 py-2 text-sm rounded-md border transition-colors ${
+                  selectedDate === 'all'
+                    ? 'bg-blue-500 text-white border-blue-500'
+                    : 'bg-white dark:bg-dark-tertiary text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+              >
+                All Dates ({completedTasks.length})
+              </button>
+              <Calendar
+                value={selectedDate === 'all' ? '' : selectedDate}
+                onChange={(date) => setSelectedDate(date)}
+                placeholder="Select specific date"
+                className="min-w-[200px]"
+                highlightedDates={Object.keys(tasksByDate)}
+              />
+            </div>
           </div>
 
           {/* Summary */}
@@ -243,7 +259,7 @@ const ModalViewCompletedTasks: React.FC<ModalViewCompletedTasksProps> = ({
 
                   {task.updatedAt && (
                     <div className="flex items-center gap-1">
-                      <Calendar size={12} className="text-green-500" />
+                      <CalendarIcon size={12} className="text-green-500" />
                       <span className="text-xs text-green-600 font-medium">
                         Completed: {format(new Date(task.updatedAt), "MMM dd, h:mm a")}
                       </span>

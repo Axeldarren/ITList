@@ -185,7 +185,7 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
                         ))}
                     </div>
                 )}
-                
+
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-2 text-sm">
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400" title={`Status: ${task.status}`}>
                         <CircleDot className="h-4 w-4 flex-shrink-0" />

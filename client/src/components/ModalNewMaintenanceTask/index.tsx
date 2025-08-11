@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   useCreateMaintenanceTaskMutation,
   useGetUsersQuery,
+  useGetProductMaintenanceByIdQuery,
 } from "@/state/api";
 import toast from "react-hot-toast";
 import Modal from "@/components/Modal";
@@ -22,6 +23,12 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
 
   const [createMaintenanceTask, { isLoading: isCreating }] = useCreateMaintenanceTaskMutation();
   const { data: users } = useGetUsersQuery();
+  const { data: productMaintenance } = useGetProductMaintenanceByIdQuery(productMaintenanceId);
+
+  // Filter users to only show maintainers assigned to this product maintenance
+  const availableAssignees = users?.filter(user => 
+    productMaintenance?.maintainers.some(maintainer => maintainer.userId === user.userId)
+  ) || [];
 
   const taskTypes = [
     "General",
@@ -182,7 +189,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
           >
             <option value="">Unassigned</option>
-            {users?.map((user) => (
+            {availableAssignees?.map((user) => (
               <option key={user.userId} value={user.userId}>
                 {user.username}
               </option>

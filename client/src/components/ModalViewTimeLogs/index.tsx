@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import Modal from "@/components/Modal";
+import Calendar from "@/components/Calendar";
 import { useGetTimeLogsQuery } from "@/state/api";
-import { format, isToday, parseISO } from "date-fns";
-import { Clock, Calendar, Play, Square, Filter } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { Clock, Calendar as CalendarIcon, Play, Square, Filter } from "lucide-react";
 import Image from "next/image";
 
 interface ModalViewTimeLogsProps {
@@ -12,6 +13,7 @@ interface ModalViewTimeLogsProps {
     userId: number;
     username: string;
     profilePictureUrl?: string;
+    isAdmin?: boolean;
   };
   selectedMonth: string;
 }
@@ -93,9 +95,16 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
               </div>
             )}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {developer.username}&apos;s Time Logs
-              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {developer.username}&apos;s Time Logs
+                </h3>
+                {developer.isAdmin && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                    Admin
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {monthName}
               </p>
@@ -110,28 +119,20 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
                 Filter by date:
               </label>
             </div>
-            <select
+            <Calendar
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-tertiary p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-            >
-              <option value={format(new Date(), 'yyyy-MM-dd')}>
-                {isToday(new Date(selectedDate)) ? 'Today' : 'Select Date'}
-              </option>
-              {Object.keys(logsByDate).map(date => (
-                <option key={date} value={date}>
-                  {format(new Date(date), 'EEEE, MMM dd, yyyy')}
-                  {isToday(new Date(date)) ? ' (Today)' : ''}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedDate}
+              placeholder="Select Date"
+              className="min-w-[200px]"
+              highlightedDates={Object.keys(logsByDate)}
+            />
           </div>
 
           {/* Selected Date Summary */}
           <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar size={16} className="text-blue-500" />
+                <CalendarIcon size={16} className="text-blue-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {format(new Date(selectedDate), 'EEEE, MMMM dd, yyyy')}
                 </span>

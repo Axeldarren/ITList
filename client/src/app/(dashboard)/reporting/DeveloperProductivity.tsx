@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useGetDeveloperStatsQuery, useGetUsersQuery } from '@/state/api';
+import { useGetDeveloperStatsQuery, useGetUsersQuery, useGetTimeLogsQuery } from '@/state/api';
 import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User } from 'lucide-react';
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import ModalViewTimeLogs from '@/components/ModalViewTimeLogs';
 import ModalViewCompletedTasks from '@/components/ModalViewCompletedTasks';
+import MonthPicker from '@/components/MonthPicker';
 
 const formatDuration = (seconds: number): string => {
     if (!seconds || seconds < 60) return `0m`;
@@ -17,73 +18,151 @@ const formatDuration = (seconds: number): string => {
 };
 
 const DeveloperProductivity = () => {
-    // State for the month filter
-    const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+    // State for the month range filter
+    const [startMonth, setStartMonth] = useState(format(new Date(), 'yyyy-MM'));
+    const [endMonth, setEndMonth] = useState(format(new Date(), 'yyyy-MM'));
     
     // Modal states
-    const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string } } | null>(null);
-    const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string } } | null>(null);
+    const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
+    const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
 
     const { data: stats = [], isLoading } = useGetDeveloperStatsQuery({ 
-        month: selectedMonth 
+        startMonth,
+        endMonth
     });
     const { data: users = [] } = useGetUsersQuery();
+    
+    // Get today's time logs to calculate today's time for each developer
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const { data: todayTimeLogs = [] } = useGetTimeLogsQuery({ 
+        month: format(new Date(), 'yyyy-MM') 
+    });
+
+    // Helper function to calculate today's time logged for a specific user
+    const getTodayTimeLogged = (userId: number): number => {
+        const userTodayLogs = todayTimeLogs.filter(log => {
+            if (!log.startTime || !log.endTime || log.userId !== userId) return false;
+            const logDate = format(new Date(log.startTime), 'yyyy-MM-dd');
+            return logDate === today;
+        });
+        
+        return userTodayLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
+    };
 
     const handleExport = () => {
-        exportProductivityToPDF(stats, selectedMonth);
+        exportProductivityToPDF(sortedStats, getDateRangeLabel());
     };
 
     const getUserProfile = (userId: number) => {
         return users.find(user => user.userId === userId);
     };
 
-    const handleTimeLogsClick = (dev: { userId: number; username: string }) => {
+    const getDateRangeLabel = () => {
+        const startDate = format(new Date(`${startMonth}-01`), 'MMMM yyyy');
+        const endDate = format(new Date(`${endMonth}-01`), 'MMMM yyyy');
+        
+        if (startMonth === endMonth) {
+            return startDate;
+        }
+        return `${startDate} to ${endDate}`;
+    };
+
+    // Ensure endMonth is not earlier than startMonth
+    const handleEndMonthChange = (newEndMonth: string) => {
+        if (newEndMonth < startMonth) {
+            setStartMonth(newEndMonth);
+        }
+        setEndMonth(newEndMonth);
+    };
+
+    const handleStartMonthChange = (newStartMonth: string) => {
+        if (newStartMonth > endMonth) {
+            setEndMonth(newStartMonth);
+        }
+        setStartMonth(newStartMonth);
+    };
+
+    const handleTimeLogsClick = (dev: { userId: number; username: string; isAdmin?: boolean }) => {
         const userProfile = getUserProfile(dev.userId);
         setTimeLogsModal({
             isOpen: true,
             developer: {
                 userId: dev.userId,
                 username: dev.username,
-                profilePictureUrl: userProfile?.profilePictureUrl
+                profilePictureUrl: userProfile?.profilePictureUrl,
+                isAdmin: dev.isAdmin
             }
         });
     };
 
-    const handleCompletedTasksClick = (dev: { userId: number; username: string }) => {
+    const handleCompletedTasksClick = (dev: { userId: number; username: string; isAdmin?: boolean }) => {
         const userProfile = getUserProfile(dev.userId);
         setCompletedTasksModal({
             isOpen: true,
             developer: {
                 userId: dev.userId,
                 username: dev.username,
-                profilePictureUrl: userProfile?.profilePictureUrl
+                profilePictureUrl: userProfile?.profilePictureUrl,
+                isAdmin: dev.isAdmin
             }
         });
     };
 
-    const monthName = format(new Date(`${selectedMonth}-01`), 'MMMM yyyy');
+    const dateRangeLabel = getDateRangeLabel();
+
+    // Sort developers by activity: those with time logged first (sorted by total time desc), then others
+    // This ensures the most active developers appear at the top of the list
+    const sortedStats = [...stats].sort((a, b) => {
+        // First, prioritize developers with time logged
+        if (a.totalTimeLogged > 0 && b.totalTimeLogged === 0) return -1;
+        if (a.totalTimeLogged === 0 && b.totalTimeLogged > 0) return 1;
+        
+        // If both have time logged, sort by total time (descending)
+        if (a.totalTimeLogged > 0 && b.totalTimeLogged > 0) {
+            return b.totalTimeLogged - a.totalTimeLogged;
+        }
+        
+        // If neither has time logged, sort by total completed tasks (descending)
+        if (a.totalTimeLogged === 0 && b.totalTimeLogged === 0) {
+            return b.completedTasks - a.completedTasks;
+        }
+        
+        return 0;
+    });
 
     // Calculate overall totals for summary
-    const totalTimeLogged = stats.reduce((sum, dev) => sum + dev.totalTimeLogged, 0);
-    const totalCompletedTasks = stats.reduce((sum, dev) => sum + dev.completedTasks, 0);
+    const totalTimeLogged = sortedStats.reduce((sum, dev) => sum + dev.totalTimeLogged, 0);
+    const totalCompletedTasks = sortedStats.reduce((sum, dev) => sum + dev.completedTasks, 0);
 
     return (
         <div className="p-6 bg-white rounded-lg shadow dark:bg-dark-secondary">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-bold dark:text-white">Developer Productivity</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Time logged and tasks completed for {monthName}</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Time logged and tasks completed for {dateRangeLabel}</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <input 
-                        type="month"
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="rounded border p-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white"
-                    />
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">From:</label>
+                        <MonthPicker
+                            value={startMonth}
+                            onChange={handleStartMonthChange}
+                            placeholder="Start Month"
+                            className="min-w-[180px]"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">To:</label>
+                        <MonthPicker
+                            value={endMonth}
+                            onChange={handleEndMonthChange}
+                            placeholder="End Month"
+                            className="min-w-[180px]"
+                        />
+                    </div>
                     <button 
                         onClick={handleExport}
-                        disabled={isLoading || stats.length === 0}
+                        disabled={isLoading || sortedStats.length === 0}
                         className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
                     >
                         <FileDown size={18} /> Export PDF
@@ -92,11 +171,11 @@ const DeveloperProductivity = () => {
             </div>
 
             {/* Summary Section */}
-            {!isLoading && stats.length > 0 && (
+            {!isLoading && sortedStats.length > 0 && (
                 <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-6 border border-blue-200 dark:border-gray-600">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <Target size={20} className="text-blue-500" />
-                        {monthName} Summary
+                        {dateRangeLabel} Summary
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-white dark:bg-dark-bg p-4 rounded-lg border border-blue-100 dark:border-gray-600">
@@ -129,23 +208,28 @@ const DeveloperProductivity = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
                     <p className="text-gray-500 dark:text-gray-400 mt-2">Loading productivity data...</p>
                 </div>
-            ) : stats.length === 0 ? (
+            ) : sortedStats.length === 0 ? (
                 <div className="text-center py-12">
                     <Target size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                     <p className="text-gray-500 dark:text-gray-400">
-                        No productivity data found for {monthName}
+                        No productivity data found for {dateRangeLabel}
                     </p>
                 </div>
             ) : (
                 <div className="grid gap-4">
-                    {stats.map((dev) => {
+                    {sortedStats.map((dev) => {
                         const userProfile = getUserProfile(dev.userId);
                         
                         return (
-                            <div key={dev.userId} className="bg-gray-50 dark:bg-dark-tertiary rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                            <div key={dev.userId} className={`rounded-lg p-4 border ${
+                                dev.totalTimeLogged > 0 
+                                    ? 'bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-700' 
+                                    : 'bg-gray-50 dark:bg-dark-tertiary border-gray-200 dark:border-gray-600'
+                            }`}>
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        {userProfile?.profilePictureUrl ? (
+                                        <div className="relative">
+                                            {userProfile?.profilePictureUrl ? (
                                             <Image
                                                 src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${userProfile.profilePictureUrl}`}
                                                 alt={dev.username}
@@ -158,8 +242,19 @@ const DeveloperProductivity = () => {
                                                 {dev.username ? dev.username.substring(0, 2).toUpperCase() : <User size={24} className="text-gray-600 dark:text-gray-300" />}
                                             </div>
                                         )}
+                                            {dev.totalTimeLogged > 0 && (
+                                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                                            )}
+                                        </div>
                                         <div>
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{dev.username}</h3>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{dev.username}</h3>
+                                                {dev.isAdmin && (
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                                        Admin
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                                 {dev.completedTasks} tasks completed
                                             </p>
@@ -174,7 +269,7 @@ const DeveloperProductivity = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {/* Time Logged - First Priority */}
                                     <div 
                                         onClick={() => handleTimeLogsClick(dev)}
@@ -188,6 +283,18 @@ const DeveloperProductivity = () => {
                                             {formatDuration(dev.totalTimeLogged)}
                                         </p>
                                         <p className="text-xs text-gray-500 mt-1">Click to view details</p>
+                                    </div>
+
+                                    {/* Today's Time Logged */}
+                                    <div className="bg-white dark:bg-dark-bg p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                                        <div className="flex items-center gap-2">
+                                            <Clock size={16} className="text-orange-500" />
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Today&apos;s Time</span>
+                                        </div>
+                                        <p className="text-xl font-bold text-orange-600 mt-1">
+                                            {formatDuration(getTodayTimeLogged(dev.userId))}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">Today only</p>
                                     </div>
 
                                     {/* Completed Tasks */}
@@ -228,7 +335,7 @@ const DeveloperProductivity = () => {
                     isOpen={timeLogsModal.isOpen}
                     onClose={() => setTimeLogsModal(null)}
                     developer={timeLogsModal.developer}
-                    selectedMonth={selectedMonth}
+                    selectedMonth={endMonth}
                 />
             )}
 
@@ -237,7 +344,7 @@ const DeveloperProductivity = () => {
                     isOpen={completedTasksModal.isOpen}
                     onClose={() => setCompletedTasksModal(null)}
                     developer={completedTasksModal.developer}
-                    selectedMonth={selectedMonth}
+                    selectedMonth={endMonth}
                 />
             )}
         </div>

@@ -16,19 +16,35 @@ type Props = {
 const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }: Props) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
-  // The component no longer fetches its own data. It just filters the props.
+  // The component no longer fetches its own data. It just filters and sorts the props.
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
-    if (!searchTerm) return tasks;
+    
+    let filtered = tasks;
+    
+    // Apply search filter
+    if (searchTerm) {
+      const lowercasedSearchTerm = searchTerm.toLowerCase();
+      filtered = tasks.filter(task => 
+          task.title.toLowerCase().includes(lowercasedSearchTerm) ||
+          (task.description && task.description.toLowerCase().includes(lowercasedSearchTerm)) ||
+          (task.tags && task.tags.toLowerCase().includes(lowercasedSearchTerm)) ||
+          (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
+      );
+    }
 
-    const lowercasedSearchTerm = searchTerm.toLowerCase();
-
-    return tasks.filter(task => 
-        task.title.toLowerCase().includes(lowercasedSearchTerm) ||
-        (task.description && task.description.toLowerCase().includes(lowercasedSearchTerm)) ||
-        (task.tags && task.tags.toLowerCase().includes(lowercasedSearchTerm)) ||
-        (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
-    );
+    // Sort by earliest due date
+    return filtered.sort((a, b) => {
+      // Tasks with due dates come first, sorted by earliest date
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      // Tasks with due dates come before tasks without
+      if (a.dueDate && !b.dueDate) return -1;
+      if (!a.dueDate && b.dueDate) return 1;
+      // If both have no due date, maintain original order
+      return 0;
+    });
   }, [tasks, searchTerm]);
 
   const handleMenuToggle = (taskId: number) => {

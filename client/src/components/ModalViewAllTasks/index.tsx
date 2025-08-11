@@ -14,6 +14,7 @@ interface ModalViewAllTasksProps {
     username: string;
     email: string;
     profilePictureUrl?: string;
+    isAdmin?: boolean;
   };
   tasks: Task[];
   projects: Map<number, Project>;
@@ -112,9 +113,16 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
               </div>
             )}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {developer.username}
-              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {developer.username}
+                </h3>
+                {developer.isAdmin && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                    Admin
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {developer.email}
               </p>

@@ -163,6 +163,13 @@ const TaskColumn = ({
 
       {tasks
         .filter((task) => task.status === status)
+        .sort((a, b) => {
+          // Sort by earliest due date first
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1; // Tasks without due date go to bottom
+          if (!b.dueDate) return -1; // Tasks with due date come first
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        })
         .map((task) => (
           <Task
             key={task.id}
@@ -355,6 +362,7 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
           <p className="text-sm text-gray-600 dark:text-neutral-500">
             {task.description}
           </p>
+          
           <div className="dark:border-stroke-dark mt-4 border-t border-gray-200" />
 
           {/* Users */}
