@@ -2,9 +2,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Project, Task, User } from '@/state/api';
 
-export interface SignatureInfo {
+export interface ProjectSignatureInfo {
     user: User;
-    role: string;
+    role: 'IT Supervisor' | 'IT Department Head';
 }
 
 // Helper function to add a header to each page
@@ -17,13 +17,13 @@ const addHeader = (doc: jsPDF, project: Project) => {
     doc.text(`Report Generated: ${new Date().toLocaleDateString()}`, 14, 36);
 };
 
-export const exportProjectToPDF = (
+export const exportProjectDetailToPDF = (
     project: Project, 
     tasks: Task[], 
     projectManager: User | undefined, 
     productOwner: User | undefined, 
     developers: User[],
-    signatures?: SignatureInfo[]
+    signatures?: ProjectSignatureInfo[]
 ) => {
     const doc = new jsPDF();
     const pageHeight = doc.internal.pageSize.height;
@@ -37,7 +37,7 @@ export const exportProjectToPDF = (
         head: [['Detail', 'Information']],
         body: [
             ['Project ID', `${project.id}`],
-            ['Status', project.status], // <-- THIS IS THE FIX
+            ['Status', project.status],
             ['Start Date', project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'],
             ['End Date', project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'],
             ['Project Manager (PM)', projectManager?.username || 'N/A'],
@@ -203,58 +203,61 @@ export const exportProjectToPDF = (
     doc.text(devNames, 14, y, { maxWidth: 180 });
     y += 15;
 
-    // --- Signatures Section ---
+    // --- Signatures Section for Project Details ---
     if (signatures && signatures.length > 0) {
-        // Add signatures immediately after content, no gap
+        // Add signatures with minimal spacing after content
         y += 10;
 
-        doc.setFontSize(14);
+        doc.setFontSize(16);
         doc.text('Required Signatures', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-        y += 15;
+        y += 30; // Increased spacing between title and signature boxes
 
-        // Left and right layout (2 columns) - centered
+        // Left and right layout (2 columns) - perfectly centeredx
         for (let i = 0; i < signatures.length; i += 2) {
             const leftSignature = signatures[i];
             const rightSignature = signatures[i + 1];
             
-            // Calculate center positions
+            // Calculate center positions with better spacing
             const pageWidth = doc.internal.pageSize.getWidth();
             const centerX = pageWidth / 2;
-            const leftX = centerX + 30;  // Left signature very close to center
-            const rightX = centerX + 200; // Right signature super right
+            const signatureWidth = 80;
+            const gapBetweenSignatures = 40; // Space between left and right signatures
             
-            // Left signature
+            const leftX = centerX - signatureWidth - (gapBetweenSignatures / 2);  // Left signature centered
+            const rightX = centerX + (gapBetweenSignatures / 2);  // Right signature centered
+            
+            // Left signature (IT Supervisor)
             if (leftSignature) {
                 // Signature line
-                doc.setLineWidth(0.3); // Thinner line
-                doc.line(leftX, y, leftX + 70, y);
+                doc.setLineWidth(0.3);
+                doc.line(leftX, y, leftX + signatureWidth, y);
                 
                 // Labels below with date next to name
-                doc.setFontSize(9); // Smaller, less bold text
+                doc.setFontSize(9);
                 const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
                 doc.text(`${leftSignature.user.username}  ${currentDate}`, leftX, y + 8);
                 doc.text(leftSignature.role, leftX, y + 16);
             }
             
-            // Right signature
+            // Right signature (IT Department Head)
             if (rightSignature) {
                 // Signature line
-                doc.setLineWidth(0.3); // Thinner line
-                doc.line(rightX, y, rightX + 70, y);
+                doc.setLineWidth(0.3);
+                doc.line(rightX, y, rightX + signatureWidth, y);
                 
                 // Labels below with date next to name
-                doc.setFontSize(9); // Smaller, less bold text
+                doc.setFontSize(9);
                 const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
                 doc.text(`${rightSignature.user.username}  ${currentDate}`, rightX, y + 8);
                 doc.text(rightSignature.role, rightX, y + 16);
             }
             
-            y += 30; // Move to next row after every 2 signatures
+            y += 40; // Increased spacing between signature rows
         }
     }
 
     // --- Save the PDF ---
     const dateStr = new Date().toISOString().split('T')[0];
     const uniqueId = Math.random().toString(36).substring(2, 7);
-    doc.save(`Project_Report_${project.name.replace(/\s/g, '_')}_V${project.version}_${dateStr}_${uniqueId}.pdf`);
+    doc.save(`Project_Detail_Report_${project.name.replace(/\s/g, '_')}_V${project.version}_${dateStr}_${uniqueId}.pdf`);
 };

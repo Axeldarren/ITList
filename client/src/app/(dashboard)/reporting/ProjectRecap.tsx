@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useGetProjectsQuery, useGetAllProjectVersionsQuery, useGetTeamsQuery, useGetUsersQuery, useGetAllTasksQuery, ProjectStatus } from '@/state/api';
-import { exportAllProjectsToPDF, ReportOptions } from '@/lib/recapPdfGenerator';
+import { exportAllProjectsToPDF, ReportOptions, SignatureInfo } from '@/lib/recapPdfGenerator';
+import ModalRecapSignatureSelect from '@/components/ModalRecapSignatureSelect';
 import { FileDown, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -21,6 +22,7 @@ const ProjectRecap = () => {
     const [includeArchived, setIncludeArchived] = useState(false);
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>(projectStatuses);
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
 
     // State for column customization
     const [options, setOptions] = useState<ReportOptions>({
@@ -89,7 +91,12 @@ const ProjectRecap = () => {
             toast.error("No projects match the selected filters.");
             return;
         }
-        exportAllProjectsToPDF(filteredReportData, allTasks, teams, users, options);
+        setIsSignatureModalOpen(true);
+    };
+
+    const handleExportWithSignatures = (signatures: SignatureInfo[]) => {
+        exportAllProjectsToPDF(filteredReportData, allTasks, teams, users, options, signatures);
+        toast.success("Project recap report generated successfully!");
     };
     
     const isLoading = pLoading || vLoading || tLoading || mLoading || uLoading;
@@ -186,6 +193,13 @@ const ProjectRecap = () => {
                 <FileDown size={20} />
                 {isLoading ? "Loading Data..." : `Generate Report (${filteredReportData.length} Projects)`}
             </button>
+
+            <ModalRecapSignatureSelect
+                isOpen={isSignatureModalOpen}
+                onClose={() => setIsSignatureModalOpen(false)}
+                onConfirm={handleExportWithSignatures}
+                users={users}
+            />
         </div>
     );
 };

@@ -13,7 +13,14 @@ import ArchiveView from '../ArchiveView';
 import ModalNewTask from '@/components/ModalNewTask';
 import ModalEditProject from '../ModalEditProject';
 import ModalNewVersion from '../ModalNewVersion';
-import { exportProjectToPDF } from '@/lib/pdfGenerator';
+import ModalSignatureSelect from '@/components/ModalSignatureSelect';
+import { exportProjectDetailToPDF } from '@/lib/projectDetailPdfGenerator';
+
+// Define the signature interface locally to match the modal
+interface ProjectSignatureInfo {
+    user: User;
+    role: 'IT Department Head' | 'IT Supervisor';
+}
 
 // State and API Imports
 import {
@@ -25,7 +32,8 @@ import {
     useGetUsersQuery,
     useUpdateProjectStatusMutation,
     Project as ProjectType,
-    ProjectStatus
+    ProjectStatus,
+    User
 } from '@/state/api';
 import ActivityView from '../ActivityView';
 
@@ -37,6 +45,7 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [isNewVersionModalOpen, setIsNewVersionModalOpen] = useState(false);
+    const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
     const [localSearchTerm, setLocalSearchTerm] = useState('');
 
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
@@ -114,6 +123,10 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     };
     
     const handleExport = () => {
+        setIsSignatureModalOpen(true);
+    };
+
+    const handleExportWithSignatures = (signatures: ProjectSignatureInfo[]) => {
         if (!currentProject || !activeTasks || !teams || !users) {
             toast.error("Data is not yet available for the report.");
             return;
@@ -131,7 +144,8 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
         const developerIds = new Set(activeTasks.map(t => t.assignedUserId).filter(Boolean));
         const developers = users.filter(u => developerIds.has(u.userId));
 
-        exportProjectToPDF(currentProject, activeTasks, projectManager, productOwner, developers);
+        exportProjectDetailToPDF(currentProject, activeTasks, projectManager, productOwner, developers, signatures);
+        toast.success("Project report generated successfully!");
     };
 
     const isLoading = projectsLoading || tasksLoading || teamsLoading || usersLoading;
@@ -148,6 +162,12 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 onClose={() => setIsNewVersionModalOpen(false)}
                 onSubmit={handleCreateNewVersion}
                 isLoading={isArchiving}
+            />
+            <ModalSignatureSelect
+                isOpen={isSignatureModalOpen}
+                onClose={() => setIsSignatureModalOpen(false)}
+                onConfirm={handleExportWithSignatures}
+                users={users}
             />
             
             <ProjectHeader 

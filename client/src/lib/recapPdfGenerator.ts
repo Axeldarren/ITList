@@ -2,6 +2,11 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Project, ProjectVersion, Task, Team, User } from '@/state/api';
 
+export interface SignatureInfo {
+    user: User;
+    role: 'IT Division Head' | 'IT Department Head';
+}
+
 export type ReportOptions = {
     includeId: boolean;
     includeVersion: boolean;
@@ -21,7 +26,8 @@ export const exportAllProjectsToPDF = (
     allTasks: Task[],
     teams: Team[],
     users: User[],
-    options: ReportOptions
+    options: ReportOptions,
+    signatures?: SignatureInfo[]
 ) => {
     const doc = new jsPDF({ orientation: 'landscape' });
 
@@ -122,6 +128,61 @@ export const exportAllProjectsToPDF = (
             cellPadding: 2,
         }
     });
+    
+    // --- Signatures Section ---
+    if (signatures && signatures.length > 0) {
+        // Add signatures with proper spacing after the table
+        const docWithTable = doc as jsPDF & { lastAutoTable: { finalY: number } };
+        let y = docWithTable.lastAutoTable?.finalY ? docWithTable.lastAutoTable.finalY + 20 : 40;
+        
+        // Title with more spacing
+        doc.setFontSize(16);
+        doc.text('Required Signatures', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += 30; // Increased spacing between title and signature boxes
+        
+        // Left and right layout (2 columns) - perfectly centered
+        for (let i = 0; i < signatures.length; i += 2) {
+            const leftSignature = signatures[i];
+            const rightSignature = signatures[i + 1];
+            
+            // Calculate center positions for landscape format with better spacing
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const centerX = pageWidth / 2;
+            const signatureWidth = 80;
+            const gapBetweenSignatures = 40; // Space between left and right signatures
+            
+            const leftX = centerX - signatureWidth - (gapBetweenSignatures / 2);  // Left signature centered
+            const rightX = centerX + (gapBetweenSignatures / 2);  // Right signature centered
+            
+            // Left signature
+            if (leftSignature) {
+                // Signature line
+                doc.setLineWidth(0.3);
+                doc.line(leftX, y, leftX + signatureWidth, y);
+                
+                // Labels below with date next to name
+                doc.setFontSize(9);
+                const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
+                doc.text(`${leftSignature.user.username}  ${currentDate}`, leftX, y + 8);
+                doc.text(leftSignature.role, leftX, y + 16);
+            }
+            
+            // Right signature
+            if (rightSignature) {
+                // Signature line
+                doc.setLineWidth(0.3);
+                doc.line(rightX, y, rightX + signatureWidth, y);
+                
+                // Labels below with date next to name
+                doc.setFontSize(9);
+                const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
+                doc.text(`${rightSignature.user.username}  ${currentDate}`, rightX, y + 8);
+                doc.text(rightSignature.role, rightX, y + 16);
+            }
+            
+            y += 40; // Increased spacing between signature rows
+        }
+    }
     
     doc.save(`Custom_Project_Recap_${new Date().toISOString().split('T')[0]}.pdf`);
 };
