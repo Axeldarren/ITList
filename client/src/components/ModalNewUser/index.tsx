@@ -26,6 +26,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
         'Develop (Core)',
         'SYSADMIN & DBA',
         'BUSSINESS, ANALYST & REPORTING',
+        'User',
     ];
 
     const resetForm = () => {

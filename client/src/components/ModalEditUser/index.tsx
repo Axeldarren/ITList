@@ -26,6 +26,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
         'Develop (Core)',
         'SYSADMIN & DBA',
         'BUSSINESS, ANALYST & REPORTING',
+        'User',
     ];
 
     useEffect(() => {
