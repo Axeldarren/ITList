@@ -23,6 +23,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
         'SUPPORT',
         'NETWORK / INFRA',
         'DEV MOBILE (NON CORE)',
+        'Develop (Core)',
         'SYSADMIN & DBA',
         'BUSSINESS, ANALYST & REPORTING',
     ];

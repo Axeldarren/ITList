@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useGetAllTasksQuery, useGetProjectsQuery, useGetTeamsQuery, useGetUsersQuery, useGetTimeLogsQuery, Task, TimeLog } from "@/state/api";
+import { useGetAllTasksQuery, useGetProjectsQuery, useGetUsersQuery, useGetTimeLogsQuery, Task, TimeLog, User } from "@/state/api";
 import { FileSpreadsheet, Loader2 } from "lucide-react";
 
 type Row = {
@@ -13,32 +13,42 @@ type Row = {
   status: string;
 };
 
+// Minimal Excel types to avoid relying on XLSX namespace typings
+type ExcelFont = { bold?: boolean };
+type ExcelStyle = { font?: ExcelFont };
+type ExcelCell = { s?: ExcelStyle };
+type MergeRange = { s: { r: number; c: number }; e: { r: number; c: number } };
+type ExcelWorkSheet = {
+  [addr: string]: ExcelCell | undefined;
+};
+
 const WeeklyReport = () => {
   const { data: projects = [], isLoading: pLoading } = useGetProjectsQuery();
   const { data: tasks = [], isLoading: tLoading } = useGetAllTasksQuery();
-  const { data: teams = [], isLoading: tmLoading } = useGetTeamsQuery();
+  // Teams not required for per-department attribution
   const { data: users = [], isLoading: uLoading } = useGetUsersQuery();
   // Fetch time logs for current month; we'll filter to current week client-side
   const monthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
   const { data: timeLogs = [], isLoading: lLoading } = useGetTimeLogsQuery({ month: monthStr });
 
-  const isLoading = pLoading || tLoading || tmLoading || uLoading || lLoading;
+  const isLoading = pLoading || tLoading || uLoading || lLoading;
 
   // Scope: 'week' = only projects with time logs this week, 'all' = all active projects
   const [scope, setScope] = useState<'week' | 'all'>('week');
 
-  const taskGroupsByProject = useMemo(() => {
-    const map = new Map<number, Task[]>();
-    for (const task of tasks) {
-      if (!map.has(task.projectId)) map.set(task.projectId, []);
-      map.get(task.projectId)!.push(task);
-    }
+  // Build a task map for quick lookup
+
+  const taskById = useMemo(() => {
+    const map = new Map<number, Task>();
+    for (const t of tasks) map.set(t.id, t);
     return map;
   }, [tasks]);
 
   const rows: Row[] = useMemo(() => {
-    const userById = new Map(users.map(u => [u.userId!, u] as const));
-    const teamById = new Map(teams.map(t => [t.id, t] as const));
+    const userById = new Map<number, User>();
+    users.forEach(u => { if (u.userId != null) userById.set(u.userId, u); });
+  // Note: teamById is not required for per-department attribution
+
     // Determine current week range (Mon-Sun)
     const now = new Date();
     const day = (now.getDay() + 6) % 7; // 0=Mon
@@ -49,55 +59,72 @@ const WeeklyReport = () => {
     weekEnd.setDate(weekStart.getDate() + 6);
     weekEnd.setHours(23,59,59,999);
 
-    const logsThisWeekTaskIds = new Set<number>();
-    (timeLogs as TimeLog[]).forEach(log => {
-      if (!log.taskId || !log.startTime) return;
+    // Filter logs based on scope
+    const logs = (timeLogs as TimeLog[]).filter(log => {
+      if (!log.taskId || !log.startTime) return false;
+      if (scope === 'all') return true;
       const started = new Date(log.startTime);
-      if (started >= weekStart && started <= weekEnd) {
-        logsThisWeekTaskIds.add(log.taskId);
-      }
+      return started >= weekStart && started <= weekEnd;
     });
 
-    return projects
-      .filter(p => !p.deletedAt)
-      // Only include projects that have at least one task with time logged this week (unless scope === 'all')
-      .filter(project => {
-        if (scope === 'all') return true;
-        const projectTasks = taskGroupsByProject.get(project.id) || [];
-        return projectTasks.some(t => logsThisWeekTaskIds.has(t.id));
-      })
-      .map((project, idx) => {
-        const team = project.teamId ? teamById.get(project.teamId) : undefined;
-        const manager = team?.projectManagerUserId ? userById.get(team.projectManagerUserId) : undefined;
-        const productOwner = team?.productOwnerUserId ? userById.get(team.productOwnerUserId) : undefined;
-        const department = manager?.department || productOwner?.department || "";
+    // Map: projectId -> department -> Set<taskId>
+    const depTasksByProject = new Map<number, Map<string, Set<number>>>();
+    for (const log of logs) {
+      if (!log.taskId) continue;
+      const task = taskById.get(log.taskId);
+      if (!task) continue;
+      const projId = task.projectId;
+      const user = log.userId ? userById.get(log.userId) : undefined;
+      const dept = (user?.department || '').trim() || 'Unknown';
+      if (!depTasksByProject.has(projId)) depTasksByProject.set(projId, new Map());
+      const depMap = depTasksByProject.get(projId)!;
+      if (!depMap.has(dept)) depMap.set(dept, new Set());
+      depMap.get(dept)!.add(task.id);
+    }
 
-        const projectTasks = taskGroupsByProject.get(project.id) || [];
-        const totalTasks = projectTasks.length;
-        const completedTasks = projectTasks.filter(t => (t.status || "").toLowerCase() === "completed".toLowerCase()).length;
+    const out: Row[] = [];
+    let rowNo = 1;
+
+    for (const project of projects.filter(p => !p.deletedAt)) {
+      const depMap = depTasksByProject.get(project.id);
+      if (!depMap || depMap.size === 0) {
+        // If scope === 'all', we could skip projects without logs to keep per-department focus
+        continue;
+      }
+
+      for (const [dept, taskIds] of depMap.entries()) {
+        const deptTasks = Array.from(taskIds).map(id => taskById.get(id)!).filter(Boolean);
+        // Progress based on department tasks only
+        const totalTasks = deptTasks.length;
+        const completedTasks = deptTasks.filter(t => (t.status || '').toLowerCase() === 'completed').length;
         const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-        const latestProgress = totalTasks > 0 ? `${percent}% (${completedTasks}/${totalTasks})` : "0% (0/0)";
+        const latestProgress = totalTasks > 0 ? `${percent}% (${completedTasks}/${totalTasks})` : '0% (0/0)';
 
-        // Join task titles into a single line (no line breaks)
-        const titles = projectTasks.map(t => `${t.title || "(Untitled Task)"}`);
-        const issueSubject = titles.length > 20 ? [...titles.slice(0, 20), `… and ${titles.length - 20} more`].join(" • ") : titles.join(" • ");
+        // Titles (single line)
+        const titles = deptTasks.map(t => t.title || '(Untitled Task)');
+        const issueSubject = titles.length > 20
+          ? [...titles.slice(0, 20), `… and ${titles.length - 20} more`].join(' • ')
+          : titles.join(' • ');
 
-        return {
-          no: idx + 1,
-          department,
+        out.push({
+          no: rowNo++,
+          department: dept,
           projectName: project.name,
           issueSubject,
           latestProgress,
           status: project.status,
-        } as Row;
-      });
-  }, [projects, teams, users, taskGroupsByProject, timeLogs, scope]);
+        });
+      }
+    }
+
+    return out;
+  }, [projects, users, taskById, timeLogs, scope]);
 
   const handleExport = async () => {
     const XLSX = await import("xlsx");
 
     // Build grouped data
-    const header = ["No.", "Department", "Project Name", "Issue/Subject", "Latest Progress", "Status"] as const;
+  const header = ["No.", "Department", "Project Name", "Issue/Subject", "Latest Progress", "Status"] as const;
     const groups = new Map<string, Row[]>();
     const depts = rows.map(r => r.department && r.department.trim() ? r.department.trim() : "Unassigned");
     const orderedDepts = Array.from(new Set(depts)).sort((a,b) => a.localeCompare(b));
@@ -108,11 +135,10 @@ const WeeklyReport = () => {
     }
 
     const data: Array<Array<string | number>> = [];
-    // Global header
-    data.push([...header]);
+  // Global header
+  data.push([...header]);
 
     // Track merges for department headers
-    type MergeRange = { s: { r: number; c: number }; e: { r: number; c: number } };
     const merges: MergeRange[] = [];
 
     let currentRowIdx = 1; // since header is at row 0
@@ -131,11 +157,15 @@ const WeeklyReport = () => {
         data.push([counter++, gr.department || '', gr.projectName, gr.issueSubject, gr.latestProgress, gr.status]);
         currentRowIdx += 1;
       }
+
+      // Spacer row between departments
+      data.push(['', '', '', '', '', '']);
+      currentRowIdx += 1;
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    // Column widths
-    (ws as unknown as { ['!cols']?: Array<{ wch: number }> })['!cols'] = [
+  const ws = XLSX.utils.aoa_to_sheet(data) as ExcelWorkSheet;
+  // Column widths
+  (ws as ExcelWorkSheet & { ['!cols']?: Array<{ wch: number }> })['!cols'] = [
       { wch: 5 },   // No.
       { wch: 18 },  // Department
       { wch: 35 },  // Project Name
@@ -144,14 +174,35 @@ const WeeklyReport = () => {
       { wch: 20 },  // Status
     ];
     // Merges for department headers
-    (ws as unknown as { ['!merges']?: MergeRange[] })['!merges'] = merges;
+  (ws as ExcelWorkSheet & { ['!merges']?: MergeRange[] })['!merges'] = merges;
     // Auto-filter on global header row
     const lastRow = data.length;
-    (ws as unknown as { ['!autofilter']?: { ref: string } })['!autofilter'] = { ref: `A1:F${lastRow}` };
+  (ws as ExcelWorkSheet & { ['!autofilter']?: { ref: string } })['!autofilter'] = { ref: `A1:F${lastRow}` };
+
+    // Style: make header row bold
+    for (let c = 0; c < header.length; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      const cell = ws[addr];
+      if (cell) {
+        cell.s = { ...(cell.s || {}), font: { ...(cell.s?.font || {}), bold: true } };
+      }
+    }
+
+    // Style: bold department header rows (merged across A-F)
+    for (const m of merges) {
+      if (m.s.c === 0 && m.e.c >= 1) {
+        const addr = XLSX.utils.encode_cell({ r: m.s.r, c: 0 });
+        const cell = ws[addr];
+        if (cell) {
+          cell.s = { ...(cell.s || {}), font: { ...(cell.s?.font || {}), bold: true } };
+        }
+      }
+    }
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Weekly Report');
-    const fileName = `Weekly_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
+  const uid = (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 6).toUpperCase();
+  const fileName = `Weekly_Report_${new Date().toISOString().slice(0,10)}_${uid}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
@@ -179,7 +230,7 @@ const WeeklyReport = () => {
         className="w-full flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
       >
         {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileSpreadsheet className="h-5 w-5" />}
-        {isLoading ? "Loading data..." : `Export Weekly Report (${rows.length} Projects)`}
+        {isLoading ? "Loading data..." : `Export Weekly Report`}
       </button>
     </div>
   );
