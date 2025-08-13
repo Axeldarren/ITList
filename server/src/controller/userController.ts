@@ -12,17 +12,17 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const users = await prisma.user.findMany({
             where: { deletedAt: null },
-            select: {
-                userId: true,
-                username: true,
-                email: true,
-                profilePictureUrl: true,
-                isAdmin: true,
-                NIK: true
-                // Explicitly exclude password
-            }
         });
-        res.json(users);
+        const sanitized = users.map((u: any) => ({
+            userId: u.userId,
+            username: u.username,
+            email: u.email,
+            profilePictureUrl: u.profilePictureUrl,
+            isAdmin: u.isAdmin,
+            NIK: u.NIK,
+            department: u.department || null,
+        }));
+        res.json(sanitized);
     } catch (error) {
         console.error("Error fetching users:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -37,18 +37,14 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
                 userId: Number(userId),
                 deletedAt: null 
              },
-            select: {
-                userId: true,
-                username: true,
-                email: true,
-                profilePictureUrl: true,
-                isAdmin: true,
-                NIK: true
-                // Explicitly exclude password
-            }
         });
         if (user) {
-            res.json(user);
+            const { password, ...rest } = user as any;
+            const sanitized = {
+                ...rest,
+                department: (rest as any).department || null,
+            };
+            res.json(sanitized);
         } else {
             res.status(404).json({ message: 'User not found' });
         }
@@ -62,7 +58,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const { userId } = req.params;
     const loggedInUser = req.user;
     
-    const { username, email, NIK, isAdmin } = req.body;
+    const { username, email, NIK, isAdmin, department } = req.body;
 
     if (!loggedInUser) {
         res.status(401).json({ message: 'Not authorized' });
@@ -74,6 +70,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
             username,
             email,
             NIK: NIK ? Number(NIK) : undefined,
+            ...( department ? { department } : {} ),
         };
 
         // --- THIS IS THE FIX ---
@@ -97,8 +94,11 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
         broadcast({ type: 'USER_UPDATE' }); // Broadcast user update
 
         // Ensure the password is not sent back to the client
-        const { password, ...userWithoutPassword } = updatedUser;
-        res.status(200).json(userWithoutPassword);
+        const { password, ...userWithoutPassword } = updatedUser as any;
+        res.status(200).json({
+            ...userWithoutPassword,
+            department: (updatedUser as any).department || null,
+        });
 
     } catch (error: any) {
         if (error.code === 'P2002') {
@@ -156,7 +156,7 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
 };
 
 export const createUser = async (req: Request, res: Response): Promise<void> => {
-    const { username, email, password, NIK, isAdmin } = req.body;
+    const { username, email, password, NIK, isAdmin, department } = req.body;
 
     // Input validation
     if (!username || !email || !password) {
@@ -239,23 +239,19 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
                 password: hashedPassword,
                 NIK: NIK ? Number(NIK) : 0,
                 isAdmin: isAdmin || false,
-            },
-            select: {
-                userId: true,
-                username: true,
-                email: true,
-                profilePictureUrl: true,
-                isAdmin: true,
-                NIK: true
-                // Explicitly exclude password
-            }
+                ...( department ? { department } : {} ),
+            } as any,
         });
 
         broadcast({ type: 'USER_UPDATE' });
 
+        const { password: _pwd, ...userWithoutPassword } = newUser as any;
         res.status(201).json({
             status: 'success',
-            data: { user: newUser }
+            data: { user: {
+                ...userWithoutPassword,
+                department: (newUser as any).department || null,
+            } }
         });
     } catch (error: any) {
         console.error('Create user error:', error);

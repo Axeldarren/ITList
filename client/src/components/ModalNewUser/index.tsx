@@ -18,13 +18,22 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
     const [password, setPassword] = useState('');
     const [NIK, setNIK] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
+    const [department, setDepartment] = useState('');
+    const departmentOptions = [
+        'SUPPORT',
+        'NETWORK / INFRA',
+        'DEV MOBILE (NON CORE)',
+        'SYSADMIN & DBA',
+        'BUSSINESS, ANALYST & REPORTING',
+    ];
 
     const resetForm = () => {
         setUsername('');
         setEmail('');
         setPassword('');
         setNIK('');
-        setIsAdmin(false);
+    setIsAdmin(false);
+    setDepartment('');
     };
 
     const handleSubmit = async () => {
@@ -39,6 +48,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
             password,
             NIK: NIK ? Number(NIK) : undefined,
             isAdmin,
+            department: department || undefined,
         }).unwrap();
 
         toast.promise(promise, {
@@ -66,6 +76,16 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
                 <input type='email' className={inputStyles} placeholder='Email' value={email} onChange={(e) => setEmail(e.target.value)} required />
                 <input type='password' className={inputStyles} placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} required />
                 <input type='number' className={inputStyles} placeholder='NIK (Optional)' value={NIK} onChange={(e) => setNIK(e.target.value)} />
+                <select
+                    className={inputStyles}
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                >
+                    <option value="">Select Department (Optional)</option>
+                    {departmentOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                </select>
                 
                 <div className="flex items-center">
                     <input

@@ -20,6 +20,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
     const [description, setDescription] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [prdUrl, setPrdUrl] = useState('');
     // --- NEW: Add state for the selected team ---
     const [teamId, setTeamId] = useState<string>('');
 
@@ -28,6 +29,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
             setProjectName(project.name);
             setDescription(project.description || '');
             setTeamId(project.teamId?.toString() || ''); // Set initial team
+            setPrdUrl(project.prdUrl || '');
             if (project.startDate) {
                 setStartDate(format(parseISO(project.startDate), 'yyyy-MM-dd'));
             }
@@ -47,6 +49,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
             startDate: new Date(startDate).toISOString(),
             endDate: new Date(endDate).toISOString(),
             teamId: Number(teamId), // --- NEW: Include teamId in the update ---
+            prdUrl: prdUrl || undefined,
         }).unwrap();
 
         toast.promise(promise, {
@@ -82,6 +85,13 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
                     value={description} 
                     onChange={(e) => setDescription(e.target.value)}
                     required 
+                />
+                <input 
+                    type='url' 
+                    className={inputStyles} 
+                    placeholder='PRD (Google Docs) URL'
+                    value={prdUrl}
+                    onChange={(e) => setPrdUrl(e.target.value)}
                 />
                 {/* --- NEW: Team selection dropdown --- */}
                 <select

@@ -22,6 +22,7 @@ export interface Project {
     id: number;
     name: string;
     description?: string;
+    prdUrl?: string;
     startDate?: string;
     endDate?: string;
     version: number;
@@ -81,6 +82,7 @@ export interface User {
     password?: string;
     NIK?: number;
     profilePictureUrl?: string;
+    department?: string;
     isAdmin?: boolean;
     deletedAt?: string | null;
 }
@@ -201,6 +203,7 @@ export interface ProductMaintenance {
     name: string;
     description?: string;
     status: "Active" | "Inactive"; // Updated to use enum values
+    lifecycle?: 'Planned' | 'Maintaining' | 'Finished';
     priority?: string; // "Low", "Medium", "High", "Critical"
     totalTimeLogged?: number; // in seconds, calculated from all maintenance tasks
     projectId?: number;
@@ -219,6 +222,7 @@ export interface ProductMaintenance {
     };
     maintainers: ProductMaintainer[];
     maintenanceTasks: MaintenanceTask[];
+    statusHistory?: Array<{ id: number; status: 'Planned' | 'Maintaining' | 'Finished'; changedAt: string; changedBy: { userId: number; username: string } }>
     _count?: {
         maintenanceTasks: number;
     };
@@ -767,6 +771,18 @@ export const api = createApi({
                       ]
                     : [{ type: 'ProductMaintenances', id: 'LIST' }],
         }),
+        updateProductMaintenanceLifecycle: build.mutation<ProductMaintenance, { id: number; lifecycle: 'Planned' | 'Maintaining' | 'Finished' }>(
+        {
+            query: ({ id, lifecycle }) => ({
+                url: `product-maintenance/${id}/lifecycle`,
+                method: 'PATCH',
+                body: { lifecycle },
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'ProductMaintenances', id },
+                { type: 'ProductMaintenances', id: 'LIST' },
+            ],
+        }),
 
         getProductMaintenanceById: build.query<ProductMaintenance, number>({
             query: (id) => `product-maintenance/${id}`,
@@ -1125,6 +1141,7 @@ export const {
     useGetProductMaintenanceByIdQuery,
     useGetFinishedProjectsQuery,
     useCreateProductMaintenanceMutation,
+    useUpdateProductMaintenanceLifecycleMutation,
     useUpdateProductMaintenanceMutation,
     useDeleteProductMaintenanceMutation,
     useCreateMaintenanceTaskMutation,

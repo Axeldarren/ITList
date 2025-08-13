@@ -14,6 +14,7 @@ model User {
   password                 String
   NIK                      Int?                   @unique
   profilePictureUrl        String?
+  department               String?
   isAdmin                  Boolean                @default(false)
   deletedAt                DateTime?
   deletedById              Int?
@@ -44,12 +45,14 @@ model User {
   updatedTeams             Team[]                 @relation("UpdatedTeams")
   teams                    TeamMembership[]
   timeLogs                 TimeLog[]
+  maintenanceStatusChanges ProductMaintenanceStatusHistory[]
 }
 
 model Project {
   id                  Int                    @id @default(autoincrement())
   name                String
   description         String?                @db.Text
+  prdUrl              String?                @db.Text
   startDate           DateTime?
   endDate             DateTime?
   version             Int                    @default(1)
@@ -287,6 +290,7 @@ model ProductMaintenance {
   name             String
   description      String?                  @db.Text
   status           ProductMaintenanceStatus @default(Active)
+  lifecycle        MaintenanceLifecycle      @default(Planned)
   priority         String?                  @default("Medium")
   projectId        Int?
   createdAt        DateTime                 @default(now())
@@ -301,6 +305,7 @@ model ProductMaintenance {
   deletedBy        User?                    @relation("DeletedMaintenances", fields: [deletedById], references: [userId])
   project          Project?                 @relation(fields: [projectId], references: [id])
   updatedBy        User?                    @relation("UpdatedMaintenances", fields: [updatedById], references: [userId])
+  statusHistory    ProductMaintenanceStatusHistory[]
 
   @@index([createdById], map: "ProductMaintenance_createdById_fkey")
   @@index([deletedById], map: "ProductMaintenance_deletedById_fkey")
@@ -362,6 +367,25 @@ enum ProjectStatus {
 enum ProductMaintenanceStatus {
   Active
   Inactive
+}
+
+enum MaintenanceLifecycle {
+  Planned
+  Maintaining
+  Finished
+}
+
+model ProductMaintenanceStatusHistory {
+  id                   Int                  @id @default(autoincrement())
+  productMaintenanceId Int
+  status               MaintenanceLifecycle
+  changedAt            DateTime             @default(now())
+  changedById          Int
+  changedBy            User                 @relation(fields: [changedById], references: [userId])
+  productMaintenance   ProductMaintenance   @relation(fields: [productMaintenanceId], references: [id], onDelete: Cascade)
+
+  @@index([productMaintenanceId])
+  @@index([changedById], map: "PMStatusHistory_changedById_fkey")
 }
 
 enum ActivityType {

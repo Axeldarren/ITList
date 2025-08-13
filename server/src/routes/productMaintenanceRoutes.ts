@@ -17,6 +17,7 @@ import {
   getMaintenanceTaskTimeLogs,
   startMaintenanceTaskTimer,
   stopMaintenanceTaskTimer,
+  updateMaintenanceLifecycle,
 } from "../controller/productMaintenanceController";
 import { protect } from "../middleware/authMiddleware";
 
@@ -30,6 +31,7 @@ router.get("/finished-projects", getFinishedProjects);
 router.get("/:id", getProductMaintenanceById);
 router.post("/", createProductMaintenance);
 router.patch("/:id", updateProductMaintenance);
+router.patch("/:id/lifecycle", updateMaintenanceLifecycle);
 router.delete("/:id", deleteProductMaintenance);
 
 // Maintenance Task routes

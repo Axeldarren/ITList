@@ -25,6 +25,7 @@ type Props = {
     onArchive: () => void;
     onExportPDF: () => void;
     onStatusChange: (newStatus: ProjectStatus | string) => void; // NEW: Handler for status changes
+    prdUrl?: string;
 }
 
 // Helper to get style and icon for each status
@@ -58,7 +59,8 @@ const ProjectHeader = ({
     localSearchTerm, 
     setLocalSearchTerm,
     onExportPDF,
-    onStatusChange
+    onStatusChange,
+    prdUrl
 }: Props) => {
     
     const statusProps = getStatusProps(status);
@@ -145,6 +147,11 @@ const ProjectHeader = ({
                                         <button onClick={onEdit} className='flex items-center rounded-md bg-gray-500 px-3 py-2 text-white hover:bg-gray-600'><Edit className='mr-2 size-5' /> Edit</button>
                                         <button onClick={onExportPDF} className='flex items-center rounded-md bg-purple-600 px-3 py-2 text-white hover:bg-purple-700'><FileDown className='mr-2 size-5' /> Report</button>
                                     </>
+                                )}
+                                {prdUrl && (
+                                    <a href={prdUrl} target="_blank" rel="noopener noreferrer" className='flex items-center rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-700'>
+                                        PRD
+                                    </a>
                                 )}
                             </div>
                     }

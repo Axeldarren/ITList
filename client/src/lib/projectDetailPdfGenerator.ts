@@ -258,6 +258,9 @@ export const exportProjectDetailToPDF = (
 
     // --- Save the PDF ---
     const dateStr = new Date().toISOString().split('T')[0];
-    const uniqueId = Math.random().toString(36).substring(2, 7);
+    // 7-char ID: last 2 of timestamp base36 + 5 random base36 chars
+    const uniqueId = (
+        Date.now().toString(36).slice(-2) + Math.random().toString(36).slice(2, 7)
+    ).toUpperCase();
     doc.save(`Project_Detail_Report_${project.name.replace(/\s/g, '_')}_V${project.version}_${dateStr}_${uniqueId}.pdf`);
 };

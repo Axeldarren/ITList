@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
 import {
   useGetProductMaintenanceByIdQuery,
   useDeleteProductMaintenanceMutation,
+  useUpdateProductMaintenanceLifecycleMutation,
 } from "@/state/api";
 import ModalEditProductMaintenance from "@/components/ModalEditProductMaintenance";
 import ModalNewMaintenanceTask from "@/components/ModalNewMaintenanceTask";
@@ -28,11 +29,15 @@ import toast from "react-hot-toast";
 const ProductMaintenanceDetailPage = () => {
   const params = useParams();
   const router = useRouter();
-  const id = Number(params.id);
+  const idParam = Array.isArray((params as Record<string, string | string[]>).id)
+    ? (params as Record<string, string | string[]>).id[0]
+    : (params as Record<string, string | string[]>).id;
+  const id = Number(idParam);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [updateLifecycle, { isLoading: isUpdatingLifecycle }] = useUpdateProductMaintenanceLifecycleMutation();
 
   const {
     data: productMaintenance,
@@ -106,14 +111,33 @@ const ProductMaintenanceDetailPage = () => {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/product-maintenance">
-            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-              <ArrowLeft className="h-5 w-5" />
-              Back to Maintenance
-            </button>
+          <Link
+            href="/product-maintenance"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Back to Maintenance
           </Link>
         </div>
         <div className="flex gap-2">
+          {productMaintenance.lifecycle !== 'Maintaining' && (
+            <button
+              onClick={() => updateLifecycle({ id, lifecycle: 'Maintaining' })}
+              disabled={isUpdatingLifecycle}
+              className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              Start Maintenance
+            </button>
+          )}
+          {productMaintenance.lifecycle === 'Maintaining' && (
+            <button
+              onClick={() => updateLifecycle({ id, lifecycle: 'Finished' })}
+              disabled={isUpdatingLifecycle}
+              className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+            >
+              Finish
+            </button>
+          )}
           <button
             onClick={() => setIsEditModalOpen(true)}
             className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-white hover:bg-blue-600"
@@ -149,6 +173,11 @@ const ProductMaintenanceDetailPage = () => {
               {getStatusIcon()}
               {productMaintenance.status}
             </span>
+            {productMaintenance.lifecycle === 'Maintaining' && (
+              <span className="rounded-full px-3 py-1 text-sm font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                Maintaining
+              </span>
+            )}
             {productMaintenance.priority && (
               <span className={`rounded-full px-3 py-1 text-sm font-medium ${getPriorityColor()}`}>
                 {productMaintenance.priority}

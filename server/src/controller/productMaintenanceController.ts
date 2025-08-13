@@ -10,7 +10,7 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
       where: {
         deletedAt: null, // Only get non-deleted records
       },
-      include: {
+  include: {
         project: {
           select: {
             id: true,
@@ -100,7 +100,7 @@ export const getProductMaintenanceById = async (req: Request, res: Response): Pr
         id: Number(id),
         deletedAt: null,
       },
-      include: {
+  include: {
         project: {
           select: {
             id: true,
@@ -128,7 +128,7 @@ export const getProductMaintenanceById = async (req: Request, res: Response): Pr
             },
           },
         },
-        maintenanceTasks: {
+  maintenanceTasks: {
           include: {
             assignedTo: {
               select: {
@@ -153,7 +153,7 @@ export const getProductMaintenanceById = async (req: Request, res: Response): Pr
           orderBy: {
             createdAt: "desc",
           },
-        },
+  }
       },
     });
 
@@ -185,6 +185,63 @@ export const getProductMaintenanceById = async (req: Request, res: Response): Pr
     res.json(productMaintenanceWithTotals);
   } catch (error: any) {
     res.status(500).json({ message: `Error retrieving product maintenance: ${error.message}` });
+  }
+};
+
+// Update lifecycle (Planned -> Maintaining -> Finished)
+export const updateMaintenanceLifecycle = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const { lifecycle } = req.body as { lifecycle: 'Planned' | 'Maintaining' | 'Finished' };
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    res.status(401).json({ message: "User not authenticated" });
+    return;
+  }
+
+  if (!['Planned', 'Maintaining', 'Finished'].includes(String(lifecycle))) {
+    res.status(400).json({ message: "Invalid lifecycle value" });
+    return;
+  }
+
+  try {
+  const pm = await prisma.productMaintenance.findFirst({ where: { id: Number(id), deletedAt: null } });
+    if (!pm) {
+      res.status(404).json({ message: "Product maintenance not found" });
+      return;
+    }
+
+    // Allowed transitions
+    const allowed: Record<string, string[]> = {
+      Planned: ['Maintaining'],
+      Maintaining: ['Finished'],
+      Finished: ['Maintaining'], // allow re-open
+    };
+
+  if (!allowed[(pm as any).lifecycle]?.includes(lifecycle)) {
+  res.status(400).json({ message: `Cannot transition from '${(pm as any).lifecycle}' to '${lifecycle}'.` });
+      return;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedPm = await tx.productMaintenance.update({
+        where: { id: Number(id) },
+        data: { ...( { lifecycle } as any ), updatedById: userId },
+      });
+      await (tx as any).productMaintenanceStatusHistory.create({
+        data: {
+          productMaintenanceId: Number(id),
+          status: lifecycle as any,
+          changedById: userId,
+        }
+      });
+      return updatedPm;
+    });
+
+    broadcast({ type: 'PRODUCT_MAINTENANCE_UPDATE', action: 'lifecycle', productMaintenanceId: Number(id), data: updated });
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ message: `Error updating maintenance lifecycle: ${error.message}` });
   }
 };
 

@@ -177,6 +177,7 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 description={currentProject?.description}
                 version={currentProject?.version}
                 status={currentProject?.status}
+                prdUrl={currentProject?.prdUrl}
                 onEdit={() => setEditModalOpen(true)}
                 onArchive={handleArchiveClick}
                 isArchivable={canCreateNewVersion}

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Project, ProjectVersion, Task, Team, User } from '@/state/api';
+import { Project, ProjectVersion, Task, Team, User, ProductMaintenance } from '@/state/api';
 
 export interface SignatureInfo {
     user: User;
@@ -19,22 +19,32 @@ export type ReportOptions = {
     includeDescription?: boolean; // NEW: Option to include project description
     includeMembers: boolean;
     includeStoryPoints: boolean; // NEW: Option to include total story points
+    includeProducts?: boolean; // NEW: Option to include product maintenance overview
 };
 
 export const exportAllProjectsToPDF = (
-    reportItems: (Project | ProjectVersion)[], 
+    reportItems: (Project | ProjectVersion)[],
     allTasks: Task[],
     teams: Team[],
     users: User[],
     options: ReportOptions,
-    signatures?: SignatureInfo[]
+    signatures?: SignatureInfo[],
+    productMaintenances?: ProductMaintenance[]
 ) => {
     const doc = new jsPDF({ orientation: 'landscape' });
 
-    doc.setFontSize(22);
-    doc.text("All Projects Recap Report", doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+    // Professional header
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(24);
+    doc.text('Project Portfolio Recap', pageWidth / 2, 20, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 28, { align: 'center' });
+    // subtle divider under header
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.4);
+    doc.line(14, 34, pageWidth - 14, 34);
 
     // Calculate overall summary if story points are included
     let summaryY = 40;
@@ -74,6 +84,20 @@ export const exportAllProjectsToPDF = (
     if (options.includePM) head.push('PM');
     if (options.includeMembers) head.push('Team Members');
 
+    // Build quick lookup for maintenance linkage
+    const maintainedProjectIds = new Set<number>();
+    const maintenanceByProject = new Map<number, ProductMaintenance[]>();
+    if (options.includeProducts && productMaintenances && productMaintenances.length > 0) {
+        for (const pm of productMaintenances) {
+            if (pm.projectId) {
+                maintainedProjectIds.add(pm.projectId);
+                const arr = maintenanceByProject.get(pm.projectId) || [];
+                arr.push(pm);
+                maintenanceByProject.set(pm.projectId, arr);
+            }
+        }
+    }
+
     const body = reportItems.map((item, index) => {
         const row: (string | number)[] = [index + 1, item.name];
         
@@ -105,7 +129,7 @@ export const exportAllProjectsToPDF = (
         }
         if (options.includePO) row.push(users.find(u => u.userId === team?.productOwnerUserId)?.username || 'N/A');
         if (options.includePM) row.push(users.find(u => u.userId === team?.projectManagerUserId)?.username || 'N/A');
-        if (options.includeMembers) row.push(team?.users?.map(user => user.username).join(', ') || 'N/A');
+    if (options.includeMembers) row.push(team?.users?.map(user => user.username).join(', ') || 'N/A');
 
         return row;
     });
@@ -115,7 +139,7 @@ export const exportAllProjectsToPDF = (
         head: [head],
         body: body,
         theme: 'grid',
-        headStyles: { fillColor: [22, 160, 133] },
+    headStyles: { fillColor: [22, 160, 133], halign: 'center' },
         columnStyles: {
             // Center align numeric columns
             0: { halign: 'center' }, // #
@@ -128,20 +152,93 @@ export const exportAllProjectsToPDF = (
             cellPadding: 2,
         }
     });
+
+    // Optional: Maintenance overview sections
+    if (options.includeProducts) {
+        const docWithTable = doc as jsPDF & { lastAutoTable: { finalY: number } };
+        let y = docWithTable.lastAutoTable?.finalY ? docWithTable.lastAutoTable.finalY + 10 : 40;
+
+        const finishedMaintained = reportItems.filter(p => p.status === 'Finish' && maintainedProjectIds.has(p.id));
+        const finishedNotMaintained = reportItems.filter(p => p.status === 'Finish' && !maintainedProjectIds.has(p.id));
+
+        doc.setFontSize(12);
+        doc.text('Maintenance Overview', 14, y);
+        y += 6;
+
+        // Finished & Maintained
+        if (finishedMaintained.length > 0) {
+            autoTable(doc, {
+                startY: y,
+                head: [['Finished & Maintained Projects', 'Linked Products']],
+                body: finishedMaintained.map(p => [
+                    `${p.name} (ID: ${p.id})`,
+                    (maintenanceByProject.get(p.id) || []).map(pm => pm.name).join(', ') || '—'
+                ]),
+                theme: 'striped',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [46, 204, 113] },
+            });
+            y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+        }
+
+        // Finished but Not Maintained
+        if (finishedNotMaintained.length > 0) {
+            autoTable(doc, {
+                startY: y,
+                head: [['Finished but Not Maintained Projects']],
+                body: finishedNotMaintained.map(p => [ `${p.name} (ID: ${p.id})` ]),
+                theme: 'striped',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [241, 196, 15] },
+            });
+            y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+        }
+
+    // Products table
+        if (productMaintenances && productMaintenances.length > 0) {
+            autoTable(doc, {
+                startY: y,
+        head: [['Product', 'Status']],
+        body: productMaintenances.map(pm => [ pm.name, pm.status ]),
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [52, 152, 219], halign: 'center' },
+            });
+        }
+    }
     
     // --- Signatures Section ---
     if (signatures && signatures.length > 0) {
-        // Add signatures with proper spacing after the table
+        // Add signatures with proper spacing after the last table and ensure pagination
         const docWithTable = doc as jsPDF & { lastAutoTable: { finalY: number } };
         let y = docWithTable.lastAutoTable?.finalY ? docWithTable.lastAutoTable.finalY + 20 : 40;
-        
-        // Title with more spacing
+        const pageHeight = doc.internal.pageSize.getHeight?.() ?? (doc.internal.pageSize as { height: number }).height;
+        const titleHeight = 30;      // height consumed after printing the title
+        const rowHeight = 40;        // vertical space used per signature row (2 signatures)
+        const bottomPadding = 20;    // keep a little breathing room at the bottom
+
+        // If the title + at least one row cannot fit on the current page, move to the next page
+        if (y + titleHeight + rowHeight > pageHeight - bottomPadding) {
+            doc.addPage();
+            y = 40;
+        }
+
+        // Title
         doc.setFontSize(16);
         doc.text('Required Signatures', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-        y += 30; // Increased spacing between title and signature boxes
-        
+        y += titleHeight;
+
         // Left and right layout (2 columns) - perfectly centered
         for (let i = 0; i < signatures.length; i += 2) {
+            // If next row would overflow, add a new page and reprint the section title
+            if (y + rowHeight > pageHeight - bottomPadding) {
+                doc.addPage();
+                y = 40;
+                doc.setFontSize(16);
+                doc.text('Required Signatures', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+                y += titleHeight;
+            }
+
             const leftSignature = signatures[i];
             const rightSignature = signatures[i + 1];
             
@@ -180,9 +277,15 @@ export const exportAllProjectsToPDF = (
                 doc.text(rightSignature.role, rightX, y + 16);
             }
             
-            y += 40; // Increased spacing between signature rows
+            y += 40; // Spacing between signature rows
         }
     }
     
-    doc.save(`Custom_Project_Recap_${new Date().toISOString().split('T')[0]}.pdf`);
+    // Unique id for filename for easier traceability
+    // 7-char ID: last 2 of timestamp base36 + 5 random base36 chars
+    const uniqueId = (
+        Date.now().toString(36).slice(-2) + Math.random().toString(36).slice(2, 7)
+    ).toUpperCase();
+    const dateStr = new Date().toISOString().split('T')[0];
+    doc.save(`Project_Recap_${dateStr}_${uniqueId}.pdf`);
 };

@@ -18,6 +18,14 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
     const [email, setEmail] = useState('');
     const [NIK, setNIK] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
+    const [department, setDepartment] = useState('');
+    const departmentOptions = [
+        'SUPPORT',
+        'NETWORK / INFRA',
+        'DEV MOBILE (NON CORE)',
+        'SYSADMIN & DBA',
+        'BUSSINESS, ANALYST & REPORTING',
+    ];
 
     useEffect(() => {
         if (user) {
@@ -25,6 +33,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
             setEmail(user.email);
             setNIK(String(user.NIK || ''));
             setIsAdmin(user.isAdmin || false);
+            setDepartment(user.department || '');
         }
     }, [user]);
 
@@ -37,6 +46,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
             email,
             NIK: NIK ? Number(NIK) : undefined,
             isAdmin,
+            department: department || undefined,
         }).unwrap();
 
         toast.promise(promise, {
@@ -60,6 +70,16 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
                 <input type='text' className={inputStyles} placeholder='Username' value={username} onChange={(e) => setUsername(e.target.value)} required />
                 <input type='email' className={inputStyles} placeholder='Email' value={email} onChange={(e) => setEmail(e.target.value)} required />
                 <input type='number' className={inputStyles} placeholder='NIK' value={NIK} onChange={(e) => setNIK(e.target.value)} />
+                <select
+                    className={inputStyles}
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                >
+                    <option value="">Select Department</option>
+                    {departmentOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                </select>
                 
                 <div className="flex items-center">
                     <input

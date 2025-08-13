@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Header from '@/components/Header';
 import ProjectRecap from './ProjectRecap';
 import DeveloperProductivity from './DeveloperProductivity'; // We will create this later
+import WeeklyReport from './WeeklyReport';
 
 const ReportingPage = () => {
     const [activeTab, setActiveTab] = useState('projects');
@@ -30,11 +31,13 @@ const ReportingPage = () => {
             <div className="flex items-center gap-4 mb-6 border-b border-gray-200 dark:border-dark-tertiary pb-4">
                 {renderTabButton('projects', 'Project Recap')}
                 {renderTabButton('developers', 'Developer Productivity')}
+                {renderTabButton('weekly', 'Weekly Report')}
             </div>
 
             <div>
                 {activeTab === 'projects' && <ProjectRecap />}
                 {activeTab === 'developers' && <DeveloperProductivity />}
+                {activeTab === 'weekly' && <WeeklyReport />}
             </div>
         </div>
     );

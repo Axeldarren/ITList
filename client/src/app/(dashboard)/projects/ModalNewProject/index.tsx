@@ -20,6 +20,7 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState('');
+    const [prdUrl, setPrdUrl] = useState('');
   // Add state for the selected team
   const [teamId, setTeamId] = useState('');
 
@@ -28,6 +29,7 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
     setDescription('');
     setStartDate('');
     setEndDate('');
+    setPrdUrl('');
     setTeamId(''); // Reset the teamId as well
   };
 
@@ -44,6 +46,7 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
       startDate: formattedStartDate,
       endDate: formattedEndDate,
       teamId: Number(teamId), // Send the teamId to the backend
+    ...(prdUrl ? { prdUrl } : {}),
     }).unwrap();
 
     toast.promise(promise, {
@@ -57,10 +60,10 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
     });
   };
 
-  const isFormValid = () => {
-    // Add teamId to the form validation
-    return projectName && description && startDate && endDate && teamId;
-  }
+    const isFormValid = () => {
+        // Add teamId to the form validation (prdUrl optional)
+        return projectName && description && startDate && endDate && teamId;
+    }
 
   const inputStyles = 
     "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none"
@@ -90,6 +93,13 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
                 placeholder='Description' 
                 value={description} 
                 onChange={(e) => setDescription(e.target.value)} required 
+            />
+            <input 
+                type='url' 
+                className={inputStyles} 
+                placeholder='PRD (Google Docs) URL'
+                value={prdUrl}
+                onChange={(e) => setPrdUrl(e.target.value)}
             />
             {/* Add the team selection dropdown */}
             <select

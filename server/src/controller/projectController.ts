@@ -34,7 +34,7 @@ export const getProjects = async (req: Request, res: Response): Promise<void> =>
 };
 
 export const createProject = async (req: Request, res: Response): Promise<void> => {
-    const { name, description, startDate, endDate, teamId } = req.body;
+    const { name, description, startDate, endDate, teamId, prdUrl } = req.body;
     const loggedInUser = req.user;
 
     if (!teamId) {
@@ -43,12 +43,13 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
     }
 
     try {
-        const newProject = await Prisma.project.create({
+    const newProject = await Prisma.project.create({
             data: {
                 name,
                 description,
                 startDate,
                 endDate,
+        ...( { prdUrl } as any ),
                 version: 1,
                 status: 'Start', // Default status
                 createdById: loggedInUser?.userId,
@@ -211,19 +212,20 @@ export const deleteProject = async (req: Request, res: Response): Promise<void> 
 
 export const updateProject = async (req: Request, res: Response): Promise<void> => {
     const { projectId } = req.params;
-    const { name, description, startDate, endDate, teamId } = req.body;
+    const { name, description, startDate, endDate, teamId, prdUrl } = req.body;
     const loggedInUser = req.user;
 
     try {
         const numericProjectId = Number(projectId);
         await Prisma.$transaction(async (tx) => {
-            const updatedProject = await tx.project.update({
+        const updatedProject = await tx.project.update({
                 where: { id: numericProjectId },
                 data: { 
                     name, 
                     description, 
                     startDate, 
                     endDate,
+            ...( { prdUrl } as any ),
                     updatedById: loggedInUser?.userId
                 },
             });

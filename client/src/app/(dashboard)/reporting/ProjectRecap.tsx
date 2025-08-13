@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useGetProjectsQuery, useGetAllProjectVersionsQuery, useGetTeamsQuery, useGetUsersQuery, useGetAllTasksQuery, ProjectStatus } from '@/state/api';
+import { useGetProjectsQuery, useGetAllProjectVersionsQuery, useGetTeamsQuery, useGetUsersQuery, useGetAllTasksQuery, useGetProductMaintenancesQuery, ProjectStatus } from '@/state/api';
 import { exportAllProjectsToPDF, ReportOptions, SignatureInfo } from '@/lib/recapPdfGenerator';
 import ModalRecapSignatureSelect from '@/components/ModalRecapSignatureSelect';
 import { FileDown, Settings } from 'lucide-react';
@@ -17,6 +17,7 @@ const ProjectRecap = () => {
     const { data: allTasks = [], isLoading: tLoading } = useGetAllTasksQuery();
     const { data: teams = [], isLoading: mLoading } = useGetTeamsQuery();
     const { data: users = [], isLoading: uLoading } = useGetUsersQuery();
+    const { data: productMaintenances = [], isLoading: pmLoading } = useGetProductMaintenancesQuery();
 
     // State for advanced filters
     const [includeArchived, setIncludeArchived] = useState(false);
@@ -34,7 +35,8 @@ const ProjectRecap = () => {
         includeDates: true,
         includePO: true,
         includePM: true,
-        includeMembers: true,
+    includeMembers: true,
+    includeProducts: false,
     });
 
     const handleOptionChange = (option: keyof ReportOptions) => {
@@ -95,11 +97,11 @@ const ProjectRecap = () => {
     };
 
     const handleExportWithSignatures = (signatures: SignatureInfo[]) => {
-        exportAllProjectsToPDF(filteredReportData, allTasks, teams, users, options, signatures);
+        exportAllProjectsToPDF(filteredReportData, allTasks, teams, users, options, signatures, productMaintenances);
         toast.success("Project recap report generated successfully!");
     };
     
-    const isLoading = pLoading || vLoading || tLoading || mLoading || uLoading;
+    const isLoading = pLoading || vLoading || tLoading || mLoading || uLoading || pmLoading;
 
     const OptionCheckbox = ({ id, label }: { id: keyof ReportOptions, label: string }) => (
         <label htmlFor={id} className="flex items-center space-x-2 cursor-pointer">
@@ -163,6 +165,7 @@ const ProjectRecap = () => {
                     <OptionCheckbox id="includePO" label="Product Owner" />
                     <OptionCheckbox id="includePM" label="Project Manager" />
                     <OptionCheckbox id="includeMembers" label="Team Members" />
+                    <OptionCheckbox id="includeProducts" label="Include Products/Maintenance" />
                 </div>
             </div>
 
@@ -191,7 +194,7 @@ const ProjectRecap = () => {
                 className="w-full flex items-center justify-center gap-2 rounded-md bg-purple-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
             >
                 <FileDown size={20} />
-                {isLoading ? "Loading Data..." : `Generate Report (${filteredReportData.length} Projects)`}
+                {isLoading ? "Loading Data..." : `Generate Report (${filteredReportData.length} Projects${options.includeProducts ? `, ${productMaintenances.length} Products` : ''})`}
             </button>
 
             <ModalRecapSignatureSelect

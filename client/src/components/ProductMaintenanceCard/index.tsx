@@ -1,4 +1,3 @@
-import React from "react";
 import { Calendar, Users, ChevronRight, AlertCircle, Clock } from "lucide-react";
 import { ProductMaintenance } from "@/state/api";
 import { format } from "date-fns";
@@ -14,6 +13,7 @@ const ProductMaintenanceCard = ({ productMaintenance }: Props) => {
     name,
     description,
     status,
+    lifecycle,
     priority,
     project,
     createdAt,
@@ -100,6 +100,11 @@ const ProductMaintenanceCard = ({ productMaintenance }: Props) => {
             {getStatusIcon()}
             {status}
           </span>
+          {lifecycle === 'Maintaining' && (
+            <span className="rounded-full px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+              Maintaining
+            </span>
+          )}
           {priority && (
             <span className={`rounded-full px-2 py-1 text-xs font-medium ${getPriorityColor()}`}>
               {priority}

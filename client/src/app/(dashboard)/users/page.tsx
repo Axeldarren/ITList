@@ -2,8 +2,8 @@
 
 import Header from "@/components/Header";
 import { useDeleteUserMutation, useGetUsersQuery, User } from "@/state/api";
-import React, { useState, useEffect } from "react";
-import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
+import { useState, useEffect } from "react";
+import { DataGrid, GridColDef, GridActionsCellItem, GridToolbarContainer } from "@mui/x-data-grid";
 import { useAppSelector } from "@/app/redux";
 import { dataGridSxStyles } from "@/lib/utils";
 import Image from "next/image";
@@ -54,6 +54,7 @@ const Users = () => {
 
   const currentUser = useAppSelector(selectCurrentUser);
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  const [deptFilter, setDeptFilter] = useState<string>("");
 
   const handleEditClick = (user: User) => {
       setSelectedUser(user);
@@ -91,7 +92,8 @@ const Users = () => {
     },
     { field: "userId", headerName: "User ID", width: 100 },
     { field: "username", headerName: "Username", width: 200 },
-    { field: "email", headerName: "Email", width: 250 },
+  { field: "email", headerName: "Email", width: 250 },
+  { field: "department", headerName: "Department", width: 180 },
     { field: "NIK", headerName: "NIK", width: 150 },
     { field: "isAdmin", headerName: "Admin", width: 100, type: 'boolean' },
   ];
@@ -125,6 +127,31 @@ const Users = () => {
   if (isLoading) return <div className="p-8">Loading users...</div>;
   if (isError || !users) return <div className="p-8">Error fetching users.</div>;
 
+  const filteredRows = deptFilter
+    ? (users || []).filter(u => (u.department || "").toLowerCase().includes(deptFilter.toLowerCase()))
+    : (users || []);
+
+  const departments = Array.from(new Set((users || []).map(u => (u.department || '').trim()).filter(Boolean))).sort();
+
+  const Toolbar = () => (
+    <GridToolbarContainer>
+      <div className="flex items-center gap-2 p-2">
+        <label htmlFor="deptFilter" className="text-sm text-gray-700 dark:text-gray-300">Department</label>
+        <select
+          id="deptFilter"
+          value={deptFilter}
+          onChange={(e) => setDeptFilter(e.target.value)}
+          className="rounded border px-2 py-1 text-sm dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+        >
+          <option value="">All</option>
+          {departments.map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+      </div>
+    </GridToolbarContainer>
+  );
+
   return (
     <div className="flex w-full flex-col p-8">
       <ModalNewUser isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} />
@@ -154,11 +181,12 @@ const Users = () => {
       />
       <div className="mt-6" style={{ height: 650, width: "100%" }}>
         <DataGrid
-          rows={users || []}
+          rows={filteredRows}
           columns={columns}
           getRowId={(row) => row.userId}
           rowHeight={60}
           sx={dataGridSxStyles(isDarkMode)}
+          slots={{ toolbar: Toolbar }}
         />
       </div>
     </div>
