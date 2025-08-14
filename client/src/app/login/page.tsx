@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLoginMutation } from '@/state/api';
-import { useAppDispatch } from '@/app/redux';
+import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setCredentials } from '@/state/authSlice';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -14,6 +14,14 @@ const LoginPage = () => {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const [login, { isLoading }] = useLoginMutation();
+    const token = useAppSelector((s) => s.auth.token);
+
+    // Prevent access to login if already authenticated
+    useEffect(() => {
+        if (token) {
+            router.replace('/home');
+        }
+    }, [token, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,6 +39,15 @@ const LoginPage = () => {
             toast.error(error.data?.message || 'Failed to login. Please check your credentials.');
         }
     };
+
+    // If already logged in, show a small placeholder while redirecting
+    if (token) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
+                <div className="text-gray-700 dark:text-gray-200">Redirecting…</div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">

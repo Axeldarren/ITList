@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '@/app/redux';
+import { logOut } from './authSlice';
 
 export interface Activity {
   id: number;
@@ -307,7 +308,7 @@ export interface UpdateMaintenanceTaskPayload {
     assignedToId?: number;
 }
 
-const baseQuery = fetchBaseQuery({
+const rawBaseQuery = fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
         const token = (getState() as RootState).auth.token;
@@ -317,6 +318,17 @@ const baseQuery = fetchBaseQuery({
         return headers;
     },
 });
+
+// Intercept 401/403 globally: clear auth so layout redirects to /login
+const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
+    const result = await rawBaseQuery(args, api, extraOptions);
+    const status = (result as { error?: { status?: number } }).error?.status;
+    if (status === 401 || status === 403) {
+        // Clear auth state; Persist will update and dashboard layout will redirect on token missing
+        api.dispatch(logOut());
+    }
+    return result;
+};
 
 export const api = createApi({
     baseQuery,
