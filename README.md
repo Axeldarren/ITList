@@ -47,6 +47,11 @@ ITList is a comprehensive project management system built with modern web techno
 ### 📊 Advanced Reporting & Analytics
 - **Project Recap Reports** - Comprehensive project portfolio analysis with executive-level signatures
 - **Individual Project Reports** - Detailed project reports with departmental-level approval workflow
+- **Weekly Report (Excel)** - Export department-based weekly activity with:
+   - Scope selector: This week (projects with time logged) or All projects
+   - Department grouping based on time log authors; a project can show under multiple departments
+   - Bold headers, merged group titles, auto-filter, and a spacer row between groups
+   - Filename includes a 6-character unique ID suffix
 - **Story Points Tracking** - Agile story point management and reporting
 - **Time Analytics** - Detailed time logging analysis across projects and developers
 - **Professional PDF Export** - Multiple PDF report types with customizable columns and signature workflows
@@ -102,6 +107,7 @@ ITList is a comprehensive project management system built with modern web techno
 - **[React Hot Toast](https://react-hot-toast.com/)** - Elegant notifications
 - **[Date-fns](https://date-fns.org/)** - Modern date utility library
 - **[jsPDF](https://github.com/parallax/jsPDF)** - PDF generation
+- **[xlsx](https://github.com/SheetJS/sheetjs)** - Excel export (dynamic import)
 - **[Gantt Task React](https://github.com/MaTeMaTuK/gantt-task-react)** - Gantt chart component
 
 ### Backend
@@ -196,10 +202,10 @@ Create a `.env.local` file in the `client` directory:
 ```env
 # API Configuration
 NEXT_PUBLIC_API_BASE_URL="http://localhost:8008"
-
-# WebSocket Configuration
-NEXT_PUBLIC_WS_URL="ws://localhost:8008"
 ```
+
+Notes:
+- WebSocket URL is derived from `NEXT_PUBLIC_API_BASE_URL` (http → ws), no extra env required.
 
 ## 🗄️ Database Setup
 
@@ -241,6 +247,11 @@ NEXT_PUBLIC_WS_URL="ws://localhost:8008"
    npm run dev
    ```
    Application will run on `http://localhost:3000`
+   
+   Optional:
+   ```bash
+   npm run lint
+   ```
 
 ### Production Mode
 
