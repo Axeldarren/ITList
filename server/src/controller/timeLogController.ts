@@ -224,16 +224,10 @@ export const getAllTimeLogs = async (req: Request, res: Response) => {
     const { userId, month } = req.query as { userId?: string; month?: string };
     
     // Build the where clause
-    let whereClause: any = {
-      task: {
-        deletedAt: null // Only include time logs for non-deleted tasks
-      }
-    };
+    let whereClause: any = {};
     
     // Filter by user if userId is provided
-    if (userId) {
-      whereClause.userId = parseInt(userId);
-    }
+    if (userId) whereClause.userId = parseInt(userId);
     
     // Filter by month if month is provided
     if (month) {
@@ -241,19 +235,28 @@ export const getAllTimeLogs = async (req: Request, res: Response) => {
       const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
       endDate.setHours(23, 59, 59, 999);
       
-      whereClause.startTime = {
-        gte: startDate,
-        lte: endDate,
-      };
+      whereClause.startTime = { gte: startDate, lte: endDate };
     }
+    
+    // Include both regular task logs (only for non-deleted tasks) and maintenance task logs
+    whereClause.OR = [
+      { task: { deletedAt: null } },
+      { maintenanceTaskId: { not: null } }
+    ];
     
     const timeLogs = await prisma.timeLog.findMany({
       where: whereClause,
       include: {
         user: { select: { username: true } },
-        task: { 
-          select: { title: true, deletedAt: true }
-        },
+        task: { select: { title: true, deletedAt: true, projectId: true } },
+        maintenanceTask: {
+          select: {
+            id: true,
+            title: true,
+            productMaintenanceId: true,
+            productMaintenance: { select: { id: true, name: true, status: true } }
+          }
+        }
       },
       orderBy: {
         startTime: "desc",

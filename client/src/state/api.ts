@@ -1,6 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { RootState } from '@/app/redux';
 import { logOut } from './authSlice';
+import { encryptJson, decryptJson, isEncryptedEnvelope } from '@/lib/crypto';
 
 export interface Activity {
   id: number;
@@ -321,11 +323,50 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Intercept 401/403 globally: clear auth so layout redirects to /login
 const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
-    const result = await rawBaseQuery(args, api, extraOptions);
+    const useEncryption = !!process.env.NEXT_PUBLIC_ENCRYPTION_SECRET;
+
+    // Encrypt request body if JSON and encryption enabled
+            let finalArgs: string | FetchArgs = args as string | FetchArgs;
+            if (useEncryption) {
+                if (typeof finalArgs === 'string') {
+                    finalArgs = { url: finalArgs, headers: { 'X-Encrypted': 'v1' } };
+                } else if (typeof finalArgs === 'object' && finalArgs) {
+                    // Always ask server to encrypt responses
+                    const newHeaders: Record<string, string> = {};
+                    if (finalArgs.headers) {
+                        if (finalArgs.headers instanceof Headers) {
+                            finalArgs.headers.forEach((v, k) => { newHeaders[k] = v; });
+                        } else {
+                            Object.assign(newHeaders, finalArgs.headers as Record<string, string>);
+                        }
+                    }
+                    newHeaders['X-Encrypted'] = 'v1';
+
+                    const method = (finalArgs.method || 'GET').toUpperCase();
+                    const hasBody = typeof finalArgs.body !== 'undefined' && finalArgs.body !== null;
+                    if (hasBody && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+                        const envelope = await encryptJson(finalArgs.body as unknown);
+                        finalArgs = { ...finalArgs, headers: newHeaders, body: envelope };
+                    } else {
+                        finalArgs = { ...finalArgs, headers: newHeaders };
+                    }
+                }
+            }
+
+            const result = await rawBaseQuery(finalArgs, api, extraOptions);
     const status = (result as { error?: { status?: number } }).error?.status;
     if (status === 401 || status === 403) {
         // Clear auth state; Persist will update and dashboard layout will redirect on token missing
         api.dispatch(logOut());
+    }
+    // Decrypt successful JSON responses
+            if (useEncryption && 'data' in result && result.data && isEncryptedEnvelope(result.data as unknown)) {
+        try {
+                    const decrypted = await decryptJson(result.data as { iv: string; data: string; tag?: string });
+                    return { ...result, data: decrypted } as typeof result;
+        } catch {
+            // If decryption fails, return as-is; upstream can handle
+        }
     }
     return result;
 };

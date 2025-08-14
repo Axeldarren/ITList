@@ -11,6 +11,7 @@ import http from 'http';
 import { initWebSocket } from './websocket';
 import { generalLimiter } from './middleware/rateLimiter';
 import { xssProtection, noSQLProtection, securityLogger } from './middleware/securityMiddleware';
+import { createEncryptionMiddleware } from './middleware/encryption';
 
 // Route Import
 import projectRoutes from './routes/projectRoutes';
@@ -73,6 +74,9 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Optional application-layer encryption (enabled when client sends X-Encrypted: v1)
+app.use(createEncryptionMiddleware());
 
 // Routes
 app.get('/', (req, res) => {
