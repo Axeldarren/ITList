@@ -153,6 +153,17 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
         return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading project details...</div>;
     }
 
+    // Show 404 if project is not found (either not in list or access denied)
+    if (!currentProject) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <h1 className="text-5xl font-bold text-gray-800 dark:text-white mb-4">404</h1>
+                <div className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Project Not Found</div>
+                <div className="text-gray-500 dark:text-gray-400">The project does not exist or you do not have access.</div>
+            </div>
+        );
+    }
+
     return (
         <div>
             <ModalNewTask isOpen={isModalNewTaskOpen} onClose={() => setIsModalNewTaskOpen(false)} id={id} />

@@ -7,10 +7,46 @@ type ProjectStatus = 'Start' | 'OnProgress' | 'Resolve' | 'Finish' | 'Cancel';
 
 const Prisma = new PrismaClient();
 
+// Helper: check if user is admin or a member of the project's team
+async function userHasProjectAccess(user: any, projectId: number): Promise<boolean> {
+    if (user?.isAdmin) return true;
+    if (!user?.userId) return false;
+    const project = await Prisma.project.findFirst({
+        where: {
+            id: projectId,
+            deletedAt: null,
+            projectTeams: {
+                some: {
+                    team: {
+                        members: {
+                            some: { userId: user.userId }
+                        }
+                    }
+                }
+            }
+        }
+    });
+    return !!project;
+}
+
 export const getProjects = async (req: Request, res: Response): Promise<void> => {
     try {
+        // If user is not admin, limit to projects where the user's teams are attached
+        const whereClause: any = { deletedAt: null };
+        if (!req.user?.isAdmin && req.user?.userId) {
+            whereClause.projectTeams = {
+                some: {
+                    team: {
+                        members: {
+                            some: { userId: req.user.userId }
+                        }
+                    }
+                }
+            };
+        }
+
         const projects = await Prisma.project.findMany({
-            where: { deletedAt: null }, // Only fetch active projects
+            where: whereClause, // Only fetch active projects, and restrict for non-admins
             include: {
                 projectTeams: { select: { teamId: true } },
                 createdBy: { select: { username: true } }, // Include creator's name
@@ -105,17 +141,13 @@ export const getProjectUsers = async (
         return;
     }
 
+    // Access control: 404 if not allowed
+    if (!(await userHasProjectAccess(req.user, numericProjectId))) {
+        res.status(404).json({ message: "Project not found." });
+        return;
+    }
+
     try {
-        // First, check if the project exists and is not deleted
-        const project = await Prisma.project.findFirst({
-            where: { id: numericProjectId, deletedAt: null }
-        });
-
-        if (!project) {
-            res.status(404).json({ message: "Project not found or has been archived." });
-            return;
-        }
-
         const projectTeam = await Prisma.projectTeam.findFirst({
             where: { projectId: numericProjectId },
             select: { teamId: true }
@@ -130,7 +162,7 @@ export const getProjectUsers = async (
             where: { 
                 teamId: projectTeam.teamId,
                 user: {
-                    deletedAt: null // Only include memberships where user is not deleted
+                    deletedAt: null
                 }
             },
             include: { user: true }
@@ -214,9 +246,15 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
     const { projectId } = req.params;
     const { name, description, startDate, endDate, teamId, prdUrl } = req.body;
     const loggedInUser = req.user;
+    const numericProjectId = Number(projectId);
+
+    // Access control: 404 if not allowed
+    if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
+        res.status(404).json({ message: "Project not found." });
+        return;
+    }
 
     try {
-        const numericProjectId = Number(projectId);
         await Prisma.$transaction(async (tx) => {
         const updatedProject = await tx.project.update({
                 where: { id: numericProjectId },
@@ -251,14 +289,20 @@ export const updateProjectStatus = async (req: Request, res: Response): Promise<
     const { projectId } = req.params;
     const { status } = req.body as { status: ProjectStatus };
     const loggedInUser = req.user;
+    const numericProjectId = Number(projectId);
 
     if (!loggedInUser) {
         res.status(401).json({ message: 'Not authorized' });
         return;
     }
 
+    // Access control: 404 if not allowed
+    if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
+        res.status(404).json({ message: "Project not found." });
+        return;
+    }
+
     try {
-        const numericProjectId = Number(projectId);
         const project = await Prisma.project.findUnique({ where: { id: numericProjectId }});
 
         if (!project || project.deletedAt) {
@@ -338,6 +382,12 @@ export const archiveAndIncrementVersion = async (
 
     if (!startDate || !endDate) { /* ... */ }
 
+    // Access control: 404 if not allowed
+    if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
+        res.status(404).json({ message: "Project not found." });
+        return;
+    }
+
     try {
         await Prisma.$transaction(async (tx) => {
             const currentProject = await tx.project.findUnique({
@@ -398,10 +448,18 @@ export const getProjectVersionHistory = async (
     res: Response
 ): Promise<void> => {
     const { projectId } = req.params;
+    const numericProjectId = Number(projectId);
+
+    // Access control: 404 if not allowed
+    if (!(await userHasProjectAccess(req.user, numericProjectId))) {
+        res.status(404).json({ message: "Project not found." });
+        return;
+    }
+
     try {
         const versions = await Prisma.projectVersion.findMany({
             where: {
-                projectId: Number(projectId)
+                projectId: numericProjectId
             },
             orderBy: {
                 version: 'desc'
@@ -434,9 +492,17 @@ export const getAllProjectVersions = async (req: Request, res: Response): Promis
 
 export const getProjectActivities = async (req: Request, res: Response): Promise<void> => {
     const { projectId } = req.params;
+    const numericProjectId = Number(projectId);
+
+    // Access control: 404 if not allowed
+    if (!(await userHasProjectAccess(req.user, numericProjectId))) {
+        res.status(404).json({ message: "Project not found." });
+        return;
+    }
+
     try {
         const activities = await Prisma.activity.findMany({
-            where: { projectId: Number(projectId) },
+            where: { projectId: numericProjectId },
             include: {
                 user: { select: { username: true, profilePictureUrl: true } },
                 task: { select: { title: true } }

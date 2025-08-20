@@ -23,7 +23,7 @@ const ContextMenu = ({ x, y, onDelete }: ContextMenuProps) => {
     return ReactDOM.createPortal(
         <div
             style={{ top: y, left: x }}
-            className="fixed z-50 w-48 rounded-md bg-white py-1 shadow-lg dark:bg-dark-secondary"
+            className="fixed z-50 w-56 rounded-lg bg-white/95 dark:bg-black/70 backdrop-blur-sm ring-1 ring-gray-200 dark:ring-white/10 shadow-xl py-1.5"
         >
             <a
                 href="#"
@@ -32,7 +32,7 @@ const ContextMenu = ({ x, y, onDelete }: ContextMenuProps) => {
                     e.stopPropagation(); 
                     onDelete();
                 }}
-                className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-500 dark:hover:bg-gray-600"
+                className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 rounded-md"
             >
                 <Trash2 className="mr-3 h-5 w-5" />
                 <span>Delete</span>
@@ -118,8 +118,9 @@ const Sidebar = () => {
     }, [contextMenu]);
 
 
-    const sidebarClassNames = `fixed flex flex-col h-full justify-between shadow-xl
-        transition-all duration-300 z-40 dark:bg-black overflow-y-auto bg-white
+    const sidebarClassNames = `fixed flex flex-col h-full justify-between
+        transition-all duration-300 z-40 bg-white/80 dark:bg-black/60 backdrop-blur-sm
+        border-r border-gray-100 dark:border-dark-tertiary overflow-y-auto
         ${isSidebarCollapsed ? 'w-0 hidden' : 'w-64'}
     `;
 
@@ -149,21 +150,21 @@ const Sidebar = () => {
             )}
             
             <div className='flex h-full w-full flex-col justify-start'>
-                <div className='z-50 flex min-h-[56px] w-64 items-center justify-between bg-white px-6 pt-3 dark:bg-black'>
-                    <div className='text-xl font-bold text-gray-800 dark:text-white'>
+                <div className='z-50 flex min-h-[56px] w-64 items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-dark-tertiary'>
+                    <div className='text-lg font-semibold tracking-tight text-gray-900 dark:text-white'>
                         ITLIST
                     </div>
                     {!isSidebarCollapsed && (
-                        <button className='py-3' onClick={() => dispatch(setIsSidebarCollapsed(true))}>
-                            <X className='h-6 w-6 text-gray-800 hover:text-gray-500 dark:text-white' />
+                        <button className='py-2' onClick={() => dispatch(setIsSidebarCollapsed(true))}>
+                            <X className='h-6 w-6 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white' />
                         </button>
                     )}
                 </div>
                 {/* TEAM */}
-                <div className='flex items-center gap-5 border-y-[1.5px] border-gray-200 px-8 py-4 dark:border-gray-700'>
+                <div className='flex items-center gap-4 px-5 py-4 border-b border-gray-100 dark:border-dark-tertiary'>
                     <Image src="/Code.svg" alt='Logo' width={40} height={40} /> 
                     <div>
-                        <h3 className='text-md font-bold tracking-wide dark:text-gray-200'>
+                        <h3 className='text-sm font-medium tracking-tight text-gray-600 dark:text-gray-300'>
                             IT TEAM
                         </h3>
                         <div className='mt-1 flex items-start gap-2'>
@@ -191,7 +192,7 @@ const Sidebar = () => {
                 {/* PROJECTS LINKS */}
                 <button 
                     onClick={() => setShowProjects((prev) => !prev)} 
-                    className='flex w-full items-center justify-between px-8 py-3 text-gray-500'
+                    className='flex w-full items-center justify-between px-5 py-2.5 text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5 transition-colors'
                 >
                     <span className=''>Projects</span>
                     {showProjects ? (
@@ -202,11 +203,11 @@ const Sidebar = () => {
                 </button>
                 {/* PROJECTS LIST */}
                 {showProjects && (
-                    <div className="space-y-1 pl-6">
+                    <div className="space-y-1.5 pl-4">
                         {/* Active Projects */}
-                        <div className="flex items-center justify-between px-6 pt-2 pb-1">
-                            <h4 className="text-xs font-semibold uppercase text-gray-500">Active</h4>
-                            <span className="text-xs text-gray-400 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
+                        <div className="flex items-center justify-between px-5 pt-2 pb-1">
+                            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Active</h4>
+                            <span className="text-xs text-gray-500 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
                                 {projects?.filter(p => p.status === "Start" || p.status === "OnProgress" || p.status === "Resolve").length || 0}
                             </span>
                         </div>
@@ -224,9 +225,9 @@ const Sidebar = () => {
                         {/* Completed Projects */}
                         {projects?.some(p => p.status === "Finish") && (
                             <>
-                                <div className="flex items-center justify-between px-6 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-gray-700">
-                                    <h4 className="text-xs font-semibold uppercase text-gray-500">Completed</h4>
-                                    <span className="text-xs text-gray-400 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
+                                <div className="flex items-center justify-between px-5 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-dark-tertiary">
+                                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Completed</h4>
+                                    <span className="text-xs text-gray-500 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
                                         {projects?.filter(p => p.status === "Finish").length || 0}
                                     </span>
                                 </div>
@@ -246,9 +247,9 @@ const Sidebar = () => {
                         {/* Cancelled Projects */}
                         {projects?.some(p => p.status === "Cancel") && (
                             <>
-                                <div className="flex items-center justify-between px-6 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-gray-700">
-                                    <h4 className="text-xs font-semibold uppercase text-gray-500">Cancelled</h4>
-                                    <span className="text-xs text-gray-400 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
+                                <div className="flex items-center justify-between px-5 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-dark-tertiary">
+                                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Cancelled</h4>
+                                    <span className="text-xs text-gray-500 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
                                         {projects?.filter(p => p.status === "Cancel").length || 0}
                                     </span>
                                 </div>
@@ -270,7 +271,7 @@ const Sidebar = () => {
                 {/* PRIORITY LINKS */}
                 <button 
                     onClick={() => setShowPriority((prev) => !prev)} 
-                    className='flex w-full items-center justify-between px-8 py-3 text-gray-500'
+                    className='flex w-full items-center justify-between px-5 py-2.5 text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5 transition-colors'
                 >
                     <span className=''>Priority</span>
                     {showPriority ? (
@@ -312,16 +313,14 @@ const SidebarLink = ({
     return (
         <Link href={href} className="w-full">
             <div 
-                className={`relative flex cursor-pointer items-center gap-3 transition-colors hover:bg-gray-100 dark:bg-black dark:hover:bg-gray-600 ${
-                    isActive ? "bg-gray-100 text-white dark:bg-gray-600" : ""
-                } justify-start px-8 py-3`}
+                className={`relative flex cursor-pointer items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${
+                    isActive ? "bg-gray-50 dark:bg-white/5" : ""
+                } justify-start px-6 py-2.5 rounded-md`}
             >
-                {isActive && (
-                    <div className='absolute left-0 top-0 h-full w-[5px] bg-blue-200' />
-                )}
+                {isActive && <div className='absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-blue-500/60' />}
 
-                <Icon className='h-6 w-6 flex-shrink-0 text-gray-800 dark:text-gray-100' />
-                <span className={`font-medium text-gray-800 dark:text-gray-100 truncate`}>
+                <Icon className='h-5 w-5 flex-shrink-0 text-gray-700 dark:text-gray-200' />
+                <span className={`text-sm font-medium text-gray-800 dark:text-gray-100 truncate`}>
                     {label}
                 </span>
             </div>

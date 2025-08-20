@@ -9,12 +9,32 @@ export const search = async (
 ): Promise<void> => {
     const { query } = req.query;
     try {
+        // For non-admin users, restrict results to projects where the user is a team member
+        const userId = req.user?.userId;
+        const isAdmin = !!req.user?.isAdmin;
+
         const tasks = await Prisma.task.findMany({
             where: {
                 OR: [
-                    { title: {contains: query as string }},
-                    { description: {contains: query as string } }
+                    { title: { contains: query as string } },
+                    { description: { contains: query as string } }
                 ],
+                ...(isAdmin
+                    ? {}
+                    : {
+                          project: {
+                              deletedAt: null,
+                              projectTeams: {
+                                  some: {
+                                      team: {
+                                          members: {
+                                              some: { userId: userId }
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      })
             },
             // --- FIX: Include the project relation to get the project name ---
             include: {
@@ -28,10 +48,24 @@ export const search = async (
 
         const projects = await Prisma.project.findMany({
             where: {
+                deletedAt: null,
                 OR: [
                     { name: { contains: query as string } },
                     { description: { contains: query as string } }
                 ],
+                ...(isAdmin
+                    ? {}
+                    : {
+                          projectTeams: {
+                              some: {
+                                  team: {
+                                      members: {
+                                          some: { userId: userId }
+                                      }
+                                  }
+                              }
+                          }
+                      })
             },
         });
 
@@ -59,14 +93,50 @@ export const getSuggestions = async (req: Request, res: Response): Promise<void>
     }
 
     try {
+        const userId = req.user?.userId;
+        const isAdmin = !!req.user?.isAdmin;
         const taskSuggestions = await Prisma.task.findMany({
-            where: { title: { contains: q } },
+            where: {
+                title: { contains: q },
+                ...(isAdmin
+                    ? {}
+                    : {
+                          project: {
+                              deletedAt: null,
+                              projectTeams: {
+                                  some: {
+                                      team: {
+                                          members: {
+                                              some: { userId: userId }
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      })
+            },
             take: 5,
             select: { title: true }
         });
 
         const projectSuggestions = await Prisma.project.findMany({
-            where: { name: { contains: q } },
+            where: {
+                deletedAt: null,
+                name: { contains: q },
+                ...(isAdmin
+                    ? {}
+                    : {
+                          projectTeams: {
+                              some: {
+                                  team: {
+                                      members: {
+                                          some: { userId: userId }
+                                      }
+                                  }
+                              }
+                          }
+                      })
+            },
             take: 3,
             select: { name: true }
         });

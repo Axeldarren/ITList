@@ -585,6 +585,19 @@ export const getFinishedProjects = async (req: Request, res: Response): Promise<
       where: {
         status: "Finish",
         deletedAt: null,
+        ...(req.user?.isAdmin
+          ? {}
+          : {
+              projectTeams: {
+                some: {
+                  team: {
+                    members: {
+                      some: { userId: req.user?.userId }
+                    }
+                  }
+                }
+              }
+            })
       },
       select: {
         id: true,
