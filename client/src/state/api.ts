@@ -376,6 +376,10 @@ export const api = createApi({
     reducerPath: 'api',
     tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks"],
     endpoints: (build) => ({
+        getAllRunningTimeLogs: build.query<TimeLog[], void>({
+            query: () => 'timelogs/running/all',
+            providesTags: ['TimeLogs'],
+        }),
         getProjects: build.query<Project[], void>({
             query: () => 'projects',
             providesTags: (result) =>
@@ -1210,4 +1214,6 @@ export const {
     useStopDevlogTimerMutation,
     useGetActiveDevlogsQuery,
     useWebSocketQuery,
+    // ...existing hooks...
+    useGetAllRunningTimeLogsQuery,
 } = api;

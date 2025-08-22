@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useGetDeveloperStatsQuery, useGetUsersQuery, useGetTimeLogsQuery } from '@/state/api';
+import { useGetDeveloperStatsQuery, useGetUsersQuery, useGetTimeLogsQuery, useGetAllRunningTimeLogsQuery } from '@/state/api';
+
 import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User } from 'lucide-react';
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
@@ -9,15 +10,26 @@ import Image from 'next/image';
 import ModalViewTimeLogs from '@/components/ModalViewTimeLogs';
 import ModalViewCompletedTasks from '@/components/ModalViewCompletedTasks';
 import MonthPicker from '@/components/MonthPicker';
+import LiveTimerDisplay from '@/components/LiveTimerDisplay';
 
 const formatDuration = (seconds: number): string => {
-    if (!seconds || seconds < 60) return `0m`;
+    if (!seconds || seconds < 0) return '0:00:00';
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    return [ h > 0 ? `${h}h` : '', m > 0 ? `${m}m` : '' ].filter(Boolean).join(' ');
+    const s = seconds % 60;
+    // Pad minutes and seconds with leading zeros
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${h}:${pad(m)}:${pad(s)}`;
 };
 
 const DeveloperProductivity = () => {
+    // Fetch all running time logs (for all users)
+    const { data: runningTimeLogs = [] } = useGetAllRunningTimeLogsQuery();
+    // Helper: Map userId to their running time log (if any)
+    const runningLogByUserId = new Map<number, import('@/state/api').TimeLog>();
+    runningTimeLogs.forEach((log: import('@/state/api').TimeLog) => {
+        if (log.userId) runningLogByUserId.set(log.userId, log);
+    });
     // State for the month range filter
     const [startMonth, setStartMonth] = useState(format(new Date(), 'yyyy-MM'));
     const [endMonth, setEndMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -110,23 +122,21 @@ const DeveloperProductivity = () => {
 
     const dateRangeLabel = getDateRangeLabel();
 
-    // Sort developers by activity: those with time logged first (sorted by total time desc), then others
-    // This ensures the most active developers appear at the top of the list
+    // Sort developers: those with a running time log at the very top, then by previous logic
     const sortedStats = [...stats].sort((a, b) => {
-        // First, prioritize developers with time logged
+        const aHasRunning = runningLogByUserId.has(a.userId);
+        const bHasRunning = runningLogByUserId.has(b.userId);
+        if (aHasRunning && !bHasRunning) return -1;
+        if (!aHasRunning && bHasRunning) return 1;
+        // Fallback to previous logic
         if (a.totalTimeLogged > 0 && b.totalTimeLogged === 0) return -1;
         if (a.totalTimeLogged === 0 && b.totalTimeLogged > 0) return 1;
-        
-        // If both have time logged, sort by total time (descending)
         if (a.totalTimeLogged > 0 && b.totalTimeLogged > 0) {
             return b.totalTimeLogged - a.totalTimeLogged;
         }
-        
-        // If neither has time logged, sort by total completed tasks (descending)
         if (a.totalTimeLogged === 0 && b.totalTimeLogged === 0) {
             return b.completedTasks - a.completedTasks;
         }
-        
         return 0;
     });
 
@@ -220,6 +230,8 @@ const DeveloperProductivity = () => {
                     {sortedStats.map((dev) => {
                         const userProfile = getUserProfile(dev.userId);
                         
+                        // Show running task/timer if present
+                        const runningLog = runningLogByUserId.get(dev.userId);
                         return (
                             <div key={dev.userId} className={`rounded-lg p-4 border ${
                                 dev.totalTimeLogged > 0 
@@ -258,9 +270,12 @@ const DeveloperProductivity = () => {
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                                 {dev.completedTasks} tasks completed
                                             </p>
+                                            {runningLog && (
+                                                <LiveTimerDisplay runningLog={runningLog} />
+                                            )}
+
                                         </div>
                                     </div>
-                                    
                                     <div className="flex items-center gap-2">
                                         <Clock size={16} className="text-gray-400" />
                                         <span className="text-lg font-semibold text-gray-900 dark:text-white">

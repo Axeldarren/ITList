@@ -1,3 +1,22 @@
+// Get all running time logs for all users
+export const getAllRunningTimeLogs = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const runningLogs = await prisma.timeLog.findMany({
+      where: {
+        endTime: null,
+      },
+      include: {
+        user: { select: { userId: true, username: true, profilePictureUrl: true, isAdmin: true } },
+        task: { select: { id: true, title: true, projectId: true, deletedAt: true, project: { select: { id: true, name: true } } } },
+        maintenanceTask: { select: { id: true, title: true, productMaintenanceId: true, productMaintenance: { select: { id: true, name: true, status: true } } } },
+      },
+      orderBy: { startTime: 'desc' },
+    });
+    res.status(200).json(runningLogs);
+  } catch (error: any) {
+    res.status(500).json({ message: `Error fetching all running time logs: ${error.message}` });
+  }
+};
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { broadcast } from "../websocket";
