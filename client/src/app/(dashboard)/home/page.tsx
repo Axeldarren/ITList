@@ -424,15 +424,28 @@ const assignedUserTasks = useMemo(() => {
                     <span className="text-sm text-gray-600 dark:text-gray-300">Show Completed</span>
                     <input 
                         type="checkbox"
+                        id="showCompleted"
+                        name="showCompleted"
                         checked={showCompleted}
                         onChange={() => setShowCompleted(!showCompleted)}
                         className="h-4 w-4 rounded text-blue-primary focus:ring-blue-primary"
+                        autoComplete="off"
                     />
                 </div>
               </div>
               <div className={`mb-4 flex flex-wrap gap-2 ${showCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
                 <button onClick={() => setActiveFilter("all")} className={`rounded-full px-4 py-1 text-sm font-medium ${activeFilter === "all" ? 'bg-blue-primary text-white' : 'bg-gray-200 dark:bg-dark-tertiary dark:text-gray-200'}`}>All</button>
-                {priorities.map(p => <button key={p} onClick={() => setActiveFilter(p)} className={`rounded-full px-4 py-1 text-sm font-medium ${activeFilter === p ? 'bg-blue-primary text-white' : 'bg-gray-200 dark:bg-dark-tertiary dark:text-gray-200'}`}>{p}</button>)}
+                                {priorities.map(p => (
+                                    <button 
+                                        key={p} 
+                                        id={`priority-filter-${p}`}
+                                        name={`priority-filter-${p}`}
+                                        onClick={() => setActiveFilter(p)} 
+                                        className={`rounded-full px-4 py-1 text-sm font-medium ${activeFilter === p ? 'bg-blue-primary text-white' : 'bg-gray-200 dark:bg-dark-tertiary dark:text-gray-200'}`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
               </div>
               <div style={{ height: 400, width: "100%" }}>
                 <DataGrid rows={filteredTasksForGrid} columns={taskColumns} loading={tasksLoading} onRowClick={handleRowClick} sx={dataGridSxStyles(isDarkMode)} />

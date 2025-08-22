@@ -50,6 +50,8 @@ const AutocompleteSearch = ({ onSearch }: { onSearch: (query: string) => void })
             <input 
                 className='relative w-full rounded-lg bg-white/60 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 shadow-sm py-2.5 pl-10 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-transparent transition-shadow dark:text-gray-100 dark:placeholder-gray-500'
                 type="search" 
+                name="searchbar"
+                id='searchbar'
                 placeholder="Search everything..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}

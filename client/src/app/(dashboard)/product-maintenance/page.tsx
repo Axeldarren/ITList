@@ -59,6 +59,8 @@ const ProductMaintenancePage = () => {
         <div className="flex w-full max-w-md items-center rounded-lg border bg-white px-3 py-2 shadow-sm dark:bg-dark-secondary dark:border-dark-tertiary">
           <Search className="mr-2 h-4 w-4 text-gray-500" />
           <input
+            id="maintenanceSearch"
+            name="maintenanceSearch"
             type="text"
             placeholder="Search maintenances..."
             className="w-full bg-transparent outline-none dark:text-white"
@@ -70,6 +72,8 @@ const ProductMaintenancePage = () => {
         {/* Filters */}
         <div className="flex gap-2">
           <select
+            id="statusFilter"
+            name="statusFilter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm dark:bg-dark-secondary dark:border-dark-tertiary dark:text-white"
@@ -80,6 +84,8 @@ const ProductMaintenancePage = () => {
           </select>
 
           <select
+            id="priorityFilter"
+            name="priorityFilter"
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm dark:bg-dark-secondary dark:border-dark-tertiary dark:text-white"

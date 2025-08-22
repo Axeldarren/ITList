@@ -167,12 +167,12 @@ const TeamForm: React.FC<TeamFormProps> = ({ initialData, allUsers = [], onSubmi
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <input type="text" placeholder="Team Name" value={teamName} onChange={(e) => setTeamName(e.target.value)} className={inputStyles} required />
-            <select value={poId} onChange={handlePoChange} className={inputStyles} required>
+            <input id="teamName" name="teamName" type="text" placeholder="Team Name" value={teamName} onChange={(e) => setTeamName(e.target.value)} className={inputStyles} required />
+            <select id="productOwner" name="productOwner" value={poId} onChange={handlePoChange} className={inputStyles} required>
                 <option value="">Select Product Owner</option>
                 {allUsers.map((user: User) => <option key={user.userId} value={user.userId}>{user.username}</option>)}
             </select>
-            <select value={pmId} onChange={handlePmChange} className={inputStyles} required>
+            <select id="projectManager" name="projectManager" value={pmId} onChange={handlePmChange} className={inputStyles} required>
                 <option value="">Select Project Manager</option>
                 {allUsers.map((user: User) => <option key={user.userId} value={user.userId}>{user.username}</option>)}
             </select>
