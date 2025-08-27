@@ -813,9 +813,9 @@ export const api = createApi({
         }),
 
         getDeveloperStats: build.query<DeveloperStats[], { startMonth?: string; endMonth?: string; month?: string }>({
-            query: ({ month }) => ({
+            query: ({ startMonth, endMonth, month }) => ({ // FIX: Destructure all parameters
                 url: 'productivity',
-                params: { month }, // Pass the month as a query parameter
+                params: { startMonth, endMonth, month }, // FIX: Pass all parameters
             }),
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),

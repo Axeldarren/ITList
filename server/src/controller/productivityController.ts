@@ -7,25 +7,6 @@ const prisma = new PrismaClient();
 export const getDeveloperStats = async (req: Request, res: Response) => {
     const { month, startMonth, endMonth } = req.query as { month?: string; startMonth?: string; endMonth?: string };
 
-    let dateFilter: any = {};
-    
-    if (startMonth && endMonth) {
-        // Date range filtering
-        const startDate = startOfMonth(parseISO(`${startMonth}-01`));
-        const endDate = endOfMonth(parseISO(`${endMonth}-01`));
-        dateFilter = {
-            createdAt: { gte: startDate, lte: endDate }
-        };
-    } else if (month) {
-        // Single month filtering (backward compatibility)
-        const selectedDate = parseISO(`${month}-01`);
-        const startDate = startOfMonth(selectedDate);
-        const endDate = endOfMonth(selectedDate);
-        dateFilter = {
-            createdAt: { gte: startDate, lte: endDate }
-        };
-    }
-
     try {
         const users = await prisma.user.findMany({
             where: {
@@ -36,37 +17,36 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
         const now = new Date();
         
         const stats = await Promise.all(users.map(async (user) => {
-            // --- THIS IS THE FIX ---
+            // Define the date range for the queries
+            let startDate: Date;
+            let endDate: Date;
 
-            // 1. Calculate Time Logs separately. This is a pure sum of work for the date range.
-            let timeLogDateFilter: any = {};
             if (startMonth && endMonth) {
-                const startDate = startOfMonth(parseISO(`${startMonth}-01`));
-                const endDate = endOfMonth(parseISO(`${endMonth}-01`));
-                timeLogDateFilter = {
-                    startTime: { gte: startDate, lte: endDate }
-                };
+                startDate = startOfMonth(parseISO(`${startMonth}-01`));
+                endDate = endOfMonth(parseISO(`${endMonth}-01`));
             } else if (month) {
                 const selectedDate = parseISO(`${month}-01`);
-                const startDate = startOfMonth(selectedDate);
-                const endDate = endOfMonth(selectedDate);
-                timeLogDateFilter = {
-                    startTime: { gte: startDate, lte: endDate }
-                };
+                startDate = startOfMonth(selectedDate);
+                endDate = endOfMonth(selectedDate);
+            } else {
+                // Default to current month if no date is provided
+                startDate = startOfMonth(now);
+                endDate = endOfMonth(now);
             }
 
+            // 1. Calculate Time Logs within the date range
             const timeLogs = await prisma.timeLog.findMany({
                 where: {
                     userId: user.userId,
                     task: {
-                        deletedAt: null // Only include time logs for non-deleted tasks
+                        deletedAt: null
                     },
-                    ...timeLogDateFilter
+                    startTime: { gte: startDate, lte: endDate }
                 }
             });
             const totalTimeLogged = timeLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
             
-            // 2. Get all potentially relevant tasks for this user.
+            // 2. Get all relevant assigned tasks for the user
             const allAssignedTasks = await prisma.task.findMany({
                 where: {
                     assignedUserId: user.userId,
@@ -80,46 +60,30 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 select: {
                     status: true,
                     dueDate: true,
-                    createdAt: true, // Needed for monthly filter
-                    points: true, // Include story points
+                    createdAt: true,
+                    points: true,
                 }
             });
 
-            // 3. Apply the new, smarter logic for task counts IN THE CODE.
-            let tasksInRange = allAssignedTasks;
-            
-            if (startMonth && endMonth) {
-                const startDate = startOfMonth(parseISO(`${startMonth}-01`));
-                const endDate = endOfMonth(parseISO(`${endMonth}-01`));
-                tasksInRange = allAssignedTasks.filter(t => {
-                    const taskDate = new Date(t.createdAt);
-                    return taskDate >= startDate && taskDate <= endDate;
-                });
-            } else if (month) {
-                const selectedDate = parseISO(`${month}-01`);
-                const startDate = startOfMonth(selectedDate);
-                const endDate = endOfMonth(selectedDate);
-                tasksInRange = allAssignedTasks.filter(t => {
-                    const taskDate = new Date(t.createdAt);
-                    return taskDate >= startDate && taskDate <= endDate;
-                });
-            }
+            // 3. Filter tasks by the date range in the application code
+            const tasksInRange = allAssignedTasks.filter(t => {
+                const taskDate = new Date(t.createdAt);
+                return taskDate >= startDate && taskDate <= endDate;
+            });
 
             const completedTasks = tasksInRange.filter(t => t.status === 'Completed').length;
             
-            // "Total Tasks" = In Progress tasks + Completed tasks for the range
             const inProgressTasks = tasksInRange.filter(t => t.status === 'Work In Progress' || t.status === 'Under Review' || t.status === 'To Do').length;
             const totalTasks = inProgressTasks + completedTasks;
 
-            // Calculate total story points
             const totalStoryPoints = tasksInRange.reduce((sum, task) => sum + (task.points || 0), 0);
             const completedStoryPoints = tasksInRange.filter(t => t.status === 'Completed').reduce((sum, task) => sum + (task.points || 0), 0);
 
-            // Overdue tasks are active tasks that are past their due date.
+            // Overdue tasks are active tasks (not completed) that are past their due date.
             const overdueTasks = allAssignedTasks.filter(t => {
                 if (!t.dueDate || t.status === 'Completed') return false;
                 const dueDate = new Date(t.dueDate);
-                dueDate.setHours(23, 59, 59, 999);
+                dueDate.setHours(23, 59, 59, 999); // Set to end of day for comparison
                 return dueDate < now;
             }).length;
 
@@ -139,6 +103,7 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
         res.status(200).json(stats);
 
     } catch (error: any) {
+        console.error(`Error fetching developer stats: ${error.message}`);
         res.status(500).json({ message: `Error fetching developer stats: ${error.message}` });
     }
 };
