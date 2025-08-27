@@ -221,15 +221,16 @@ const WeeklyStatsCard = ({ userId }: { userId: number }) => {
                     </span>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                        <Timer size={20} className="text-green-600 dark:text-green-400" />
-                        <span className="font-medium text-green-800 dark:text-green-200">Hours Logged</span>
+                    {/* Total Hours Weekly (Maintenance + Task) */}
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <div className="flex items-center gap-2">
+                            <Timer size={20} className="text-green-600 dark:text-green-400" />
+                            <span className="font-medium text-green-800 dark:text-green-200">Total Hours (Weekly)</span>
+                        </div>
+                        <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {((weeklyStats?.timeLogs?.reduce((acc, log) => acc + (log.duration || 0), 0) || 0) / 3600).toFixed(1)}h
+                        </span>
                     </div>
-                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {weeklyStats?.totalHours?.toFixed(1) || '0.0'}h
-                    </span>
-                </div>
                 
                 {weeklyStats?.completedTasks && weeklyStats.completedTasks.length > 0 && (
                     <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
@@ -342,13 +343,19 @@ const assignedUserTasks = useMemo(() => {
   const { ongoingProjects, overdueProjects } = useMemo(() => {
     const now = new Date();
     const activeProjects = projects.filter(p => !p.deletedAt && p.status !== 'Finish' && p.status !== 'Cancel');
-    const processedProjects = activeProjects.map(project => {
-      const projectTasks = allTasks.filter(t => t.projectId === project.id);
-      const completedTasks = projectTasks.filter(t => t.status === 'Completed').length;
-      const totalTasks = projectTasks.length;
-      const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-      return { ...project, percentage, daysRemaining: project.endDate ? differenceInDays(new Date(project.endDate), now) : 0 };
-    });
+        const processedProjects = activeProjects.map(project => {
+            const projectTasks = allTasks.filter(t => t.projectId === project.id);
+            const completedTasks = projectTasks.filter(t => t.status === 'Completed').length;
+            const totalTasks = projectTasks.length;
+            const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            // Ensure ticket_id is always present
+            return {
+                ...project,
+                ticket_id: project.ticket_id || project.projectTicket?.ticket_id || '',
+                percentage,
+                daysRemaining: project.endDate ? differenceInDays(new Date(project.endDate), now) : 0
+            };
+        });
     return {
       ongoingProjects: processedProjects.filter(p => p.endDate && new Date(p.endDate) >= now),
       overdueProjects: processedProjects.filter(p => p.endDate && new Date(p.endDate) < now),
@@ -462,7 +469,12 @@ const assignedUserTasks = useMemo(() => {
                     {ongoingProjects.map(project => (
                         <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-tertiary cursor-pointer">
                             <div className="flex justify-between items-center">
-                                <span className="font-semibold dark:text-gray-200">{project.name}</span>
+                                <div>
+                                    <span className="font-semibold dark:text-gray-200">{project.name}</span>
+                                    {project.ticket_id && (
+                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
+                                    )}
+                                </div>
                                 <span className={`text-sm font-medium ${project.daysRemaining < 7 ? 'text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`}>
                                     {project.daysRemaining} days left
                                 </span>
@@ -485,7 +497,12 @@ const assignedUserTasks = useMemo(() => {
                     {overdueProjects.map(project => (
                         <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-red-500/10 cursor-pointer">
                             <div className="flex justify-between items-center">
-                                <span className="font-semibold text-red-800 dark:text-red-300">{project.name}</span>
+                                <div>
+                                    <span className="font-semibold text-red-800 dark:text-red-300">{project.name}</span>
+                                    {project.ticket_id && (
+                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
+                                    )}
+                                </div>
                                 <span className="text-sm font-medium text-red-700 dark:text-red-400">
                                     {Math.abs(project.daysRemaining)} days overdue
                                 </span>

@@ -10,7 +10,7 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
       where: {
         deletedAt: null, // Only get non-deleted records
       },
-  include: {
+      include: {
         project: {
           select: {
             id: true,
@@ -51,6 +51,7 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
                 endTime: { not: null }, // Only completed time logs
               },
             },
+            maintenanceTaskTicket: true,
           },
         },
         _count: {
@@ -149,6 +150,7 @@ export const getProductMaintenanceById = async (req: Request, res: Response): Pr
                 endTime: { not: null }, // Only completed time logs
               },
             },
+            maintenanceTaskTicket: true,
           },
           orderBy: {
             createdAt: "desc",
@@ -430,18 +432,36 @@ export const deleteProductMaintenance = async (req: Request, res: Response): Pro
   }
 };
 
-// Maintenance Tasks endpoints
 export const createMaintenanceTask = async (req: Request, res: Response): Promise<void> => {
   const { productMaintenanceId } = req.params;
-  const { title, description, priority, type, estimatedHours, assignedToId } = req.body;
+  const { title, description, priority, type, estimatedHours, assignedToId, ticket_id } = req.body;
   const userId = req.user?.userId;
+  const isAdmin = req.user?.isAdmin; // Get isAdmin status from the authenticated user
 
   if (!userId) {
     res.status(401).json({ message: "User not authenticated" });
     return;
   }
 
+  // Ticket ID is required for non-admins
+  if (!isAdmin && !ticket_id) {
+    res.status(400).json({ message: "Ticket is required for this task." });
+    return;
+  }
+
   try {
+    // Check if the ticketId is already associated with another maintenance task
+    if (ticket_id) {
+      const existingTicket = await prisma.maintenanceTaskTicket.findUnique({
+        where: { ticket_id: ticket_id },
+      });
+
+      if (existingTicket) {
+        res.status(400).json({ message: "This ticketId is already associated with another maintenance task." });
+        return;
+      }
+    }
+
     const maintenanceTask = await prisma.maintenanceTask.create({
       data: {
         title,
@@ -471,6 +491,16 @@ export const createMaintenanceTask = async (req: Request, res: Response): Promis
       },
     });
 
+    // If ticket_id is provided, create an entry in the MaintenanceTaskTicket table
+    if (ticket_id) {
+      await prisma.maintenanceTaskTicket.create({
+        data: {
+          ticket_id: ticket_id,
+          maintenanceTaskId: maintenanceTask.id,
+        },
+      });
+    }
+
     // Broadcast maintenance task creation
     broadcast({
       type: 'MAINTENANCE_TASK_UPDATE',
@@ -488,7 +518,7 @@ export const createMaintenanceTask = async (req: Request, res: Response): Promis
 
 export const updateMaintenanceTask = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { title, description, priority, type, estimatedHours, actualHours, assignedToId } = req.body;
+  const { title, description, priority, type, estimatedHours, actualHours, assignedToId, ticket_id } = req.body;
   const userId = req.user?.userId;
 
   if (!userId) {
@@ -503,7 +533,6 @@ export const updateMaintenanceTask = async (req: Request, res: Response): Promis
 
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    // Removed status handling since MaintenanceTask no longer has status
     if (priority !== undefined) updateData.priority = priority;
     if (type !== undefined) updateData.type = type;
     if (estimatedHours !== undefined) updateData.estimatedHours = estimatedHours ? Number(estimatedHours) : null;
@@ -530,6 +559,31 @@ export const updateMaintenanceTask = async (req: Request, res: Response): Promis
         },
       },
     });
+
+    // Ticket logic: upsert or create if not exists, prevent duplicate
+    if (ticket_id) {
+      // Check for duplicate ticket
+      const duplicate = await prisma.maintenanceTaskTicket.findFirst({
+        where: {
+          ticket_id: ticket_id,
+        },
+      });
+      if (duplicate && duplicate.maintenanceTaskId !== Number(id)) {
+        throw new Error("This ticket is already associated with another maintenance task.");
+      }
+
+      // Upsert ticket for this maintenance task
+      await prisma.maintenanceTaskTicket.upsert({
+        where: {
+          maintenanceTaskId: Number(id),
+        },
+        update: { ticket_id: ticket_id },
+        create: {
+          maintenanceTaskId: Number(id),
+          ticket_id: ticket_id,
+        },
+      });
+    }
 
     // Broadcast maintenance task update
     broadcast({

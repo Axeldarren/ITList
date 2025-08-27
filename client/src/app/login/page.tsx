@@ -5,7 +5,7 @@ import { useLoginMutation } from '@/state/api';
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setCredentials } from '@/state/authSlice';
 import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { ButtonSpinner } from '@/components/LoadingSpinner';
 
 const LoginPage = () => {
@@ -15,6 +15,7 @@ const LoginPage = () => {
     const router = useRouter();
     const [login, { isLoading }] = useLoginMutation();
     const token = useAppSelector((s) => s.auth.token);
+    const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
 
     // Prevent access to login if already authenticated
     useEffect(() => {
@@ -44,13 +45,31 @@ const LoginPage = () => {
     if (token) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
+                <Toaster
+                    position="top-right"
+                    toastOptions={{
+                        style: {
+                            background: isDarkMode ? '#3b3d40' : '#ffffff',
+                            color: isDarkMode ? '#ffffff' : '#101214',
+                        },
+                    }}
+                />
                 <div className="text-gray-700 dark:text-gray-200">Redirecting…</div>
             </div>
         );
     }
-
+    
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    style: {
+                        background: isDarkMode ? '#3b3d40' : '#ffffff',
+                        color: isDarkMode ? '#ffffff' : '#101214',
+                    },
+                }}
+            />
             <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md dark:bg-dark-secondary page-fade-in">
                 <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-white">
                     ITList Login

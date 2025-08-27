@@ -46,6 +46,7 @@ model User {
   teams                    TeamMembership[]
   timeLogs                 TimeLog[]
   maintenanceStatusChanges ProductMaintenanceStatusHistory[]
+  staffId                 Int?                   @unique // Optional staff ID for linking with external systems
 }
 
 model Project {
@@ -72,6 +73,7 @@ model Project {
   projectTeams        ProjectTeam[]
   versions            ProjectVersion[]
   tasks               Task[]
+  projectTicket       ProjectTicket?         @relation("ProjectToProjectTicket")
 
   @@index([createdById], map: "Project_createdById_fkey")
   @@index([deletedById], map: "Project_deletedById_fkey")
@@ -331,6 +333,7 @@ model MaintenanceTask {
   // Add missing relationships
   timeLogs             TimeLog[]          // Relationship to TimeLog
   comments             Comment[]          // Relationship to Comment
+  maintenanceTaskTicket MaintenanceTaskTicket? @relation("MaintenanceTaskToMaintenanceTaskTicket")
   
   assignedTo           User?              @relation("AssignedMaintenanceTasks", fields: [assignedToId], references: [userId])
   createdBy            User               @relation("CreatedMaintenanceTasks", fields: [createdById], references: [userId])
@@ -394,4 +397,26 @@ enum ActivityType {
   COMMENT_ADDED
   TASK_UPDATED
   TASK_DELETED
+}
+
+model ProjectTicket {
+    id         Int      @id @default(autoincrement())
+    ticket_id  String   @unique // Ensure a ticket cannot be associated with multiple projects
+    projectId  Int      @unique // Ensure a project cannot have multiple tickets
+    createdAt  DateTime @default(now())
+    version    Int      @default(1)
+
+    project     Project  @relation("ProjectToProjectTicket", fields: [projectId], references: [id], onDelete: Cascade)
+
+    @@unique([projectId, version])
+    @@unique([ticket_id, version])
+}
+
+model MaintenanceTaskTicket {
+    id                   Int      @id @default(autoincrement())
+    ticket_id            String   @unique // Ensure a ticket cannot be associated with multiple maintenance tasks
+    maintenanceTaskId    Int      @unique // Ensure a maintenance task cannot have multiple tickets
+    createdAt            DateTime @default(now())
+
+    maintenanceTask      MaintenanceTask @relation("MaintenanceTaskToMaintenanceTaskTicket", fields: [maintenanceTaskId], references: [id], onDelete: Cascade)
 }

@@ -114,9 +114,6 @@ export const deleteComment = async (req: Request, res: Response) => {
     }
 };
 
-// ===== LEGACY DEVLOG FUNCTIONALITY (Kept for API compatibility) =====
-// Note: These functions are kept for backward compatibility but now use the unified timer system
-
 export const createDevlogComment = async (req: Request, res: Response) => {
     const { text, taskId } = req.body;
     const loggedInUser = req.user;

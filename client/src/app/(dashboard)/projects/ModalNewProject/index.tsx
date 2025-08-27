@@ -1,6 +1,7 @@
 import Modal from '@/components/Modal';
 // Import the useGetTeamsQuery hook
 import { useCreateProjectMutation, useGetTeamsQuery } from '@/state/api';
+import { useGetTicketsWithStatusCRQuery } from '@/state/api';
 import React, { useState } from 'react'
 import { formatISO } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -16,6 +17,9 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
   // Fetch the list of teams
   const { data: teams, isLoading: teamsLoading } = useGetTeamsQuery();
 
+    // Fetch the list of tickets
+    const { data: ticketsCR } = useGetTicketsWithStatusCRQuery();
+
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState("");
@@ -23,31 +27,37 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
     const [prdUrl, setPrdUrl] = useState('');
   // Add state for the selected team
   const [teamId, setTeamId] = useState('');
+    // Add state for the selected ticket
+    const [ticketId, setTicketId] = useState('');
 
-  const resetForm = () => {
-    setProjectName('');
-    setDescription('');
-    setStartDate('');
-    setEndDate('');
-    setPrdUrl('');
-    setTeamId(''); // Reset the teamId as well
-  };
+    const resetForm = () => {
+        setProjectName('');
+        setDescription('');
+        setStartDate('');
+        setEndDate('');
+        setPrdUrl('');
+        setTeamId('');
+        setTicketId('');
+    };
 
-  const handleSubmit = async () => {
-    // Include teamId in the validation
-    if (!projectName || !startDate || !endDate || !teamId) return;
-    
-    const formattedStartDate = formatISO(new Date(startDate), { representation: 'complete' });
-    const formattedEndDate = formatISO(new Date(endDate), { representation: 'complete' });
+    const handleSubmit = async () => {
+        // Include teamId and ticketId in the validation
+        if (!projectName || !startDate || !endDate || !teamId || !ticketId) {
+            toast.error('All fields are required.');
+            return;
+        }
+        const formattedStartDate = formatISO(new Date(startDate), { representation: 'complete' });
+        const formattedEndDate = formatISO(new Date(endDate), { representation: 'complete' });
 
-    const promise = createProject({
-      name: projectName,
-      description,
-      startDate: formattedStartDate,
-      endDate: formattedEndDate,
-      teamId: Number(teamId), // Send the teamId to the backend
-    ...(prdUrl ? { prdUrl } : {}),
-    }).unwrap();
+        const promise = createProject({
+            name: projectName,
+            description,
+            startDate: formattedStartDate,
+            endDate: formattedEndDate,
+            teamId: Number(teamId), // Send the teamId to the backend
+            ...(prdUrl ? { prdUrl } : {}),
+            ticket_id: ticketId,
+        }).unwrap();
 
     toast.promise(promise, {
         loading: 'Creating project...',
@@ -61,8 +71,8 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
   };
 
     const isFormValid = () => {
-        // Add teamId to the form validation (prdUrl optional)
-        return projectName && description && startDate && endDate && teamId;
+        // Add teamId and ticketId to the form validation (prdUrl optional)
+        return projectName && description && startDate && endDate && teamId && ticketId;
     }
 
   const inputStyles = 
@@ -113,6 +123,20 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
                 {teams?.map((team) => (
                     <option key={team.id} value={team.id}>
                         {team.teamName}
+                    </option>
+                ))}
+            </select>
+            {/* Ticket selection dropdown (required) */}
+            <select
+                className={selectStyles}
+                value={ticketId}
+                onChange={(e) => setTicketId(e.target.value)}
+                required
+            >
+                <option value="">Select a Ticket</option>
+                {ticketsCR?.map((ticket) => (
+                    <option key={ticket.ticket_id} value={String(ticket.ticket_id)}>
+                        {ticket.ticket_id} - {ticket.description_ticket}
                     </option>
                 ))}
             </select>

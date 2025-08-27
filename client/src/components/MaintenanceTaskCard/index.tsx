@@ -93,12 +93,19 @@ const MaintenanceTaskCard = ({ task }: Props) => {
           </div>
         </div>
 
-        {/* Description */}
-        {task.description && (
+        {/* Description and Ticket */}
+        {(task.description || task.maintenanceTaskTicket?.ticket_id) && (
           <div className="mb-3">
-            <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-              {task.description}
-            </p>
+            {task.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                {task.description}
+              </p>
+            )}
+            {task.maintenanceTaskTicket?.ticket_id && (
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                Ticket: {task.maintenanceTaskTicket.ticket_id}
+              </p>
+            )}
           </div>
         )}
 

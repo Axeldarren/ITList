@@ -8,6 +8,7 @@ import {
   useStartMaintenanceTimerMutation,
   useStopMaintenanceTimerMutation,
   useGetProductMaintenanceByIdQuery,
+  useGetTicketsWithStatusOpenQuery,
 } from "@/state/api";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
@@ -24,7 +25,7 @@ type Props = {
 
 const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
   const loggedInUser = useAppSelector(selectCurrentUser);
-  
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Medium");
@@ -34,40 +35,49 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
   const [assignedToId, setAssignedToId] = useState<number | "">("");
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [workDescription, setWorkDescription] = useState("");
+  const [ticketId, setTicketId] = useState<string>("");
 
-  const [updateMaintenanceTask, { isLoading: isUpdating }] = useUpdateMaintenanceTaskMutation();
-  const [startMaintenanceTimer, { isLoading: isStarting }] = useStartMaintenanceTimerMutation();
-  const [stopMaintenanceTimer, { isLoading: isStopping }] = useStopMaintenanceTimerMutation();
-  
+  const [updateMaintenanceTask, { isLoading: isUpdating }] =
+    useUpdateMaintenanceTaskMutation();
+  const [startMaintenanceTimer, { isLoading: isStarting }] =
+    useStartMaintenanceTimerMutation();
+  const [stopMaintenanceTimer, { isLoading: isStopping }] =
+    useStopMaintenanceTimerMutation();
+
   const { data: users } = useGetUsersQuery();
   const { data: timeLogs } = useGetMaintenanceTaskTimeLogsQuery(task.id);
   const { data: comments } = useGetMaintenanceTaskCommentsQuery(task.id);
-  const { data: productMaintenance } = useGetProductMaintenanceByIdQuery(task.productMaintenanceId);
+  const { data: productMaintenance } = useGetProductMaintenanceByIdQuery(
+    task.productMaintenanceId,
+  );
+  const { data: ticketsOpen } = useGetTicketsWithStatusOpenQuery();
 
   // Filter users to only show maintainers of this product maintenance
-  const availableAssignees = productMaintenance?.maintainers 
-    ? users?.filter(user => 
-        productMaintenance.maintainers.some(maintainer => maintainer.userId === user.userId)
-      ) 
+  const availableAssignees = productMaintenance?.maintainers
+    ? users?.filter((user) =>
+        productMaintenance.maintainers.some(
+          (maintainer) => maintainer.userId === user.userId,
+        ),
+      )
     : users;
 
   // Find running timer for current user
-  const runningLog = timeLogs?.find(log => 
-    log.userId === loggedInUser?.userId && 
-    !log.endTime
+  const runningLog = timeLogs?.find(
+    (log) => log.userId === loggedInUser?.userId && !log.endTime,
   );
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Calculate total time logged for this maintenance task
-  const totalTimeLogged = timeLogs
-    ?.filter(log => log.endTime) // Only completed time logs
-    ?.reduce((total, log) => total + (log.duration || 0), 0) || 0;
+  const totalTimeLogged =
+    timeLogs
+      ?.filter((log) => log.endTime) // Only completed time logs
+      ?.reduce((total, log) => total + (log.duration || 0), 0) || 0;
 
   const formatDurationShort = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
@@ -104,6 +114,11 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
       setEstimatedHours(task.estimatedHours || "");
       setActualHours(task.actualHours || "");
       setAssignedToId(task.assignedToId || "");
+      setTicketId(
+        task.maintenanceTaskTicket?.ticket_id
+          ? String(task.maintenanceTaskTicket.ticket_id)
+          : ""
+      );
     }
   }, [isOpen, task]);
 
@@ -112,7 +127,10 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
     let interval: NodeJS.Timeout | undefined;
     if (runningLog) {
       interval = setInterval(() => {
-        const seconds = differenceInSeconds(new Date(), new Date(runningLog.startTime));
+        const seconds = differenceInSeconds(
+          new Date(),
+          new Date(runningLog.startTime),
+        );
         setElapsedTime(formatDuration(seconds));
       }, 1000);
     }
@@ -121,7 +139,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
 
   const handleStartTimer = async () => {
     if (!loggedInUser?.userId) return;
-    
+
     try {
       await startMaintenanceTimer({
         maintenanceTaskId: task.id,
@@ -129,10 +147,15 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
       }).unwrap();
       toast.success("Timer started!");
     } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'data' in error && 
-                          error.data && typeof error.data === 'object' && 'message' in error.data
-                          ? (error.data as { message: string }).message
-                          : "Failed to start timer";
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? (error.data as { message: string }).message
+          : "Failed to start timer";
       toast.error(errorMessage);
     }
   };
@@ -148,10 +171,15 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
       toast.success("Timer stopped and work logged!");
       setWorkDescription("");
     } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'data' in error && 
-                          error.data && typeof error.data === 'object' && 'message' in error.data
-                          ? (error.data as { message: string }).message
-                          : "Failed to stop timer";
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? (error.data as { message: string }).message
+          : "Failed to stop timer";
       toast.error(errorMessage);
     }
   };
@@ -162,7 +190,6 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
       toast.error("Task title is required");
       return;
     }
-
     try {
       await updateMaintenanceTask({
         id: task.id,
@@ -173,15 +200,20 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
         estimatedHours: estimatedHours || undefined,
         actualHours: actualHours || undefined,
         assignedToId: assignedToId || undefined,
+        ticket_id: ticketId || undefined,
       }).unwrap();
-
       toast.success("Maintenance task updated successfully!");
       onClose();
     } catch (error) {
-      const errorMessage = error && typeof error === 'object' && 'data' in error && 
-                          error.data && typeof error.data === 'object' && 'message' in error.data
-                          ? (error.data as { message: string }).message
-                          : "Failed to update maintenance task";
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? (error.data as { message: string }).message
+          : "Failed to update maintenance task";
       toast.error(errorMessage);
     }
   };
@@ -191,7 +223,10 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div>
-          <label htmlFor="title" className="mb-2 block text-sm font-medium dark:text-white">
+          <label
+            htmlFor="title"
+            className="mb-2 block text-sm font-medium dark:text-white"
+          >
             Title *
           </label>
           <input
@@ -199,7 +234,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+            className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
             placeholder="Enter task title..."
             required
           />
@@ -207,7 +242,10 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="mb-2 block text-sm font-medium dark:text-white">
+          <label
+            htmlFor="description"
+            className="mb-2 block text-sm font-medium dark:text-white"
+          >
             Description
           </label>
           <textarea
@@ -215,21 +253,24 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+            className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
             placeholder="Describe the task..."
           />
         </div>
 
         {/* Type */}
         <div>
-          <label htmlFor="type" className="mb-2 block text-sm font-medium dark:text-white">
+          <label
+            htmlFor="type"
+            className="mb-2 block text-sm font-medium dark:text-white"
+          >
             Task Type
           </label>
           <select
             id="type"
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+            className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
           >
             {taskTypes.map((taskType) => (
               <option key={taskType} value={taskType}>
@@ -241,14 +282,17 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
 
         {/* Priority */}
         <div>
-          <label htmlFor="priority" className="mb-2 block text-sm font-medium dark:text-white">
+          <label
+            htmlFor="priority"
+            className="mb-2 block text-sm font-medium dark:text-white"
+          >
             Priority
           </label>
           <select
             id="priority"
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+            className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
           >
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
@@ -260,33 +304,43 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
         {/* Hours */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor="estimatedHours" className="mb-2 block text-sm font-medium dark:text-white">
+            <label
+              htmlFor="estimatedHours"
+              className="mb-2 block text-sm font-medium dark:text-white"
+            >
               Estimated Hours
             </label>
             <input
               type="number"
               id="estimatedHours"
               value={estimatedHours}
-              onChange={(e) => setEstimatedHours(e.target.value ? Number(e.target.value) : "")}
+              onChange={(e) =>
+                setEstimatedHours(e.target.value ? Number(e.target.value) : "")
+              }
               min="0"
               step="0.5"
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+              className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
               placeholder="e.g., 4.5"
             />
           </div>
 
           <div>
-            <label htmlFor="actualHours" className="mb-2 block text-sm font-medium dark:text-white">
+            <label
+              htmlFor="actualHours"
+              className="mb-2 block text-sm font-medium dark:text-white"
+            >
               Actual Hours
             </label>
             <input
               type="number"
               id="actualHours"
               value={actualHours}
-              onChange={(e) => setActualHours(e.target.value ? Number(e.target.value) : "")}
+              onChange={(e) =>
+                setActualHours(e.target.value ? Number(e.target.value) : "")
+              }
               min="0"
               step="0.5"
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+              className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
               placeholder="e.g., 3.0"
             />
           </div>
@@ -294,14 +348,19 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
 
         {/* Assigned To */}
         <div>
-          <label htmlFor="assignedTo" className="mb-2 block text-sm font-medium dark:text-white">
+          <label
+            htmlFor="assignedTo"
+            className="mb-2 block text-sm font-medium dark:text-white"
+          >
             Assign To
           </label>
           <select
             id="assignedTo"
             value={assignedToId}
-            onChange={(e) => setAssignedToId(e.target.value ? Number(e.target.value) : "")}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+            onChange={(e) =>
+              setAssignedToId(e.target.value ? Number(e.target.value) : "")
+            }
+            className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
           >
             <option value="">Unassigned</option>
             {availableAssignees?.map((user) => (
@@ -312,18 +371,46 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
           </select>
         </div>
 
+        {/* Ticket Dropdown */}
+        <div className="flex flex-col">
+          <label
+            htmlFor="ticketId"
+            className="mb-2 block text-sm font-medium dark:text-white"
+          >
+            Ticket
+          </label>
+          <select
+            id="ticketId"
+            value={ticketId}
+            onChange={(e) => setTicketId(e.target.value)}
+            className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
+          >
+            <option value="">No Ticket</option>
+            {ticketsOpen?.map((ticket) => (
+              <option key={ticket.ticket_id} value={String(ticket.ticket_id)}>
+                {ticket.ticket_id} - {ticket.description_ticket}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Timer Section */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-dark-secondary">
-          <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">Time Tracker</h3>
-          
+        <div className="dark:bg-dark-secondary rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600">
+          <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">
+            Time Tracker
+          </h3>
+
           {runningLog ? (
             <div className="space-y-3">
-              <div className="text-center text-2xl font-mono font-semibold text-green-600 dark:text-green-400">
+              <div className="text-center font-mono text-2xl font-semibold text-green-600 dark:text-green-400">
                 {elapsedTime}
               </div>
-              
+
               <div>
-                <label htmlFor="workDescription" className="mb-2 block text-sm font-medium dark:text-white">
+                <label
+                  htmlFor="workDescription"
+                  className="mb-2 block text-sm font-medium dark:text-white"
+                >
                   Work Description (Required to stop timer)
                 </label>
                 <textarea
@@ -331,16 +418,16 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
                   rows={2}
                   value={workDescription}
                   onChange={(e) => setWorkDescription(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+                  className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
                   placeholder="Describe what you worked on..."
                 />
               </div>
-              
+
               <button
                 type="button"
                 onClick={handleStopTimer}
                 disabled={isStopping || !workDescription.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-white font-semibold hover:bg-red-600 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 font-semibold text-white hover:bg-red-600 disabled:opacity-50"
               >
                 <Square size={16} /> Stop Timer
               </button>
@@ -350,7 +437,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
               type="button"
               onClick={handleStartTimer}
               disabled={isStarting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-white font-semibold hover:bg-green-600 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-2 font-semibold text-white hover:bg-green-600 disabled:opacity-50"
             >
               <Play size={16} /> Start Timer
             </button>
@@ -358,32 +445,42 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
         </div>
 
         {/* Comments Section */}
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-dark-secondary">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-900 dark:text-white">Work Log & Comments</h3>
+        <div className="dark:bg-dark-secondary rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900 dark:text-white">
+              Work Log & Comments
+            </h3>
             <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
               Total: {formatDurationShort(totalTimeLogged)}
             </div>
           </div>
-          
+
           <div className="max-h-60 space-y-3 overflow-y-auto">
             {comments && comments.length > 0 ? (
               comments.map((comment) => {
                 // Find the associated time log for this comment
-                const associatedTimeLog = timeLogs?.find(log => 
-                  log.comment?.id === comment.id || 
-                  (log.endTime && Math.abs(new Date(log.endTime).getTime() - new Date(comment.createdAt).getTime()) < 5000)
+                const associatedTimeLog = timeLogs?.find(
+                  (log) =>
+                    log.comment?.id === comment.id ||
+                    (log.endTime &&
+                      Math.abs(
+                        new Date(log.endTime).getTime() -
+                          new Date(comment.createdAt).getTime(),
+                      ) < 5000),
                 );
-                
+
                 return (
-                  <div key={comment.id} className="rounded border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-dark-tertiary">
-                    <div className="flex items-center justify-between mb-2">
+                  <div
+                    key={comment.id}
+                    className="dark:bg-dark-tertiary rounded border border-gray-200 bg-white p-3 dark:border-gray-600"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {comment.user?.username || 'Unknown User'}
+                          {comment.user?.username || "Unknown User"}
                         </span>
                         {associatedTimeLog?.duration && (
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                          <span className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                             {formatDurationShort(associatedTimeLog.duration)}
                           </span>
                         )}
@@ -392,7 +489,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
                         {new Date(comment.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                    <div className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                       {comment.text}
                     </div>
                   </div>
@@ -400,7 +497,8 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
               })
             ) : (
               <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-                No work logs yet. Start the timer and add some work descriptions to see them here.
+                No work logs yet. Start the timer and add some work descriptions
+                to see them here.
               </div>
             )}
           </div>
@@ -418,7 +516,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
           <button
             type="submit"
             disabled={isUpdating}
-            className="rounded-lg bg-blue-primary px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+            className="bg-blue-primary rounded-lg px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
           >
             {isUpdating ? "Updating..." : "Update Task"}
           </button>

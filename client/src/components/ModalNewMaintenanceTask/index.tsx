@@ -3,9 +3,12 @@ import {
   useCreateMaintenanceTaskMutation,
   useGetUsersQuery,
   useGetProductMaintenanceByIdQuery,
-} from "@/state/api";
+  useGetTicketsWithStatusOpenQuery,
+} from "../../state/api";
 import toast from "react-hot-toast";
-import Modal from "@/components/Modal";
+import Modal from "../Modal";
+import { useSelector } from "react-redux";
+import { RootState } from "../../app/redux";
 
 type Props = {
   isOpen: boolean;
@@ -14,16 +17,22 @@ type Props = {
 };
 
 const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Props) => {
+  const { data: ticketsOpen } = useGetTicketsWithStatusOpenQuery();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [type, setType] = useState("General");
   const [estimatedHours, setEstimatedHours] = useState<number | "">("");
   const [assignedToId, setAssignedToId] = useState<number | "">("");
+  const [ticketId, setTicketId] = useState<string>("");
 
   const [createMaintenanceTask, { isLoading: isCreating }] = useCreateMaintenanceTaskMutation();
   const { data: users } = useGetUsersQuery();
   const { data: productMaintenance } = useGetProductMaintenanceByIdQuery(productMaintenanceId);
+  
+  // Get the current user from the Redux store to check their admin status
+  const user = useSelector((state: RootState) => state.auth.user);
+  const isAdmin = user?.isAdmin;
 
   // Filter users to only show maintainers assigned to this product maintenance
   const availableAssignees = users?.filter(user => 
@@ -51,6 +60,11 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
       toast.error("Task title is required");
       return;
     }
+    // Only require a ticket if the user is NOT an admin
+    if (!isAdmin && !ticketId) {
+      toast.error("Ticket is required");
+      return;
+    }
 
     try {
       await createMaintenanceTask({
@@ -61,6 +75,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
         type,
         estimatedHours: estimatedHours || undefined,
         assignedToId: assignedToId || undefined,
+        ticket_id: ticketId || undefined, // Send ticket_id only if it has a value
       }).unwrap();
 
       toast.success("Maintenance task created successfully!");
@@ -68,9 +83,9 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
       resetForm();
     } catch (error) {
       const errorMessage = error && typeof error === 'object' && 'data' in error && 
-                          error.data && typeof error.data === 'object' && 'message' in error.data
-                          ? (error.data as { message: string }).message
-                          : "Failed to create maintenance task";
+                           error.data && typeof error.data === 'object' && 'message' in error.data
+                           ? (error.data as { message: string }).message
+                           : "Failed to create maintenance task";
       toast.error(errorMessage);
     }
   };
@@ -82,6 +97,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
     setType("General");
     setEstimatedHours("");
     setAssignedToId("");
+    setTicketId("");
   };
 
   const handleClose = () => {
@@ -192,6 +208,27 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
             {availableAssignees?.map((user) => (
               <option key={user.userId} value={user.userId}>
                 {user.username}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Ticket Dropdown */}
+        <div>
+          <label htmlFor="ticketId" className="mb-2 block text-sm font-medium dark:text-white">
+            Ticket {!isAdmin && "*"}
+          </label>
+          <select
+            id="ticketId"
+            value={ticketId}
+            onChange={(e) => setTicketId(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
+            required={!isAdmin}
+          >
+            <option value="">Select a Ticket</option>
+            {ticketsOpen?.map((ticket) => (
+              <option key={ticket.ticket_id} value={String(ticket.ticket_id)}>
+                {ticket.ticket_id} - {ticket.description_ticket}
               </option>
             ))}
           </select>

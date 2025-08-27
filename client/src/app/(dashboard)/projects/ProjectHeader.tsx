@@ -17,15 +17,17 @@ type Props = {
     projectName: string;
     description: string | undefined;
     version: number | undefined;
-    status: ProjectStatus | string | undefined; // NEW: The project's current status
+    status: ProjectStatus | string | undefined;
     isArchivable: boolean;
     localSearchTerm: string;
     setLocalSearchTerm: (term: string) => void;
     onEdit: () => void;
     onArchive: () => void;
     onExportPDF: () => void;
-    onStatusChange: (newStatus: ProjectStatus | string) => void; // NEW: Handler for status changes
+    onStatusChange: (newStatus: ProjectStatus | string) => void;
     prdUrl?: string;
+    teamName?: string;
+    ticketNumber?: string;
 }
 
 // Helper to get style and icon for each status
@@ -60,7 +62,9 @@ const ProjectHeader = ({
     setLocalSearchTerm,
     onExportPDF,
     onStatusChange,
-    prdUrl
+    prdUrl,
+    teamName,
+    ticketNumber
 }: Props) => {
     
     const statusProps = getStatusProps(status);
@@ -156,12 +160,27 @@ const ProjectHeader = ({
                             </div>
                     }
                 />
-                <div className="mt-2 flex items-center space-x-4 text-sm">
+                <div className="mt-2 flex flex-wrap items-center space-x-4 text-sm gap-y-2">
                     {/* Status Badge */}
                     <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-white text-xs font-semibold ${statusProps.color}`}>
                         {statusProps.icon}
                         <span>{statusProps.text}</span>
                     </div>
+                    {/* Wrap adjacent conditionals in a fragment to fix ESLint error */}
+                    <>
+                        {teamName && (
+                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                <Grid3X3 className="h-4 w-4" />
+                                <span>Team: {teamName}</span>
+                            </div>
+                        )}
+                        {ticketNumber && (
+                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                <List className="h-4 w-4" />
+                                <span>Ticket: {ticketNumber}</span>
+                            </div>
+                        )}
+                    </>
                     <p className='max-w-2xl text-gray-500 dark:text-gray-400'>{description || "No description."}</p>
                     {version != null && (
                         <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">

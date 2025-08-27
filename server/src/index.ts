@@ -26,6 +26,7 @@ import timeLogRoutes from './routes/timeLogRoutes';
 import productivityRoutes from './routes/productivityRoutes';
 import productMaintenanceRoutes from './routes/productMaintenanceRoutes';
 import maintenanceTaskRoutes from './routes/maintenanceTaskRoutes';
+import osticketRoutes from './routes/osticketRoutes';
 
 // Configurations
 dotenv.config();
@@ -95,6 +96,7 @@ app.use('/timelogs', timeLogRoutes);
 app.use('/productivity', productivityRoutes);
 app.use('/product-maintenance', productMaintenanceRoutes);
 app.use('/maintenance-tasks', maintenanceTaskRoutes);
+app.use('/osticket', osticketRoutes);
 
 // Server
 const port = process.env.PORT || 8008;

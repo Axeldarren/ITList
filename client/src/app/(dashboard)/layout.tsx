@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import { useAppSelector } from "../redux";
 import { useRouter } from "next/navigation";
 import { useWebSocketQuery } from "@/state/api";
+import { Toaster } from "react-hot-toast";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { token } = useAppSelector((state) => state.auth);
@@ -49,6 +50,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // If the token exists, render the full dashboard layout
   return (
     <div className="flex min-h-screen w-full bg-gray-50 text-gray-900">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: isDarkMode ? '#3b3d40' : '#ffffff',
+            color: isDarkMode ? '#ffffff' : '#101214',
+          },
+        }}
+      />
       <Sidebar />
       <main
         className={`flex w-full flex-col bg-gray-50 dark:bg-dark-bg ${

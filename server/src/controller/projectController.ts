@@ -1,519 +1,666 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { broadcast } from "../websocket";
+import mysql from "mysql2/promise";
 
 // Define ProjectStatus type based on allowed values
-type ProjectStatus = 'Start' | 'OnProgress' | 'Resolve' | 'Finish' | 'Cancel';
+type ProjectStatus = "Start" | "OnProgress" | "Resolve" | "Finish" | "Cancel";
 
 const Prisma = new PrismaClient();
 
 // Helper: check if user is admin or a member of the project's team
-async function userHasProjectAccess(user: any, projectId: number): Promise<boolean> {
-    if (user?.isAdmin) return true;
-    if (!user?.userId) return false;
-    const project = await Prisma.project.findFirst({
-        where: {
-            id: projectId,
-            deletedAt: null,
-            projectTeams: {
-                some: {
-                    team: {
-                        members: {
-                            some: { userId: user.userId }
-                        }
-                    }
-                }
-            }
-        }
-    });
-    return !!project;
+async function userHasProjectAccess(
+  user: any,
+  projectId: number
+): Promise<boolean> {
+  if (user?.isAdmin) return true;
+  if (!user?.userId) return false;
+  const project = await Prisma.project.findFirst({
+    where: {
+      id: projectId,
+      deletedAt: null,
+      projectTeams: {
+        some: {
+          team: {
+            members: {
+              some: { userId: user.userId },
+            },
+          },
+        },
+      },
+    },
+  });
+  return !!project;
 }
 
-export const getProjects = async (req: Request, res: Response): Promise<void> => {
-    try {
-        // If user is not admin, limit to projects where the user's teams are attached
-        const whereClause: any = { deletedAt: null };
-        if (!req.user?.isAdmin && req.user?.userId) {
-            whereClause.projectTeams = {
-                some: {
-                    team: {
-                        members: {
-                            some: { userId: req.user.userId }
-                        }
-                    }
-                }
-            };
-        }
-
-        const projects = await Prisma.project.findMany({
-            where: whereClause, // Only fetch active projects, and restrict for non-admins
-            include: {
-                projectTeams: { select: { teamId: true } },
-                createdBy: { select: { username: true } }, // Include creator's name
-            }
-        });
-        
-        // Calculate total time logged for each project
-        const projectsWithTimeData = await Promise.all(
-            projects.map(async (project) => {
-                return {
-                    ...project,
-                    teamId: project.projectTeams[0]?.teamId || null,
-                };
-            })
-        );
-        
-        res.json(projectsWithTimeData);
-    } catch (error) {
-        res.status(500).json({ message: `Error retrieving projects: ${error}` });
+export const getProjects = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    // If user is not admin, limit to projects where the user's teams are attached
+    const whereClause: any = { deletedAt: null };
+    if (!req.user?.isAdmin && req.user?.userId) {
+      whereClause.projectTeams = {
+        some: {
+          team: {
+            members: {
+              some: { userId: req.user.userId },
+            },
+          },
+        },
+      };
     }
+
+    const projects = await Prisma.project.findMany({
+      where: whereClause, // Only fetch active projects, and restrict for non-admins
+      include: {
+        projectTeams: { select: { teamId: true } },
+        createdBy: { select: { username: true } }, // Include creator's name
+        projectTicket: true,
+      },
+    });
+
+    // Calculate total time logged for each project
+    const projectsWithTimeData = await Promise.all(
+      projects.map(async (project) => {
+        return {
+          ...project,
+          teamId: project.projectTeams[0]?.teamId || null,
+        };
+      })
+    );
+
+    res.json(projectsWithTimeData);
+  } catch (error) {
+    res.status(500).json({ message: `Error retrieving projects: ${error}` });
+  }
 };
 
-export const createProject = async (req: Request, res: Response): Promise<void> => {
-    const { name, description, startDate, endDate, teamId, prdUrl } = req.body;
-    const loggedInUser = req.user;
+export const createProject = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { name, description, startDate, endDate, teamId, prdUrl, ticket_id } =
+    req.body;
+  const loggedInUser = req.user;
 
-    if (!teamId) {
-        res.status(400).json({ message: "A teamId is required to create a project." });
+  if (!teamId) {
+    res
+      .status(400)
+      .json({ message: "A teamId is required to create a project." });
+    return;
+  }
+
+  try {
+    // Check if the ticket_id is already associated with another project
+    if (ticket_id) {
+      const existingTicket = await Prisma.projectTicket.findUnique({
+        where: { ticket_id: ticket_id },
+      });
+
+      if (existingTicket) {
+        res
+          .status(400)
+          .json({
+            message:
+              "This ticketId is already associated with another project.",
+          });
         return;
+      }
     }
 
-    try {
     const newProject = await Prisma.project.create({
-            data: {
-                name,
-                description,
-                startDate,
-                endDate,
-        ...( { prdUrl } as any ),
-                version: 1,
-                status: 'Start', // Default status
-                createdById: loggedInUser?.userId,
-                updatedById: loggedInUser?.userId, // Creator is also the first updater
-                projectTeams: {
-                    create: { teamId: Number(teamId) }
-                }
-            },
-        });
+      data: {
+        name,
+        description,
+        startDate,
+        endDate,
+        ...({ prdUrl } as any),
+        version: 1,
+        status: "Start", // Default status
+        createdById: loggedInUser?.userId,
+        updatedById: loggedInUser?.userId, // Creator is also the first updater
+        projectTeams: {
+          create: { teamId: Number(teamId) },
+        },
+      },
+    });
 
-        // Broadcast a general project update
-        broadcast({ type: 'PROJECT_UPDATE' });
-
-        res.status(201).json(newProject);
-    } catch (error) {
-        res.status(500).json({ message: `Error creating project: ${error}` });
+    // If ticketId is provided, create an entry in the ProjectTicket table
+    if (ticket_id) {
+      await Prisma.projectTicket.create({
+        data: {
+          ticket_id: ticket_id,
+          projectId: newProject.id,
+          version: 1, // Always 1 for new project
+        },
+      });
     }
+
+    // Broadcast a general project update
+    broadcast({ type: "PROJECT_UPDATE" });
+
+    res.status(201).json(newProject);
+  } catch (error) {
+    res.status(500).json({ message: `Error creating project: ${error}` });
+  }
 };
 
 export const incrementProjectVersion = async (
-    req: Request,
-    res: Response
+  req: Request,
+  res: Response
 ): Promise<void> => {
-    const { projectId } = req.params;
-    
-    try {
-        const updatedProject = await Prisma.project.update({
-            where: {
-                id: Number(projectId),
-            },
-            data: {
-                version: {
-                    increment: 1
-                }
-            }
-        });
+  const { projectId } = req.params;
 
-        res.status(200).json(updatedProject);
-    } catch (error) {
-        res.status(500).json({ message: `Error updating project version: ${error}` });
-    }
-}
+  try {
+    const updatedProject = await Prisma.project.update({
+      where: {
+        id: Number(projectId),
+      },
+      data: {
+        version: {
+          increment: 1,
+        },
+      },
+    });
+
+    res.status(200).json(updatedProject);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: `Error updating project version: ${error}` });
+  }
+};
 
 export const getProjectUsers = async (
-    req: Request,
-    res: Response
+  req: Request,
+  res: Response
 ): Promise<void> => {
-    const { projectId } = req.params;
-    const numericProjectId = Number(projectId);
+  const { projectId } = req.params;
+  const numericProjectId = Number(projectId);
 
-    if (isNaN(numericProjectId)) {
-        res.status(400).json({ message: "Invalid project ID." });
-        return;
+  if (isNaN(numericProjectId)) {
+    res.status(400).json({ message: "Invalid project ID." });
+    return;
+  }
+
+  // Access control: 404 if not allowed
+  if (!(await userHasProjectAccess(req.user, numericProjectId))) {
+    res.status(404).json({ message: "Project not found." });
+    return;
+  }
+
+  try {
+    const projectTeam = await Prisma.projectTeam.findFirst({
+      where: { projectId: numericProjectId },
+      select: { teamId: true },
+    });
+
+    if (!projectTeam) {
+      res.json([]);
+      return;
     }
 
-    // Access control: 404 if not allowed
-    if (!(await userHasProjectAccess(req.user, numericProjectId))) {
-        res.status(404).json({ message: "Project not found." });
-        return;
-    }
+    const memberships = await Prisma.teamMembership.findMany({
+      where: {
+        teamId: projectTeam.teamId,
+        user: {
+          deletedAt: null,
+        },
+      },
+      include: { user: true },
+    });
 
-    try {
-        const projectTeam = await Prisma.projectTeam.findFirst({
-            where: { projectId: numericProjectId },
-            select: { teamId: true }
+    const users = memberships.map((membership) => membership.user);
+
+    res.json(users);
+  } catch (error) {
+    console.error(
+      `Error retrieving project users for projectId ${projectId}:`,
+      error
+    );
+    res
+      .status(500)
+      .json({ message: `Error retrieving project users: ${error}` });
+  }
+};
+
+export const deleteProject = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const loggedInUser = req.user;
+  const numericProjectId = Number(projectId);
+
+  if (!loggedInUser) {
+    res.status(401).json({ message: "Not authorized." });
+    return;
+  }
+
+  try {
+    await Prisma.$transaction(async (tx) => {
+      const deletionDate = new Date();
+      const deleterId = loggedInUser.userId;
+
+      const tasksToDelete = await tx.task.findMany({
+        where: { projectId: numericProjectId },
+        select: { id: true },
+      });
+      const taskIdsToDelete = tasksToDelete.map((task) => task.id);
+
+      if (taskIdsToDelete.length > 0) {
+        // Soft delete all comments and attachments related to the tasks
+        await tx.comment.updateMany({
+          where: { taskId: { in: taskIdsToDelete } },
+          data: { deletedAt: deletionDate, deletedById: deleterId },
         });
 
-        if (!projectTeam) {
-            res.json([]);
-            return;
+        // --- NEW: Soft delete attachments ---
+        await tx.attachment.updateMany({
+          where: { taskId: { in: taskIdsToDelete } },
+          data: { deletedAt: deletionDate, deletedById: deleterId },
+        });
+
+        // Hard delete the join table records
+        await tx.taskAssignment.deleteMany({
+          where: { taskId: { in: taskIdsToDelete } },
+        });
+
+        // Soft delete all tasks
+        await tx.task.updateMany({
+          where: { id: { in: taskIdsToDelete } },
+          data: { deletedAt: deletionDate, deletedById: deleterId },
+        });
+      }
+
+      // Hard delete project-specific join/history tables
+      await tx.projectTeam.deleteMany({
+        where: { projectId: numericProjectId },
+      });
+      await tx.projectStatusHistory.deleteMany({
+        where: { projectId: numericProjectId },
+      });
+      await tx.projectVersion.deleteMany({
+        where: { projectId: numericProjectId },
+      });
+
+      // Soft delete the project itself
+      await tx.project.update({
+        where: { id: numericProjectId },
+        data: { deletedAt: deletionDate, deletedById: deleterId },
+      });
+    });
+
+    broadcast({ type: "PROJECT_UPDATE" });
+
+    res
+      .status(200)
+      .json({
+        message:
+          "Project and all its related data have been successfully archived.",
+      });
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    res.status(500).json({ message: `Error deleting project` });
+  }
+};
+
+export const updateProject = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const { name, description, startDate, endDate, teamId, prdUrl, ticket_id } =
+    req.body;
+  const loggedInUser = req.user;
+  const numericProjectId = Number(projectId);
+
+  // Access control: 404 if not allowed
+  if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
+    res.status(404).json({ message: "Project not found." });
+    return;
+  }
+
+  try {
+    await Prisma.$transaction(async (tx) => {
+      const updatedProject = await tx.project.update({
+        where: { id: numericProjectId },
+        data: {
+          name,
+          description,
+          startDate,
+          endDate,
+          ...({ prdUrl } as any),
+          updatedById: loggedInUser?.userId,
+        },
+      });
+
+      if (teamId) {
+        await tx.projectTeam.updateMany({
+          where: { projectId: numericProjectId },
+          data: { teamId: Number(teamId) },
+        });
+      }
+
+      if (ticket_id) {
+        // Get the current project version
+        const project = await tx.project.findUnique({ where: { id: numericProjectId } });
+        const currentVersion = project?.version ?? 1;
+
+        // Check for duplicate ticket in this version, excluding current project
+        const duplicate = await tx.projectTicket.findFirst({
+          where: {
+            ticket_id: ticket_id,
+            version: currentVersion,
+            projectId: { not: numericProjectId }
+          },
+        });
+        if (duplicate) {
+          throw new Error("This ticket is already associated with another project version.");
         }
 
-        const memberships = await Prisma.teamMembership.findMany({
-            where: { 
-                teamId: projectTeam.teamId,
-                user: {
-                    deletedAt: null
-                }
+        // Upsert ticket for this version
+        await tx.projectTicket.upsert({
+          where: {
+            projectId_version: {
+              projectId: numericProjectId,
+              version: currentVersion,
             },
-            include: { user: true }
+          },
+          update: { ticket_id: ticket_id },
+          create: {
+            projectId: numericProjectId,
+            version: currentVersion,
+            ticket_id: ticket_id,
+          },
         });
-        
-        const users = memberships.map(membership => membership.user);
-        
-        res.json(users);
-    } catch (error) {
-        console.error(`Error retrieving project users for projectId ${projectId}:`, error);
-        res.status(500).json({ message: `Error retrieving project users: ${error}` });
-    }
+      }
+
+      // Broadcast an update for this specific project
+      broadcast({ type: "PROJECT_UPDATE", projectId: numericProjectId });
+
+      // Fetch the updated project with its ticket
+      const updatedProjectWithTicket = await tx.project.findUnique({
+        where: { id: numericProjectId },
+        include: {
+          projectTicket: true
+        }
+      });
+      res.status(200).json(updatedProjectWithTicket);
+    });
+  } catch (error: any) {
+    console.error("Error updating project:", error);
+    res.status(500).json({ message: `Error updating project: ${error.message}` });
+  }
 };
 
-export const deleteProject = async (req: Request, res: Response): Promise<void> => {
-    const { projectId } = req.params;
-    const loggedInUser = req.user;
-    const numericProjectId = Number(projectId);
+export const updateProjectStatus = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const { status } = req.body as { status: ProjectStatus };
+  const loggedInUser = req.user;
+  const numericProjectId = Number(projectId);
 
-    if (!loggedInUser) {
-        res.status(401).json({ message: "Not authorized." });
-        return;
+  if (!loggedInUser) {
+    res.status(401).json({ message: "Not authorized" });
+    return;
+  }
+
+  // Access control: 404 if not allowed
+  if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
+    res.status(404).json({ message: "Project not found." });
+    return;
+  }
+
+  try {
+    const project = await Prisma.project.findUnique({
+      where: { id: numericProjectId },
+    });
+
+    if (!project || project.deletedAt) {
+      res.status(404).json({ message: "Project not found." });
+      return;
     }
 
-    try {
-        await Prisma.$transaction(async (tx) => {
-            const deletionDate = new Date();
-            const deleterId = loggedInUser.userId;
+    const allowedTransitions: Record<ProjectStatus, ProjectStatus[]> = {
+      Start: ["OnProgress", "Cancel"],
+      OnProgress: ["Resolve", "Cancel"],
+      Resolve: ["OnProgress", "Finish", "Cancel"],
+      Finish: [],
+      Cancel: [],
+    };
 
-            const tasksToDelete = await tx.task.findMany({
-                where: { projectId: numericProjectId },
-                select: { id: true },
-            });
-            const taskIdsToDelete = tasksToDelete.map(task => task.id);
-
-            if (taskIdsToDelete.length > 0) {
-                // Soft delete all comments and attachments related to the tasks
-                await tx.comment.updateMany({
-                    where: { taskId: { in: taskIdsToDelete } },
-                    data: { deletedAt: deletionDate, deletedById: deleterId },
-                });
-                
-                // --- NEW: Soft delete attachments ---
-                await tx.attachment.updateMany({
-                    where: { taskId: { in: taskIdsToDelete } },
-                    data: { deletedAt: deletionDate, deletedById: deleterId },
-                });
-
-                // Hard delete the join table records
-                await tx.taskAssignment.deleteMany({ where: { taskId: { in: taskIdsToDelete } } });
-
-                // Soft delete all tasks
-                await tx.task.updateMany({
-                    where: { id: { in: taskIdsToDelete } },
-                    data: { deletedAt: deletionDate, deletedById: deleterId },
-                });
-            }
-
-            // Hard delete project-specific join/history tables
-            await tx.projectTeam.deleteMany({ where: { projectId: numericProjectId } });
-            await tx.projectStatusHistory.deleteMany({ where: { projectId: numericProjectId } });
-            await tx.projectVersion.deleteMany({ where: { projectId: numericProjectId } });
-
-            // Soft delete the project itself
-            await tx.project.update({
-                where: { id: numericProjectId },
-                data: { deletedAt: deletionDate, deletedById: deleterId },
-            });
+    if (!allowedTransitions[project.status].includes(status)) {
+      res
+        .status(400)
+        .json({
+          message: `Cannot transition from '${project.status}' to '${status}'.`,
         });
-
-        broadcast({ type: 'PROJECT_UPDATE' });
-
-        res.status(200).json({ message: "Project and all its related data have been successfully archived." });
-    } catch (error) {
-        console.error("Error deleting project:", error);
-        res.status(500).json({ message: `Error deleting project` });
+      return;
     }
-};
 
-export const updateProject = async (req: Request, res: Response): Promise<void> => {
-    const { projectId } = req.params;
-    const { name, description, startDate, endDate, teamId, prdUrl } = req.body;
-    const loggedInUser = req.user;
-    const numericProjectId = Number(projectId);
+    // --- THIS IS THE FIX ---
+    // Add a specific check before allowing the 'Finish' status.
+    if (status === "Finish") {
+      const activeTasks = await Prisma.task.findMany({
+        where: {
+          projectId: numericProjectId,
+          version: project.version, // Only check tasks for the current version
+          deletedAt: null,
+        },
+      });
 
-    // Access control: 404 if not allowed
-    if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
-        res.status(404).json({ message: "Project not found." });
+      const allTasksCompleted = activeTasks.every(
+        (task) => task.status === "Completed"
+      );
+
+      if (!allTasksCompleted) {
+        // This is the error message you were seeing.
+        res
+          .status(400)
+          .json({
+            message:
+              "All tasks for the current version must be completed before a project can be finished.",
+          });
         return;
+      }
     }
+    // --- End of Fix ---
 
-    try {
-        await Prisma.$transaction(async (tx) => {
-        const updatedProject = await tx.project.update({
-                where: { id: numericProjectId },
-                data: { 
-                    name, 
-                    description, 
-                    startDate, 
-                    endDate,
-            ...( { prdUrl } as any ),
-                    updatedById: loggedInUser?.userId
-                },
-            });
-            if (teamId) {
-                await tx.projectTeam.updateMany({
-                    where: { projectId: numericProjectId },
-                    data: { teamId: Number(teamId) },
-                });
-            }
+    await Prisma.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id: numericProjectId },
+        data: {
+          status: status,
+          updatedById: loggedInUser.userId,
+        },
+      });
+      await tx.projectStatusHistory.create({
+        data: {
+          projectId: numericProjectId,
+          status: status,
+          changedById: loggedInUser.userId,
+        },
+      });
+    });
 
-            // Broadcast an update for this specific project
-            broadcast({ type: 'PROJECT_UPDATE', projectId: numericProjectId });
+    broadcast({ type: "PROJECT_UPDATE", projectId: numericProjectId });
 
-            res.status(200).json(updatedProject);
-        });
-    } catch (error) {
-        console.error("Error updating project:", error);
-        res.status(500).json({ message: `Error updating project` });
-    }
-};
-
-export const updateProjectStatus = async (req: Request, res: Response): Promise<void> => {
-    const { projectId } = req.params;
-    const { status } = req.body as { status: ProjectStatus };
-    const loggedInUser = req.user;
-    const numericProjectId = Number(projectId);
-
-    if (!loggedInUser) {
-        res.status(401).json({ message: 'Not authorized' });
-        return;
-    }
-
-    // Access control: 404 if not allowed
-    if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
-        res.status(404).json({ message: "Project not found." });
-        return;
-    }
-
-    try {
-        const project = await Prisma.project.findUnique({ where: { id: numericProjectId }});
-
-        if (!project || project.deletedAt) {
-            res.status(404).json({ message: "Project not found." });
-            return;
-        }
-
-        const allowedTransitions: Record<ProjectStatus, ProjectStatus[]> = {
-            Start: ['OnProgress', 'Cancel'],
-            OnProgress: ['Resolve', 'Cancel'],
-            Resolve: ['OnProgress', 'Finish', 'Cancel'],
-            Finish: [],
-            Cancel: [],
-        };
-
-        if (!allowedTransitions[project.status].includes(status)) {
-            res.status(400).json({ message: `Cannot transition from '${project.status}' to '${status}'.` });
-            return;
-        }
-
-        // --- THIS IS THE FIX ---
-        // Add a specific check before allowing the 'Finish' status.
-        if (status === 'Finish') {
-            const activeTasks = await Prisma.task.findMany({
-                where: {
-                    projectId: numericProjectId,
-                    version: project.version, // Only check tasks for the current version
-                    deletedAt: null,
-                }
-            });
-
-            const allTasksCompleted = activeTasks.every(task => task.status === 'Completed');
-
-            if (!allTasksCompleted) {
-                // This is the error message you were seeing.
-                res.status(400).json({ message: "All tasks for the current version must be completed before a project can be finished." });
-                return;
-            }
-        }
-        // --- End of Fix ---
-
-        await Prisma.$transaction(async (tx) => {
-            await tx.project.update({
-                where: { id: numericProjectId },
-                data: { 
-                    status: status,
-                    updatedById: loggedInUser.userId
-                },
-            });
-            await tx.projectStatusHistory.create({
-                data: {
-                    projectId: numericProjectId,
-                    status: status,
-                    changedById: loggedInUser.userId,
-                }
-            });
-        });
-
-        broadcast({ type: 'PROJECT_UPDATE', projectId: numericProjectId });
-
-        res.status(200).json({ message: `Project status updated to ${status}` });
-    } catch (error) {
-        console.error("Error updating project status:", error);
-        res.status(500).json({ message: `Error updating project status` });
-    }
+    res.status(200).json({ message: `Project status updated to ${status}` });
+  } catch (error) {
+    console.error("Error updating project status:", error);
+    res.status(500).json({ message: `Error updating project status` });
+  }
 };
 
 export const archiveAndIncrementVersion = async (
-    req: Request,
-    res: Response
+  req: Request,
+  res: Response
 ): Promise<void> => {
-    // ... (parameter extraction and validation)
-    const { projectId } = req.params;
-    const { startDate, endDate } = req.body;
-    const loggedInUser = req.user;
-    const numericProjectId = Number(projectId);
+  // ... (parameter extraction and validation)
+  const { projectId } = req.params;
+  const { startDate, endDate } = req.body;
+  const loggedInUser = req.user;
+  const numericProjectId = Number(projectId);
 
-    if (!startDate || !endDate) { /* ... */ }
+  if (!startDate || !endDate) {
+    /* ... */
+  }
 
-    // Access control: 404 if not allowed
-    if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
-        res.status(404).json({ message: "Project not found." });
+  // Access control: 404 if not allowed
+  if (!(await userHasProjectAccess(loggedInUser, numericProjectId))) {
+    res.status(404).json({ message: "Project not found." });
+    return;
+  }
+
+  try {
+    await Prisma.$transaction(async (tx) => {
+      const currentProject = await tx.project.findUnique({
+        where: { id: numericProjectId },
+      });
+
+      if (
+        !currentProject ||
+        !currentProject.version ||
+        !currentProject.startDate
+      ) {
+        res
+          .status(404)
+          .json({ message: "Project or its version/dates not found." });
         return;
-    }
+      }
 
-    try {
-        await Prisma.$transaction(async (tx) => {
-            const currentProject = await tx.project.findUnique({
-                where: { id: numericProjectId },
-            });
+      // 1. Archive the current version with its final status
+      await tx.projectVersion.create({
+        data: {
+          projectId: currentProject.id,
+          version: currentProject.version,
+          name: currentProject.name,
+          description: currentProject.description,
+          startDate: currentProject.startDate,
+          endDate: new Date(),
+          status: currentProject.status,
+        },
+      });
 
-            if (!currentProject || !currentProject.version || !currentProject.startDate) {
-                res.status(404).json({ message: "Project or its version/dates not found." });
-                return;
-            }
-            
-            // 1. Archive the current version with its final status
-            await tx.projectVersion.create({
-                data: {
-                    projectId: currentProject.id,
-                    version: currentProject.version,
-                    name: currentProject.name,
-                    description: currentProject.description,
-                    startDate: currentProject.startDate,
-                    endDate: new Date(),
-                    status: currentProject.status, 
-                },
-            });
+      // 2. Increment the version and reset the project
+      await tx.project.update({
+        where: { id: numericProjectId },
+        data: {
+          version: { increment: 1 },
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          status: "Start",
+          updatedById: loggedInUser?.userId,
+        },
+      });
 
-            // 2. Increment the version and reset the project
-            await tx.project.update({
-                where: { id: numericProjectId },
-                data: {
-                    version: { increment: 1 },
-                    startDate: new Date(startDate),
-                    endDate: new Date(endDate),
-                    status: 'Start',
-                    updatedById: loggedInUser?.userId,
-                },
-            });
-            
-            // 3. Archive old tasks
-            await tx.task.updateMany({
-                where: {
-                    projectId: numericProjectId,
-                    version: currentProject.version,
-                },
-                data: { status: 'Archived' },
-            });
+      // 3. Archive old tasks
+      await tx.task.updateMany({
+        where: {
+          projectId: numericProjectId,
+          version: currentProject.version,
+        },
+        data: { status: "Archived" },
+      });
 
-            broadcast({ type: 'PROJECT_UPDATE', projectId: numericProjectId });
+      broadcast({ type: "PROJECT_UPDATE", projectId: numericProjectId });
 
-            res.status(200).json({ message: "New version created successfully" });
-        });
-    } catch (error) {
-        console.error("Error archiving project version:", error);
-        res.status(500).json({ message: `Error archiving project version` });
-    }
+      res.status(200).json({ message: "New version created successfully" });
+    });
+  } catch (error) {
+    console.error("Error archiving project version:", error);
+    res.status(500).json({ message: `Error archiving project version` });
+  }
 };
 
 export const getProjectVersionHistory = async (
-    req: Request,
-    res: Response
+  req: Request,
+  res: Response
 ): Promise<void> => {
-    const { projectId } = req.params;
-    const numericProjectId = Number(projectId);
+  const { projectId } = req.params;
+  const numericProjectId = Number(projectId);
 
-    // Access control: 404 if not allowed
-    if (!(await userHasProjectAccess(req.user, numericProjectId))) {
-        res.status(404).json({ message: "Project not found." });
-        return;
-    }
+  // Access control: 404 if not allowed
+  if (!(await userHasProjectAccess(req.user, numericProjectId))) {
+    res.status(404).json({ message: "Project not found." });
+    return;
+  }
 
-    try {
-        const versions = await Prisma.projectVersion.findMany({
-            where: {
-                projectId: numericProjectId
-            },
-            orderBy: {
-                version: 'desc'
-            }
-        });
-        res.json(versions);
-    } catch (error) {
-        res.status(500).json({ message: `Error retrieving project version history: ${error}` });
-    }
+  try {
+    const versions = await Prisma.projectVersion.findMany({
+      where: {
+        projectId: numericProjectId,
+      },
+      orderBy: {
+        version: "desc",
+      },
+    });
+    res.json(versions);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: `Error retrieving project version history: ${error}` });
+  }
 };
 
-export const getAllProjectVersions = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const versions = await Prisma.projectVersion.findMany({
-            // Order them to make the timeline consistent
-            orderBy: [
-                {
-                    projectId: 'asc',
-                },
-                {
-                    version: 'asc',
-                },
-            ]
-        });
-        res.json(versions);
-    } catch (error) {
-        res.status(500).json({ message: `Error retrieving all project versions: ${error}` });
-    }
+export const getAllProjectVersions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const versions = await Prisma.projectVersion.findMany({
+      // Order them to make the timeline consistent
+      orderBy: [
+        {
+          projectId: "asc",
+        },
+        {
+          version: "asc",
+        },
+      ],
+    });
+    res.json(versions);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: `Error retrieving all project versions: ${error}` });
+  }
 };
 
-export const getProjectActivities = async (req: Request, res: Response): Promise<void> => {
-    const { projectId } = req.params;
-    const numericProjectId = Number(projectId);
+export const getProjectActivities = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const numericProjectId = Number(projectId);
 
-    // Access control: 404 if not allowed
-    if (!(await userHasProjectAccess(req.user, numericProjectId))) {
-        res.status(404).json({ message: "Project not found." });
-        return;
-    }
+  // Access control: 404 if not allowed
+  if (!(await userHasProjectAccess(req.user, numericProjectId))) {
+    res.status(404).json({ message: "Project not found." });
+    return;
+  }
 
-    try {
-        const activities = await Prisma.activity.findMany({
-            where: { projectId: numericProjectId },
-            include: {
-                user: { select: { username: true, profilePictureUrl: true } },
-                task: { select: { title: true } }
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
+  try {
+    const activities = await Prisma.activity.findMany({
+      where: { projectId: numericProjectId },
+      include: {
+        user: { select: { username: true, profilePictureUrl: true } },
+        task: { select: { title: true } },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-        res.json(activities);
-    } catch (error) {
-        res.status(500).json({ message: `Error retrieving project activities: ${error}` });
-    }
+    res.json(activities);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: `Error retrieving project activities: ${error}` });
+  }
 };

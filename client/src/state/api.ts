@@ -39,6 +39,10 @@ export interface Project {
     createdById?: number;
     updatedById?: number;
     deletedById?: number;
+    ticket_id?: string;
+    projectTicket?: {
+        ticket_id: string;
+    };
 
     versions?: ProjectVersion[];
 }
@@ -270,6 +274,10 @@ export interface MaintenanceTask {
         username: string;
         profilePictureUrl?: string;
     };
+    maintenanceTaskTicket?: {
+        ticket_id: string;
+    };
+    ticket_id?: string;
     timeLogs?: TimeLog[]; // Uses unified TimeLog system
     comments?: Comment[]; // Uses unified Comment system
 }
@@ -297,17 +305,24 @@ export interface CreateMaintenanceTaskPayload {
     type?: string;
     estimatedHours?: number;
     assignedToId?: number;
+    ticket_id?: string;
 }
 
 export interface UpdateMaintenanceTaskPayload {
     title?: string;
     description?: string;
-    // Removed status field
     priority?: string;
     type?: string;
     estimatedHours?: number;
     actualHours?: number;
     assignedToId?: number;
+    ticket_id?: string;
+}
+
+export interface Tickets {
+    ticket_id: string;
+    description_ticket: string;
+    created: string;
 }
 
 const rawBaseQuery = fetchBaseQuery({
@@ -374,7 +389,7 @@ const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
 export const api = createApi({
     baseQuery,
     reducerPath: 'api',
-    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks"],
+    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks", "Tickets"],
     endpoints: (build) => ({
         getAllRunningTimeLogs: build.query<TimeLog[], void>({
             query: () => 'timelogs/running/all',
@@ -409,7 +424,7 @@ export const api = createApi({
             providesTags: (result, error, projectId) => [{ type: 'Activities', id: projectId }],
         }),
 
-        createProject: build.mutation<Project, Partial<Project>>({
+        createProject: build.mutation<Project, Partial<Project> & { ticket_id?: string }>({
             query: (project) => ({
                 url: 'projects',
                 method: 'POST',
@@ -424,7 +439,7 @@ export const api = createApi({
             }),
             invalidatesTags: [{ type: 'Projects', id: 'LIST' }],
         }),
-        updateProject: build.mutation<Project, Partial<Project> & { id: number }>({
+        updateProject: build.mutation<Project, Partial<Project> & { id: number; ticket_id?: string }>({
             query: ({ id, ...patch }) => ({
                 url: `projects/${id}`,
                 method: 'PATCH',
@@ -441,7 +456,8 @@ export const api = createApi({
                         { type: 'Projects', id },
                         { type: 'Users', id: `PROJECT_${id}` },
                         { type: 'Tasks' as const, id: 'LIST' }, // For task-related queries
-                        { type: 'TimeLogs' as const, id: 'LIST' } // For reporting-related queries
+                        { type: 'TimeLogs' as const, id: 'LIST' }, // For reporting-related queries
+                        { type: 'Tickets' as const, id: 'LIST' } // For ticket-related queries
                     ]));
                 } catch {
                     // Error handling if needed - just ignore for now
@@ -449,7 +465,8 @@ export const api = createApi({
             },
             invalidatesTags: (result, error, { id }) => [
                 { type: "Projects", id },
-                { type: 'Users', id: `PROJECT_${id}` }
+                { type: 'Users', id: `PROJECT_${id}` },
+                { type: "Tickets", id: 'LIST' } // Invalidate tickets list on project update
             ],
         }),
 
@@ -901,6 +918,7 @@ export const api = createApi({
             invalidatesTags: [
                 { type: 'MaintenanceTasks', id: 'LIST' },
                 { type: 'ProductMaintenances', id: 'LIST' },
+                { type: 'Tickets', id: 'LIST' }
             ],
         }),
 
@@ -1145,6 +1163,14 @@ export const api = createApi({
                 }
             },
         }),
+        getTicketsWithStatusCR: build.query<Array<{ ticket_id: string; description_ticket: string }>, void>({
+            query: () => 'osticket/tickets/status-cr',
+            providesTags: ['Tickets'],
+        }),
+        getTicketsWithStatusOpen: build.query<Array<{ ticket_id: string; description_ticket: string }>, void>({
+            query: () => 'osticket/tickets/status-open',
+            providesTags: ['Tickets'],
+        }),
     }),
 });
 
@@ -1216,4 +1242,6 @@ export const {
     useWebSocketQuery,
     // ...existing hooks...
     useGetAllRunningTimeLogsQuery,
+    useGetTicketsWithStatusCRQuery,
+    useGetTicketsWithStatusOpenQuery
 } = api;

@@ -196,6 +196,8 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 onStatusChange={handleStatusChange}
                 localSearchTerm={localSearchTerm}
                 setLocalSearchTerm={setLocalSearchTerm}
+                teamName={teams.find(team => team.id === currentProject?.teamId)?.teamName}
+                ticketNumber={currentProject?.projectTicket?.ticket_id || currentProject?.ticket_id}
             />
 
             { activeTab === "Activity" && <ActivityView projectId={Number(id)} /> }
