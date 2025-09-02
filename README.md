@@ -24,6 +24,15 @@ ITList is a comprehensive project management system built with modern web techno
 - [Contributing](#-contributing)
 - [License](#-license)
 
+## ✨ Features (Latest)
+
+- **Ticket Required for Non-Admins:** When creating a maintenance task, non-admin users must select a ticket; admins can create maintenance tasks without a ticket.
+- **Unified Task & Maintenance Dashboard:** Maintenance tasks and regular tasks are displayed in unified DataGrid tables with consistent filtering and design.
+- **Developer Productivity Analytics:** Advanced reporting and analytics for developer productivity, including weekly/monthly stats and time logs.
+- **Improved Error Handling:** Fixed issues with read-only arrays in task sorting (e.g., using `[...filtered].sort(...)` to avoid mutation errors).
+- **Consistent Toast Notifications:** Toast notifications respect dark mode and are shown in all major dashboard and login pages.
+- **Error-Resistant UI:** UI now prevents common errors (e.g., sorting read-only arrays) and provides clear feedback for required fields.
+
 ## ✨ Features
 
 ### 🎯 Core Project Management
@@ -132,6 +141,44 @@ ITList is a comprehensive project management system built with modern web techno
 - **[Prettier](https://prettier.io/)** - Code formatting
 - **[Nodemon](https://nodemon.io/)** - Development server auto-restart
 - **[Concurrently](https://github.com/open-cli-tools/concurrently)** - Run multiple commands
+
+## 🧩 Key Library Versions
+
+### Frontend
+
+- next: 15.3.3
+- react: 18.3.1
+- @reduxjs/toolkit: 2.8.2
+- react-redux: 9.2.0
+- @mui/material: 7.1.1
+- @mui/x-data-grid: 8.5.0
+- tailwindcss: 4.1.8
+- lucide-react: 0.513.0
+- date-fns: 4.1.0
+- react-hot-toast: 2.5.2
+- xlsx: 0.18.5
+- gantt-task-react: 0.3.9
+- jspdf: 3.0.1
+- jspdf-autotable: 5.0.2
+- lodash: 4.17.21
+- numeral: 2.0.6
+
+### Backend
+
+- express: 4.17.1
+- prisma: 6.9.0
+- @prisma/client: 6.9.0
+- mysql2: 3.14.3
+- bcryptjs: 3.0.2
+- jsonwebtoken: 9.0.2
+- multer: 2.0.1
+- helmet: 8.1.0
+- express-rate-limit: 8.0.1
+- express-validator: 7.2.1
+- ws: 8.18.3
+- dotenv: 16.5.0
+- cors: 2.8.5
+- validator: 13.15.15
 
 ## 🚀 Getting Started
 

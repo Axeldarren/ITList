@@ -34,7 +34,7 @@ const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }:
     }
 
     // Sort by earliest due date
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       // Tasks with due dates come first, sorted by earliest date
       if (a.dueDate && b.dueDate) {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
