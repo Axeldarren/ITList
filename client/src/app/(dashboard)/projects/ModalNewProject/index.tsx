@@ -5,6 +5,8 @@ import { useGetTicketsWithStatusCRQuery } from '@/state/api';
 import React, { useState } from 'react'
 import { formatISO } from 'date-fns';
 import toast from 'react-hot-toast';
+import { useAppSelector } from '@/app/redux';
+import { selectCurrentUser } from '@/state/authSlice';
 
 type Props = {
     isOpen: boolean;
@@ -13,6 +15,7 @@ type Props = {
 
 const ModalNewProject = ({isOpen, onClose}: Props) => {
   const [createProject, { isLoading }] = useCreateProjectMutation();
+  const currentUser = useAppSelector(selectCurrentUser);
   
   // Fetch the list of teams
   const { data: teams, isLoading: teamsLoading } = useGetTeamsQuery();
@@ -41,9 +44,11 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
     };
 
     const handleSubmit = async () => {
-        // Include teamId and ticketId in the validation
-        if (!projectName || !startDate || !endDate || !teamId || !ticketId) {
-            toast.error('All fields are required.');
+        // For admin users, ticket is optional. For non-admin users, ticket is required.
+        const isTicketRequired = !currentUser?.isAdmin;
+        
+        if (!projectName || !startDate || !endDate || !teamId || (isTicketRequired && !ticketId)) {
+            toast.error('All required fields must be filled.');
             return;
         }
         const formattedStartDate = formatISO(new Date(startDate), { representation: 'complete' });
@@ -71,8 +76,9 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
   };
 
     const isFormValid = () => {
-        // Add teamId and ticketId to the form validation (prdUrl optional)
-        return projectName && description && startDate && endDate && teamId && ticketId;
+        // For admin users, ticket is optional. For non-admin users, ticket is required.
+        const isTicketRequired = !currentUser?.isAdmin;
+        return projectName && description && startDate && endDate && teamId && (!isTicketRequired || ticketId);
     }
 
   const inputStyles = 
@@ -126,14 +132,16 @@ const ModalNewProject = ({isOpen, onClose}: Props) => {
                     </option>
                 ))}
             </select>
-            {/* Ticket selection dropdown (required) */}
+            {/* Ticket selection dropdown (required for non-admin users, optional for admin users) */}
             <select
                 className={selectStyles}
                 value={ticketId}
                 onChange={(e) => setTicketId(e.target.value)}
-                required
+                required={!currentUser?.isAdmin}
             >
-                <option value="">Select a Ticket</option>
+                <option value="">
+                    {currentUser?.isAdmin ? "Select a Ticket (Optional)" : "Select a Ticket"}
+                </option>
                 {ticketsCR?.map((ticket) => (
                     <option key={ticket.ticket_id} value={String(ticket.ticket_id)}>
                         {ticket.ticket_id} - {ticket.description_ticket}

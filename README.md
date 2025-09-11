@@ -26,7 +26,7 @@ ITList is a comprehensive project management system built with modern web techno
 
 ## ✨ Features (Latest)
 
-- **Ticket Required for Non-Admins:** When creating a maintenance task, non-admin users must select a ticket; admins can create maintenance tasks without a ticket.
+- **Admin Ticket Bypass for Projects & Maintenance:** Admin users can create both projects and maintenance tasks without requiring ticket selection, while non-admin users must select a ticket.
 - **Unified Task & Maintenance Dashboard:** Maintenance tasks and regular tasks are displayed in unified DataGrid tables with consistent filtering and design.
 - **Developer Productivity Analytics:** Advanced reporting and analytics for developer productivity, including weekly/monthly stats and time logs.
 - **Improved Error Handling:** Fixed issues with read-only arrays in task sorting (e.g., using `[...filtered].sort(...)` to avoid mutation errors).
@@ -447,6 +447,7 @@ project-management-app/
 - Full system access
 - User management capabilities
 - Project creation and deletion
+- **Ticket Bypass Privileges** - Can create projects and maintenance tasks without requiring ticket selection
 - Advanced reporting and analytics
 - Team and assignment management
 

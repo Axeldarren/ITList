@@ -323,10 +323,13 @@ export const getUserWeeklyStats = async (req: Request, res: Response): Promise<v
         targetWeekEnd.setDate(targetWeekStart.getDate() + 6);
         targetWeekEnd.setHours(23, 59, 59, 999);
         
-        // Get time logs for the week
+        // Get time logs for the week (excluding logs from deleted tasks)
         const timeLogs = await prisma.timeLog.findMany({
             where: {
                 userId: numericUserId,
+                task: {
+                    deletedAt: null // Exclude logs from deleted tasks
+                },
                 endTime: {
                     gte: targetWeekStart,
                     lte: targetWeekEnd
@@ -348,11 +351,12 @@ export const getUserWeeklyStats = async (req: Request, res: Response): Promise<v
             }
         });
         
-        // Get tasks completed in the target week
+        // Get tasks completed in the target week (excluding deleted tasks)
         const completedTasks = await prisma.task.findMany({
             where: {
                 assignedUserId: numericUserId,
                 status: 'Completed',
+                deletedAt: null, // Exclude deleted tasks
                 updatedAt: {
                     gte: targetWeekStart,
                     lte: targetWeekEnd
