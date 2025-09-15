@@ -102,7 +102,6 @@ const Timeline = () => {
                         <button onClick={() => setView('gantt')} className={`p-1.5 rounded-full ${view === 'gantt' ? 'bg-white dark:bg-dark-secondary shadow' : ''}`} title="Gantt View"><LayoutGrid size={20} /></button>
                     </div>
 
-                    {/* --- THIS IS THE FIX: Conditional History Toggle --- */}
                     {view === 'roadmap' && (
                         <button onClick={() => setShowArchived(!showArchived)} className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 dark:bg-dark-tertiary dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">
                             {showArchived ? <ToggleRight className="text-blue-primary" /> : <ToggleLeft />}

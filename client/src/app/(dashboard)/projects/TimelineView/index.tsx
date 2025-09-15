@@ -23,7 +23,8 @@ const TimelineView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActiv
   
   const [displayOptions, setDisplayOptions] = useState({
     viewMode: ViewMode.Month,
-    locale: "en-US"
+    locale: "en-US",
+    taskNameWidth: "150px" as "narrow" | "medium" | "wide" | string
   });
   
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -40,7 +41,6 @@ const TimelineView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActiv
         )
       : tasks;
 
-    // --- THIS IS THE FIX ---
     // Ensure we only try to render tasks that have both a start and end date.
     return (
       filtered
@@ -74,6 +74,20 @@ const TimelineView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActiv
     }));
   };
 
+  const handleTaskNameWidthChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const widthMap = {
+      narrow: "150px",
+      medium: "280px", 
+      wide: "360px"
+    };
+    setDisplayOptions((prev) => ({
+      ...prev,
+      taskNameWidth: widthMap[event.target.value as keyof typeof widthMap] || "150px",
+    }));
+  };
+
   return (
     <div className='px-4 xl:px-6 py-6'>
       {/* This logic correctly opens the right modal based on project status */}
@@ -84,20 +98,38 @@ const TimelineView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActiv
         <ModalViewTask taskId={selectedTaskId} onClose={handleCloseModal} />
       )}
 
-      <div className='flex flex-wrap items-center justify-between gap-2 mb-4'>
+      <div className='flex flex-wrap items-center justify-between gap-4 mb-4'>
         <h1 className='me-2 text-lg font-bold dark:text-white'>
           Project Tasks Timeline
         </h1>
-        <div className='relative inline-block w-64'>
-          <select
-            className="focus:shadow-outline block w-full appearance-none rounded border border-gray-400 bg-white px-4 py-2 pr-8 leading-tight shadow hover:border-gray-500 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white"
-            value={displayOptions.viewMode}
-            onChange={handleViewModeChange}
-          >
-            <option value={ViewMode.Day}>Day</option>
-            <option value={ViewMode.Week}>Week</option>
-            <option value={ViewMode.Month}>Month</option>
-          </select>
+        <div className='flex flex-wrap items-center gap-3'>
+          {/* View Mode Selector */}
+          <div className='relative inline-block'>
+            <label className='text-xs text-gray-600 dark:text-gray-300 block mb-1'>View</label>
+            <select
+              className="focus:shadow-outline block w-32 appearance-none rounded border border-gray-400 bg-white px-3 py-1.5 text-sm leading-tight shadow hover:border-gray-500 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white"
+              value={displayOptions.viewMode}
+              onChange={handleViewModeChange}
+            >
+              <option value={ViewMode.Day}>Day</option>
+              <option value={ViewMode.Week}>Week</option>
+              <option value={ViewMode.Month}>Month</option>
+            </select>
+          </div>
+
+          {/* Task Name Width Selector */}
+          <div className='relative inline-block'>
+            <label className='text-xs text-gray-600 dark:text-gray-300 block mb-1'>Name Width</label>
+            <select
+              className="focus:shadow-outline block w-32 appearance-none rounded border border-gray-400 bg-white px-3 py-1.5 text-sm leading-tight shadow hover:border-gray-500 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white"
+              value={displayOptions.taskNameWidth === "150px" ? "narrow" : displayOptions.taskNameWidth === "280px" ? "medium" : "wide"}
+              onChange={handleTaskNameWidthChange}
+            >
+              <option value="narrow">Narrow</option>
+              <option value="medium">Medium</option>
+              <option value="wide">Wide</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -109,7 +141,7 @@ const TimelineView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActiv
                 {...displayOptions}
                 onClick={handleTaskClick}
                 columnWidth={displayOptions.viewMode === ViewMode.Month ? 150 : 100}
-                listCellWidth="150px"
+                listCellWidth={displayOptions.taskNameWidth}
                 projectProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}
                 projectProgressSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
             />

@@ -200,7 +200,7 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 ticketNumber={currentProject?.projectTicket?.ticket_id || currentProject?.ticket_id}
             />
 
-            { activeTab === "Activity" && <ActivityView projectId={Number(id)} /> }
+            { activeTab === "Activity" && <ActivityView projectId={Number(id)} searchTerm={localSearchTerm} /> }
             { activeTab === "History" && <ArchiveView versionHistory={versionHistory} tasks={archivedTasks} /> }
 
             {/* Existing views */}
