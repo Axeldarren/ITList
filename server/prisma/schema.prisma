@@ -53,7 +53,7 @@ model Project {
   id                  Int                    @id @default(autoincrement())
   name                String
   description         String?                @db.Text
-  prdUrl              String?                @db.Text
+  docUrl              String?                @db.Text
   startDate           DateTime?
   endDate             DateTime?
   version             Int                    @default(1)

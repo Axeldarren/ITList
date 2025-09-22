@@ -81,7 +81,7 @@ export const createProject = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name, description, startDate, endDate, teamId, prdUrl, ticket_id } =
+  const { name, description, startDate, endDate, teamId, docUrl, ticket_id } =
     req.body;
   const loggedInUser = req.user;
 
@@ -116,7 +116,7 @@ export const createProject = async (
         description,
         startDate,
         endDate,
-        ...({ prdUrl } as any),
+  ...({ docUrl } as any),
         version: 1,
         status: "Start", // Default status
         createdById: loggedInUser?.userId,
@@ -312,7 +312,7 @@ export const updateProject = async (
   res: Response
 ): Promise<void> => {
   const { projectId } = req.params;
-  const { name, description, startDate, endDate, teamId, prdUrl, ticket_id } =
+  const { name, description, startDate, endDate, teamId, docUrl, ticket_id } =
     req.body;
   const loggedInUser = req.user;
   const numericProjectId = Number(projectId);
@@ -332,7 +332,7 @@ export const updateProject = async (
           description,
           startDate,
           endDate,
-          ...({ prdUrl } as any),
+          ...({ docUrl } as any),
           updatedById: loggedInUser?.userId,
         },
       });
