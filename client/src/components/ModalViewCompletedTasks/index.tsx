@@ -107,7 +107,7 @@ const ModalViewCompletedTasks: React.FC<ModalViewCompletedTasksProps> = ({
   const monthName = format(new Date(`${selectedMonth}-01`), 'MMMM yyyy');
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} name="">
+  <Modal isOpen={isOpen} onClose={onClose} name="" closeOnBackdropClick>
       <div className="max-w-4xl w-full max-h-[80vh] overflow-y-auto">
         {/* Header */}
         <div className="border-b border-gray-200 dark:border-gray-600 pb-4 mb-6">

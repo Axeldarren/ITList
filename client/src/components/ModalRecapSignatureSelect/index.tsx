@@ -92,7 +92,7 @@ const ModalRecapSignatureSelect: React.FC<ModalRecapSignatureSelectProps> = ({
     );
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} name="Select Report Signatories">
+    <Modal isOpen={isOpen} onClose={handleClose} name="Select Report Signatories" closeOnBackdropClick>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">

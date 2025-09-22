@@ -21,7 +21,7 @@ const ModalConfirm = ({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} name={title}>
+    <Modal isOpen={isOpen} onClose={onClose} name={title} closeOnBackdropClick>
         <div className="mt-4">
             <p className="text-sm text-gray-600 dark:text-gray-300">
                 {message}

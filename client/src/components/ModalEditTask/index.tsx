@@ -214,7 +214,6 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
   return (
     <div
       className="bg-opacity-70 fixed inset-0 z-50 flex h-full w-full items-start justify-center overflow-y-auto bg-black p-4 pt-12"
-      onClick={onClose}
     >
       <div
         className="dark:bg-dark-secondary relative w-full max-w-4xl rounded-lg bg-gray-100 p-6 shadow-xl"

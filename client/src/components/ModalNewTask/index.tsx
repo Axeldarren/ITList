@@ -109,7 +109,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const selectStyles = `${inputStyles}`;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} name="Create New Task">
+  <Modal isOpen={isOpen} onClose={onClose} name="Create New Task" closeOnBackdropClick={false}>
       <form
         className="mt-4 space-y-4"
         onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}

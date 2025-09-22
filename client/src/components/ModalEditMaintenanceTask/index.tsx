@@ -219,7 +219,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} name="Edit Maintenance Task">
+  <Modal isOpen={isOpen} onClose={onClose} name="Edit Maintenance Task" closeOnBackdropClick={false}>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div>

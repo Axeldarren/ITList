@@ -78,7 +78,7 @@ const ModalEditProductMaintenance = ({ isOpen, onClose, productMaintenance }: Pr
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} name="Edit Product Maintenance">
+  <Modal isOpen={isOpen} onClose={handleClose} name="Edit Product Maintenance" closeOnBackdropClick={false}>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name */}
         <div>

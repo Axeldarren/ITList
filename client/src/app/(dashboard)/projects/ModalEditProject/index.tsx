@@ -26,7 +26,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [prdUrl, setPrdUrl] = useState("");
+    const [docUrl, setDocUrl] = useState("");
   // --- NEW: Add state for the selected team ---
   const [teamId, setTeamId] = useState<string>("");
   const [ticketId, setTicketId] = useState<string>("");
@@ -36,7 +36,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
       setProjectName(project.name);
       setDescription(project.description || "");
       setTeamId(project.teamId?.toString() || ""); // Set initial team
-      setPrdUrl(project.prdUrl || "");
+        setDocUrl(project.docUrl || "");
       setTicketId(
         project.projectTicket?.ticket_id
           ? String(project.projectTicket.ticket_id)
@@ -61,7 +61,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       teamId: Number(teamId),
-      prdUrl: prdUrl || undefined,
+        docUrl: docUrl || undefined,
       ticket_id: ticketId || undefined,
     }).unwrap();
 
@@ -86,7 +86,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
     "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} name="Edit Project">
+  <Modal isOpen={isOpen} onClose={onClose} name="Edit Project" closeOnBackdropClick={false}>
       <form
         className="mt-4 space-y-6"
         onSubmit={(e) => {
@@ -109,13 +109,13 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
           onChange={(e) => setDescription(e.target.value)}
           required
         />
-        <input
-          type="url"
-          className={inputStyles}
-          placeholder="PRD (Google Docs) URL"
-          value={prdUrl}
-          onChange={(e) => setPrdUrl(e.target.value)}
-        />
+          <input
+            type="url"
+            className={inputStyles}
+            placeholder="Document URL"
+            value={docUrl}
+            onChange={(e) => setDocUrl(e.target.value)}
+          />
         {/* --- NEW: Team selection dropdown --- */}
         <select
           className={selectStyles}

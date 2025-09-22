@@ -29,7 +29,7 @@ const ViewMembersModal = ({ isOpen, onClose, team }: { isOpen: boolean, onClose:
     if (!isOpen || !team) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} name={`Members of ${team.teamName}`}>
+    <Modal isOpen={isOpen} onClose={onClose} name={`Members of ${team.teamName}`} closeOnBackdropClick>
             <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
                 {team.users && team.users.length > 0 ? (
                     team.users.map((user: User) => (
@@ -308,11 +308,11 @@ const Teams = () => {
   return (
     <div className="flex w-full flex-col p-8">
       {/* Modals */}
-      <Modal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} name="Create New Team">
+    <Modal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} name="Create New Team" closeOnBackdropClick={false}>
         <TeamForm allUsers={users} onSubmit={handleCreateSubmit} isLoading={isCreating} />
       </Modal>
 
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} name="Edit Team">
+    <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} name="Edit Team" closeOnBackdropClick={false}>
         <TeamForm initialData={selectedTeam ?? undefined} allUsers={users} onSubmit={handleUpdateSubmit} isLoading={isUpdating} />
       </Modal>
 

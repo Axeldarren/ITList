@@ -25,7 +25,7 @@ export interface Project {
     id: number;
     name: string;
     description?: string;
-    prdUrl?: string;
+    docUrl?: string;
     startDate?: string;
     endDate?: string;
     version: number;

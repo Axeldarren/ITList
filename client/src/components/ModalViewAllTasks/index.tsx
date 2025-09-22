@@ -94,7 +94,7 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
   const statusOrder = ["To Do", "Work In Progress", "Under Review"];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} name={`${developer.username}'s Tasks`}>
+  <Modal isOpen={isOpen} onClose={onClose} name={`${developer.username}'s Tasks`} closeOnBackdropClick>
       <div className="max-h-[70vh] overflow-y-auto">
         {/* Developer Header */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">

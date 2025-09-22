@@ -64,7 +64,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
     const inputStyles = "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} name={`Edit User: ${user?.username}`}>
+    <Modal isOpen={isOpen} onClose={onClose} name={`Edit User: ${user?.username}`} closeOnBackdropClick={false}>
             <form
                 className='mt-4 space-y-4'
                 onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}

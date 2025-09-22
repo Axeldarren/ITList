@@ -25,7 +25,7 @@ type Props = {
     onArchive: () => void;
     onExportPDF: () => void;
     onStatusChange: (newStatus: ProjectStatus | string) => void;
-    prdUrl?: string;
+    docUrl?: string;
     teamName?: string;
     ticketNumber?: string;
 }
@@ -62,7 +62,7 @@ const ProjectHeader = ({
     setLocalSearchTerm,
     onExportPDF,
     onStatusChange,
-    prdUrl,
+    docUrl,
     teamName,
     ticketNumber
 }: Props) => {
@@ -152,9 +152,9 @@ const ProjectHeader = ({
                                         <button onClick={onExportPDF} className='flex items-center rounded-md bg-purple-600 px-3 py-2 text-white hover:bg-purple-700'><FileDown className='mr-2 size-5' /> Report</button>
                                     </>
                                 )}
-                                {prdUrl && (
-                                    <a href={prdUrl} target="_blank" rel="noopener noreferrer" className='flex items-center rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-700'>
-                                        PRD
+                                {docUrl && (
+                                    <a href={docUrl} target="_blank" rel="noopener noreferrer" className='flex items-center rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-700'>
+                                        Document
                                     </a>
                                 )}
                             </div>
