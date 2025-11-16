@@ -33,9 +33,12 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Your frontend's address
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   optionsSuccessStatus: 200,
-  credentials: true // Allow cookies
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Encrypted'],
+  exposedHeaders: ['X-Encrypted']
 };
 app.use(cors(corsOptions)); // Use the new options
 
