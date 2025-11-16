@@ -16,13 +16,13 @@ export const getTicketsWithStatusCR = async (req: Request, res: Response): Promi
                 c.subject description_ticket,
                 i.name ticket_status,
                 a.created
-            FROM   db_osticket_v18.ost_ticket a 
-                left join db_osticket_v18.ost_staff b on a.staff_id = b.staff_id
-                left join db_osticket_v18.ost_ticket__cdata c on a.ticket_id = c.ticket_id
+            FROM   ostiket.ost_ticket a 
+                left join ostiket.ost_staff b on a.staff_id = b.staff_id
+                left join ostiket.ost_ticket__cdata c on a.ticket_id = c.ticket_id
                 left join (select *
-                            from   (select a.object_id,b.entry_id,substr(b.value,3,6) office_code,trim(both '"}'from substr(b.value,12))office_name from db_osticket_v18.ost_form_entry a left join db_osticket_v18.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 37) a
-                                    left join (select a.id,substr(b.value,3,instr(trim(both '{"' from b.value),'"')-1) category from db_osticket_v18.ost_form_entry a left join db_osticket_v18.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 45) b on a.entry_id = b.id) h on a.ticket_id = h.object_id
-                left join db_osticket_v18.ost_ticket_status i on a.status_id = i.id
+                            from   (select a.object_id,b.entry_id,substr(b.value,3,6) office_code,trim(both '"}'from substr(b.value,12))office_name from ostiket.ost_form_entry a left join ostiket.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 37) a
+                                    left join (select a.id,substr(b.value,3,instr(trim(both '{"' from b.value),'"')-1) category from ostiket.ost_form_entry a left join ostiket.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 45) b on a.entry_id = b.id) h on a.ticket_id = h.object_id
+                left join ostiket.ost_ticket_status i on a.status_id = i.id
             WHERE  h.category = "CR" AND i.name = "OPEN" 
             order by a.ticket_id`
         );
@@ -48,13 +48,13 @@ export const getTicketsWithStatusOpen = async (req: Request, res: Response): Pro
                 c.subject description_ticket,
                 i.name ticket_status,
                 a.created
-            FROM   db_osticket_v18.ost_ticket a 
-                left join db_osticket_v18.ost_staff b on a.staff_id = b.staff_id
-                left join db_osticket_v18.ost_ticket__cdata c on a.ticket_id = c.ticket_id
+            FROM   ostiket.ost_ticket a 
+                left join ostiket.ost_staff b on a.staff_id = b.staff_id
+                left join ostiket.ost_ticket__cdata c on a.ticket_id = c.ticket_id
                 left join (select *
-                            from   (select a.object_id,b.entry_id,substr(b.value,3,6) office_code,trim(both '"}'from substr(b.value,12))office_name from db_osticket_v18.ost_form_entry a left join db_osticket_v18.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 37) a
-                                    left join (select a.id,substr(b.value,3,instr(trim(both '{"' from b.value),'"')-1) category from db_osticket_v18.ost_form_entry a left join db_osticket_v18.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 45) b on a.entry_id = b.id) h on a.ticket_id = h.object_id
-                left join db_osticket_v18.ost_ticket_status i on a.status_id = i.id
+                            from   (select a.object_id,b.entry_id,substr(b.value,3,6) office_code,trim(both '"}'from substr(b.value,12))office_name from ostiket.ost_form_entry a left join ostiket.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 37) a
+                                    left join (select a.id,substr(b.value,3,instr(trim(both '{"' from b.value),'"')-1) category from ostiket.ost_form_entry a left join ostiket.ost_form_entry_values b on a.id = b.entry_id where b.field_id = 45) b on a.entry_id = b.id) h on a.ticket_id = h.object_id
+                left join ostiket.ost_ticket_status i on a.status_id = i.id
             WHERE  i.name = "OPEN" 
             order by a.ticket_id`
         );
