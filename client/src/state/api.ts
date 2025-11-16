@@ -340,33 +340,43 @@ const rawBaseQuery = fetchBaseQuery({
 const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
     const useEncryption = !!process.env.NEXT_PUBLIC_ENCRYPTION_SECRET;
 
-    // Encrypt request body if JSON and encryption enabled
-            let finalArgs: string | FetchArgs = args as string | FetchArgs;
-            if (useEncryption) {
-                if (typeof finalArgs === 'string') {
-                    finalArgs = { url: finalArgs, headers: { 'X-Encrypted': 'v1' } };
-                } else if (typeof finalArgs === 'object' && finalArgs) {
-                    // Always ask server to encrypt responses
-                    const newHeaders: Record<string, string> = {};
-                    if (finalArgs.headers) {
-                        if (finalArgs.headers instanceof Headers) {
-                            finalArgs.headers.forEach((v, k) => { newHeaders[k] = v; });
-                        } else {
-                            Object.assign(newHeaders, finalArgs.headers as Record<string, string>);
-                        }
-                    }
-                    newHeaders['X-Encrypted'] = 'v1';
-
-                    const method = (finalArgs.method || 'GET').toUpperCase();
-                    const hasBody = typeof finalArgs.body !== 'undefined' && finalArgs.body !== null;
-                    if (hasBody && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-                        const envelope = await encryptJson(finalArgs.body as unknown);
-                        finalArgs = { ...finalArgs, headers: newHeaders, body: envelope };
-                    } else {
-                        finalArgs = { ...finalArgs, headers: newHeaders };
-                    }
+    let finalArgs: string | FetchArgs = args as string | FetchArgs;
+    if (useEncryption) {
+        // IMPORTANT: We intentionally DO NOT encrypt multipart/form-data (FormData) bodies.
+        // Encrypting those would turn the binary/file payload into JSON and multer on the server
+        // would never see req.file, causing "No file uploaded." errors. We only encrypt JSON-like
+        // bodies while still requesting encrypted responses via X-Encrypted for normal (non-upload) requests.
+        if (typeof finalArgs === 'string') {
+            // Simple GET string form – request encrypted response only
+            finalArgs = { url: finalArgs, headers: { 'X-Encrypted': 'v1' } };
+        } else if (typeof finalArgs === 'object' && finalArgs) {
+            const newHeaders: Record<string, string> = {};
+            if (finalArgs.headers) {
+                if (finalArgs.headers instanceof Headers) {
+                    finalArgs.headers.forEach((v, k) => { newHeaders[k] = v; });
+                } else {
+                    Object.assign(newHeaders, finalArgs.headers as Record<string, string>);
                 }
             }
+
+            const method = (finalArgs.method || 'GET').toUpperCase();
+            const hasBody = typeof finalArgs.body !== 'undefined' && finalArgs.body !== null;
+            const isFormData = hasBody && typeof FormData !== 'undefined' && finalArgs.body instanceof FormData;
+
+            if (hasBody && !isFormData && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+                // Encrypt ONLY JSON-like bodies; skip FormData so file uploads work
+                newHeaders['X-Encrypted'] = 'v1';
+                const envelope = await encryptJson(finalArgs.body as unknown);
+                finalArgs = { ...finalArgs, headers: newHeaders, body: envelope };
+            } else {
+                // For GET or FormData (multipart) just request encrypted response for non-upload cases
+                if (!isFormData) {
+                    newHeaders['X-Encrypted'] = 'v1';
+                }
+                finalArgs = { ...finalArgs, headers: newHeaders };
+            }
+        }
+    }
 
             const result = await rawBaseQuery(finalArgs, api, extraOptions);
     const status = (result as { error?: { status?: number } }).error?.status;
@@ -375,12 +385,29 @@ const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
         api.dispatch(logOut());
     }
     // Decrypt successful JSON responses
-            if (useEncryption && 'data' in result && result.data && isEncryptedEnvelope(result.data as unknown)) {
-        try {
-                    const decrypted = await decryptJson(result.data as { iv: string; data: string; tag?: string });
-                    return { ...result, data: decrypted } as typeof result;
-        } catch {
-            // If decryption fails, return as-is; upstream can handle
+    if (useEncryption && 'data' in result) {
+        const possibleData = (result as { data?: unknown }).data;
+        if (possibleData && isEncryptedEnvelope(possibleData as unknown)) {
+            try {
+                const decrypted = await decryptJson(possibleData as { iv: string; data: string; tag?: string });
+                return { ...result, data: decrypted } as typeof result;
+            } catch {
+                // If decryption fails, return as-is; upstream can handle
+            }
+        }
+    }
+    // Decrypt error envelope (RTK Query shapes errors as result.error)
+    if (useEncryption && 'error' in result) {
+        type RTKErrorShape = { status?: number; data?: unknown };
+        const possibleError = (result as { error?: RTKErrorShape }).error;
+        if (possibleError && isEncryptedEnvelope(possibleError.data as unknown)) {
+            try {
+                const decryptedErr = await decryptJson(possibleError.data as { iv: string; data: string; tag?: string });
+                const newError: RTKErrorShape = { ...possibleError, data: decryptedErr };
+                return { ...(result as object), error: newError } as typeof result;
+            } catch {
+                // Silent fallback; deliver original encrypted error if decryption fails
+            }
         }
     }
     return result;

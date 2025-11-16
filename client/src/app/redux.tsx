@@ -9,7 +9,6 @@ import {
   Provider,
 } from "react-redux";
 import globalReducer from "@/state";
-// The import casing must match the actual filename: 'authSlice.ts'
 import authReducer from "@/state/authSlice"; 
 import { api } from "@/state/api";
 import { setupListeners } from "@reduxjs/toolkit/query";
