@@ -32,6 +32,9 @@ import osticketRoutes from './routes/osticketRoutes';
 dotenv.config();
 const app = express();
 
+// Trust first proxy (required for Railway, Heroku, etc.)
+app.set('trust proxy', 1);
+
 const corsOptions = {
   origin: "*",
   credentials: true,
