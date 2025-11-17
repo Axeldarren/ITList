@@ -4,10 +4,10 @@ const nextConfig: NextConfig = {
   images: {
         remotePatterns: [
             {
-                protocol: 'http',
-                hostname: 'localhost',
-                port: '8008', // Make sure this matches your backend server port
-                pathname: '/uploads/**',
+                protocol: (process.env.NEXT_PUBLIC_API_PROTOCOL || 'http') as 'http' | 'https',
+                hostname: process.env.NEXT_PUBLIC_API_HOSTNAME || 'localhost',
+                port: process.env.NEXT_PUBLIC_API_PORT || '8008', 
+                pathname: '/uploads/**'
             },
         ],
     },
