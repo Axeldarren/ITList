@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
             },
             {
                 protocol: 'https',
-                hostname: '**.railway.app',
+                hostname: 'itlist-server-production.up.railway.app',
                 pathname: '/uploads/**'
             },
         ],
