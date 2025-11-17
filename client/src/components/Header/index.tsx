@@ -17,8 +17,8 @@ const Header = ({
         compact = true,
         className = ''
 }: Props) => {
-    const containerClasses = `flex w-full items-center justify-between border-b border-gray-100 dark:border-dark-tertiary ${
-        compact ? 'py-2 mb-3' : 'py-3 mb-5'
+    const containerClasses = `flex flex-wrap w-full items-center justify-between gap-2 md:gap-3 border-b border-gray-100 dark:border-dark-tertiary ${
+        compact ? 'py-2 mb-3 px-3 md:px-4' : 'py-3 mb-5 px-3 md:px-4'
     } ${className}`;
 
     return (
@@ -26,7 +26,7 @@ const Header = ({
         {/* --- NEW: Group for title and title-side components --- */}
                 <div className={`flex items-center ${compact ? 'gap-2' : 'gap-3'}`}>
                     <h1 
-                        className={`${isSmallText ? "text-lg" : "text-2xl"} font-semibold text-gray-900 dark:text-white`}
+                        className={`${isSmallText ? "text-base sm:text-lg md:text-xl" : "text-lg sm:text-xl md:text-2xl"} font-semibold text-gray-900 dark:text-white`}
                     >
                 {name}
             </h1>

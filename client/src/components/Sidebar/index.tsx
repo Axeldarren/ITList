@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsSidebarCollapsed } from '@/state';
 import { useGetProjectsQuery, useDeleteProjectMutation, Project } from '@/state/api'; 
-import { AlertCircle, AlertOctagon, AlertTriangle, BarChartHorizontal, Briefcase, ChevronDown, ChevronUp, HomeIcon, Layers3, LockIcon, LucideIcon, Settings, ShieldAlert, Trash2, User, Users, X, UserCheck, Wrench } from 'lucide-react';
+import { AlertCircle, AlertOctagon, AlertTriangle, BarChartHorizontal, Briefcase, Calendar, ChevronUp, ChevronsLeft, ChevronsRight, FolderKanban, HomeIcon, Layers3, LucideIcon, Settings, ShieldAlert, Trash2, User, Users, UserCheck, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -59,6 +59,11 @@ const Sidebar = () => {
     const isSidebarCollapsed = useAppSelector(
         (state) => state.global.isSidebarCollapsed,
     );
+    const pathname = usePathname();
+    
+    // Check if currently on a project or priority page
+    const isProjectActive = pathname.startsWith('/projects/');
+    const isPriorityActive = pathname.startsWith('/priority/');
 
     const currentUser = useAppSelector(selectCurrentUser);
     
@@ -119,9 +124,9 @@ const Sidebar = () => {
 
 
     const sidebarClassNames = `fixed flex flex-col h-full justify-between
-        transition-all duration-300 z-40 bg-white/80 dark:bg-black/60 backdrop-blur-sm
-        border-r border-gray-100 dark:border-dark-tertiary overflow-y-auto
-        ${isSidebarCollapsed ? 'w-0 hidden' : 'w-64'}
+        transition-all duration-300 ease-in-out z-40 bg-white/80 dark:bg-black/60 backdrop-blur-sm
+        border-r border-gray-100 dark:border-dark-tertiary overflow-hidden whitespace-nowrap
+        ${isSidebarCollapsed ? 'w-0 md:w-[60px] overflow-y-hidden' : 'w-64 overflow-y-auto'}
     `;
 
     return (
@@ -150,39 +155,35 @@ const Sidebar = () => {
             )}
             
             <div className='flex h-full w-full flex-col justify-start'>
-                <div className='z-50 flex min-h-[56px] w-64 items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-dark-tertiary'>
-                    <div className='text-lg font-semibold tracking-tight text-gray-900 dark:text-white'>
-                        ITLIST
-                    </div>
+                <div className={`z-50 flex min-h-[56px] items-center py-3 border-b border-gray-100 dark:border-dark-tertiary ${
+                    isSidebarCollapsed ? 'px-2.5' : 'px-5'
+                }`}>
                     {!isSidebarCollapsed && (
-                        <button className='py-2' onClick={() => dispatch(setIsSidebarCollapsed(true))}>
-                            <X className='h-6 w-6 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white' />
-                        </button>
-                    )}
-                </div>
-                {/* TEAM */}
-                <div className='flex items-center gap-4 px-5 py-4 border-b border-gray-100 dark:border-dark-tertiary'>
-                    <Image src="/Code.svg" alt='Logo' width={40} height={40} /> 
-                    <div>
-                        <h3 className='text-sm font-medium tracking-tight text-gray-600 dark:text-gray-300'>
-                            IT TEAM
-                        </h3>
-                        <div className='mt-1 flex items-start gap-2'>
-                            <LockIcon className='mt-[0.1rem] h-3 w-3 text-gray-500 dark:text-gray-400' />
-                            <p className='text-xs text-gray-500'>Private</p>
+                        <div className='flex items-center min-w-0'>
+                            <Image src="/Code.svg" alt='Logo' width={32} height={32} className='flex-shrink-0' /> 
+                            <div className='text-lg font-semibold tracking-tight text-gray-900 dark:text-white ml-3 whitespace-nowrap overflow-hidden'>
+                                ITLIST
+                            </div>
                         </div>
-                    </div>
+                    )}
+                    <button className={`py-2 w-10 flex items-center justify-center flex-shrink-0 ${isSidebarCollapsed ? 'mx-auto' : 'ml-auto'}`} onClick={() => dispatch(setIsSidebarCollapsed(!isSidebarCollapsed))}>
+                        {isSidebarCollapsed ? (
+                            <ChevronsRight className='h-6 w-6 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white transition-colors duration-150' />
+                        ) : (
+                            <ChevronsLeft className='h-6 w-6 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white transition-colors duration-150' />
+                        )}
+                    </button>
                 </div>
                 {/* NAVBAR LINKS */}
                 <nav className='z-10 w-full'>
-                    <SidebarLink icon={HomeIcon} label='Home' href='/' />
+                    <SidebarLink icon={HomeIcon} label='Home' href='/home' />
                     {currentUser?.isAdmin && (
                         <>
                             <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
                             <SidebarLink icon={UserCheck} label='Assignments' href='/assignments' />
                         </>
                     )}
-                    <SidebarLink icon={Briefcase} label='Timeline' href='/timeline' />
+                    <SidebarLink icon={Calendar} label='Timeline' href='/timeline' />
                     <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
                     <SidebarLink icon={Settings} label='Settings' href='/settings' />
                     <SidebarLink icon={User} label='Users' href='/users' />
@@ -190,20 +191,36 @@ const Sidebar = () => {
                 </nav>
 
                 {/* PROJECTS LINKS */}
-                <button 
-                    onClick={() => setShowProjects((prev) => !prev)} 
-                    className='flex w-full items-center justify-between px-5 py-2.5 text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5 transition-colors'
-                >
-                    <span className=''>Projects</span>
-                    {showProjects ? (
-                        <ChevronUp className='h-5 w-5' />
-                    ) : (
-                        <ChevronDown className='h-5 w-5' />
-                    )}
-                </button>
+                {isSidebarCollapsed ? (
+                    <div className="w-full">
+                        <button 
+                            onClick={() => dispatch(setIsSidebarCollapsed(false))} 
+                            className={`relative flex w-full cursor-pointer items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 justify-center px-4 py-2.5 rounded-md ${
+                                isProjectActive ? 'bg-gray-50 dark:bg-white/5' : ''
+                            }`}
+                        >
+                            <FolderKanban className={`h-5 w-5 flex-shrink-0 ${
+                                isProjectActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'
+                            }`} />
+                        </button>
+                    </div>
+                ) : (
+                    <button 
+                        onClick={() => setShowProjects((prev) => !prev)} 
+                        className='flex w-full items-center justify-between px-6 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors rounded-md'
+                    >
+                        <div className='flex items-center gap-3'>
+                            <FolderKanban className='h-5 w-5 flex-shrink-0 text-gray-700 dark:text-gray-200' />
+                            <span className='text-sm font-medium text-gray-800 dark:text-gray-100'>Projects</span>
+                        </div>
+                        <ChevronUp className={`h-5 w-5 text-gray-700 dark:text-gray-200 transition-transform duration-200 ease-in-out ${showProjects ? '' : 'rotate-180'}`} />
+                    </button>
+                )}
                 {/* PROJECTS LIST */}
-                {showProjects && (
-                    <div className="space-y-1.5 pl-4">
+                {!isSidebarCollapsed && (
+                    <div className={`grid transition-all duration-300 ease-in-out ${showProjects ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                        <div className="overflow-hidden">
+                            <div className="space-y-1.5 pl-4">
                         {/* Active Projects */}
                         <div className="flex items-center justify-between px-5 pt-2 pb-1">
                             <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Active</h4>
@@ -266,28 +283,48 @@ const Sidebar = () => {
                             </>
                         )}
                     </div>
+                        </div>
+                    </div>
                 )}
                 
                 {/* PRIORITY LINKS */}
-                <button 
-                    onClick={() => setShowPriority((prev) => !prev)} 
-                    className='flex w-full items-center justify-between px-5 py-2.5 text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5 transition-colors'
-                >
-                    <span className=''>Priority</span>
-                    {showPriority ? (
-                        <ChevronUp className='h-5 w-5' />
-                    ) : (
-                        <ChevronDown className='h-5 w-5' />
-                    )}
-                </button>
-                {showPriority && (
-                    <>
-                        <SidebarLink icon={AlertCircle} label='Urgent' href='/priority/urgent' />
-                        <SidebarLink icon={ShieldAlert} label='High' href='/priority/high' />
-                        <SidebarLink icon={AlertTriangle} label='Medium' href='/priority/medium' />
-                        <SidebarLink icon={AlertOctagon} label='Low' href='/priority/low' />
-                        <SidebarLink icon={Layers3} label='Backlog' href='/priority/backlog' />
-                    </>
+                {isSidebarCollapsed ? (
+                    <div className="w-full">
+                        <button 
+                            onClick={() => dispatch(setIsSidebarCollapsed(false))} 
+                            className={`relative flex w-full cursor-pointer items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 justify-center px-4 py-2.5 rounded-md ${
+                                isPriorityActive ? 'bg-gray-50 dark:bg-white/5' : ''
+                            }`}
+                        >
+                            <ShieldAlert className={`h-5 w-5 flex-shrink-0 ${
+                                isPriorityActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'
+                            }`} />
+                        </button>
+                    </div>
+                ) : (
+                    <button 
+                        onClick={() => setShowPriority((prev) => !prev)} 
+                        className='flex w-full items-center justify-between px-6 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors rounded-md'
+                    >
+                        <div className='flex items-center gap-3'>
+                            <ShieldAlert className='h-5 w-5 flex-shrink-0 text-gray-700 dark:text-gray-200' />
+                            <span className='text-sm font-medium text-gray-800 dark:text-gray-100'>Priority</span>
+                        </div>
+                        <ChevronUp className={`h-5 w-5 text-gray-700 dark:text-gray-200 transition-transform duration-200 ease-in-out ${showPriority ? '' : 'rotate-180'}`} />
+                    </button>
+                )}
+                {!isSidebarCollapsed && (
+                    <div className={`grid transition-all duration-300 ease-in-out ${showPriority ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                        <div className="overflow-hidden">
+                            <div className="space-y-1.5 pl-4">
+                                <SidebarLink icon={AlertCircle} label='Urgent' href='/priority/urgent' />
+                                <SidebarLink icon={ShieldAlert} label='High' href='/priority/high' />
+                                <SidebarLink icon={AlertTriangle} label='Medium' href='/priority/medium' />
+                                <SidebarLink icon={AlertOctagon} label='Low' href='/priority/low' />
+                                <SidebarLink icon={Layers3} label='Backlog' href='/priority/backlog' />
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
@@ -308,21 +345,27 @@ const SidebarLink = ({
     isSelected = false,
 }: SidebarLinkProps) => {
     const pathname = usePathname();
-    const isActive = (pathname === href) || isSelected;
+    // For home page, use exact match. For others, check if pathname starts with href
+    const isActive = href === '/' 
+        ? pathname === href 
+        : (pathname === href || pathname.startsWith(href + '/')) || isSelected;
+    const isSidebarCollapsed = useAppSelector((state) => state.global.isSidebarCollapsed);
 
     return (
         <Link href={href} className="w-full">
             <div 
                 className={`relative flex cursor-pointer items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${
                     isActive ? "bg-gray-50 dark:bg-white/5" : ""
-                } justify-start px-6 py-2.5 rounded-md`}
+                } ${isSidebarCollapsed ? 'justify-center px-4 py-2.5' : 'justify-start px-6 py-2.5'} rounded-md`}
             >
-                {isActive && <div className='absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-blue-500/60' />}
+                {isActive && !isSidebarCollapsed && <div className='absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-blue-500/60' />}
 
-                <Icon className='h-5 w-5 flex-shrink-0 text-gray-700 dark:text-gray-200' />
-                <span className={`text-sm font-medium text-gray-800 dark:text-gray-100 truncate`}>
-                    {label}
-                </span>
+                <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'}`} />
+                {!isSidebarCollapsed && (
+                    <span className={`text-sm font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-800 dark:text-gray-100'} truncate`}>
+                        {label}
+                    </span>
+                )}
             </div>
         </Link>
     )

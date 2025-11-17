@@ -458,6 +458,34 @@ const assignedUserTasks = useMemo(() => {
                 <DataGrid rows={filteredTasksForGrid} columns={taskColumns} loading={tasksLoading} onRowClick={handleRowClick} sx={dataGridSxStyles(isDarkMode)} />
               </div>
             </div>
+
+            <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4 shadow">
+                <h3 className="mb-4 text-lg font-semibold text-red-700 dark:text-red-400">Overdue Projects</h3>
+                <div className="space-y-4">
+                    {overdueProjects.map(project => (
+                        <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-red-500/10 cursor-pointer">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <span className="font-semibold text-red-800 dark:text-red-300">{project.name}</span>
+                                    {project.ticket_id && (
+                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
+                                    )}
+                                </div>
+                                <span className="text-sm font-medium text-red-700 dark:text-red-400">
+                                    {Math.abs(project.daysRemaining)} days overdue
+                                </span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                                <div className="h-2 w-full flex-1 rounded-full bg-gray-200 dark:bg-dark-tertiary">
+                                    <div className="h-2 rounded-full bg-red-500" style={{ width: `${project.percentage}%` }} />
+                                </div>
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{project.percentage}%</span>
+                            </div>
+                        </Link>
+                    ))}
+                    {overdueProjects.length === 0 && <p className="text-sm text-red-700 dark:text-red-400">No projects are overdue.</p>}
+                </div>
+            </div>
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-1">
@@ -488,28 +516,6 @@ const assignedUserTasks = useMemo(() => {
                         </Link>
                     ))}
                     {ongoingProjects.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">No projects are currently ongoing.</p>}
-                </div>
-            </div>
-
-            <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4 shadow">
-                <h3 className="mb-4 text-lg font-semibold text-red-700 dark:text-red-400">Overdue Projects</h3>
-                <div className="space-y-4">
-                    {overdueProjects.map(project => (
-                        <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-red-500/10 cursor-pointer">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <span className="font-semibold text-red-800 dark:text-red-300">{project.name}</span>
-                                    {project.ticket_id && (
-                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
-                                    )}
-                                </div>
-                                <span className="text-sm font-medium text-red-700 dark:text-red-400">
-                                    {Math.abs(project.daysRemaining)} days overdue
-                                </span>
-                            </div>
-                        </Link>
-                    ))}
-                    {overdueProjects.length === 0 && <p className="text-sm text-red-700 dark:text-red-400">No projects are overdue.</p>}
                 </div>
             </div>
         </div>
