@@ -79,7 +79,7 @@ app.use(morgan('common'));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
-app.use(express.static(path.join(__dirname, '../../public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Optional application-layer encryption (enabled when client sends X-Encrypted: v1)
 app.use(createEncryptionMiddleware());
