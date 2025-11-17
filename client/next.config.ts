@@ -4,9 +4,14 @@ const nextConfig: NextConfig = {
   images: {
         remotePatterns: [
             {
-                protocol: (process.env.NEXT_PUBLIC_API_PROTOCOL || 'http') as 'http' | 'https',
-                hostname: process.env.NEXT_PUBLIC_API_HOSTNAME || 'localhost',
-                port: process.env.NEXT_PUBLIC_API_PORT || '8008', 
+                protocol: 'http',
+                hostname: 'localhost',
+                port: '8008', 
+                pathname: '/uploads/**'
+            },
+            {
+                protocol: 'https',
+                hostname: '**.railway.app',
                 pathname: '/uploads/**'
             },
         ],
