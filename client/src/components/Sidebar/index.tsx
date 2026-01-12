@@ -177,22 +177,28 @@ const Sidebar = () => {
                 {/* NAVBAR LINKS */}
                 <nav className='z-10 w-full'>
                     <SidebarLink icon={HomeIcon} label='Home' href='/home' />
-                    {/* {currentUser?.isAdmin && (
+
+                    {/* Admin Navigation Links */}
+
+                    {currentUser?.isAdmin && (
                         <>
                             <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
                             <SidebarLink icon={UserCheck} label='Assignments' href='/assignments' />
                         </>
-                    )} */}
+                    )}
+
+                    {/* Developer Navigation Links */}
 
                     <SidebarLink icon={Calendar} label='Timeline' href='/timeline' />
-                    {/* <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' /> */}
-
+                    <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
                     <SidebarLink icon={Settings} label='Settings' href='/settings' />
                     <SidebarLink icon={User} label='Users' href='/users' />
                     <SidebarLink icon={Users} label='Team' href='/teams' />
+
                 </nav>
 
                 {/* PROJECTS LINKS */}
+                
                 {isSidebarCollapsed ? (
                     <div className="w-full">
                         <button 
