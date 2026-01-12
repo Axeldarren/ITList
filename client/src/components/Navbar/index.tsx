@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Search, Settings, Sun, Briefcase, CheckSquare, LogOut, User } from "lucide-react";
+import { Moon, Search, Settings, Sun, Briefcase, CheckSquare, LogOut, User, Shield, Code } from "lucide-react";
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsDarkMode } from '@/state';
@@ -131,12 +131,21 @@ const Navbar = () => {
   }, []);
 
   return (
-    <div className='flex items-center justify-between bg-white/80 dark:bg-black/60 backdrop-blur-sm border-b border-gray-100 dark:border-dark-tertiary px-2 md:px-4 py-2.5'>
+    <div className='flex items-center justify-between bg-white/80 dark:bg-black/60 backdrop-blur-sm border-b border-gray-100 dark:border-dark-tertiary px-2 md:px-4 py-2.5 relative z-30'>
         <div className='flex items-center gap-2 md:gap-8 flex-1 md:flex-initial'>
             <AutocompleteSearch onSearch={handleGlobalSearch} />
         </div>
 
         <div className='flex items-center gap-1 md:gap-1.5'>
+            {/* Role Badge */}
+            <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 dark:bg-white/5 dark:text-gray-300 mr-2">
+                {userData?.isAdmin ? (
+                    <Shield className="h-4 w-4 text-blue-primary" />
+                ) : (
+                    <Code className="h-4 w-4 text-green-500" />
+                )}
+                <span className="hidden lg:inline">{userData?.isAdmin ? 'Admin' : 'Developer'}</span>
+            </div>
             <button
               onClick={() => dispatch(setIsDarkMode(!isDarkMode))}
               aria-label="Toggle theme"

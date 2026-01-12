@@ -328,20 +328,8 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                   />
                 </div>
               ) : (
-                <div className="mt-4 flex gap-3">
-                  <CommentAvatar user={{ username: loggedInUser?.username, profilePictureUrl: loggedInUser?.profilePictureUrl }} />
-                  <div className="flex w-full gap-4">
-                    <textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Write a comment... (Timer must be running)"
-                      className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white"
-                      rows={1}
-                    />
-                    <button onClick={handleAddComment} className="bg-blue-primary rounded px-4 py-1 text-sm text-white font-semibold">
-                      Send
-                    </button>
-                  </div>
+                <div className="mt-4 text-sm text-gray-500 italic">
+                  Start the timer to log work and add comments.
                 </div>
               )}
 
