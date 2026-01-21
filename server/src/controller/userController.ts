@@ -402,3 +402,166 @@ export const getUserWeeklyStats = async (req: Request, res: Response): Promise<v
         res.status(500).json({ message: `Error fetching weekly stats: ${error.message}` });
     }
 };
+
+export const getDeveloperAssignments = async (req: Request, res: Response): Promise<void> => {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    
+    try {
+        const pageNumber = Number(page);
+        const limitNumber = Number(limit);
+        const searchQuery = String(search).trim();
+
+        // Calculate offset
+        const skip = (pageNumber - 1) * limitNumber;
+
+        // Build where clause for users
+        const whereClause: any = {
+            deletedAt: null,
+        };
+
+        if (searchQuery) {
+            whereClause.OR = [
+                { username: { contains: searchQuery, mode: 'insensitive' } },
+                { email: { contains: searchQuery, mode: 'insensitive' } }
+            ];
+        }
+
+        // Get total count for pagination metadata
+        const totalUsers = await prisma.user.count({ where: whereClause });
+        const totalPages = Math.ceil(totalUsers / limitNumber);
+
+        // Fetch paginated users
+        const users = await prisma.user.findMany({
+            where: whereClause,
+            skip,
+            take: limitNumber,
+            orderBy: { username: 'asc' },
+            select: {
+                userId: true,
+                username: true,
+                email: true,
+                profilePictureUrl: true,
+                isAdmin: true,
+            }
+        });
+
+        // For each user, fetch their task statistics concurrently
+        const developersWithStats = await Promise.all(users.map(async (user) => {
+            const userId = user.userId;
+
+            // Fetch tasks for this user (only needed for stats aggregation)
+            // We can optimize this by using aggregate queries instead of fetching all tasks
+            
+            // 1. Get total task counts by status
+            const statusCounts = await prisma.task.groupBy({
+                by: ['status'],
+                where: {
+                    assignedUserId: userId,
+                    deletedAt: null,
+                    project: {
+                        deletedAt: null
+                    }
+                },
+                _count: {
+                    id: true
+                }
+            });
+
+            // 2. Get overdue tasks count
+            const overdueCount = await prisma.task.count({
+                where: {
+                    assignedUserId: userId,
+                    deletedAt: null,
+                    status: {
+                        notIn: ['Completed', 'Under Review', 'Archived']
+                    },
+                    dueDate: {
+                        lt: new Date()
+                    },
+                    project: {
+                        deletedAt: null
+                    }
+                }
+            });
+
+            // 3. Get top 3 active tasks sorted by due date
+            const activeTasks = await prisma.task.findMany({
+                where: {
+                    assignedUserId: userId,
+                    deletedAt: null,
+                    status: {
+                        notIn: ['Completed', 'Archived']
+                    },
+                    project: {
+                        deletedAt: null
+                    }
+                },
+                orderBy: [
+                    { dueDate: 'asc' }, // nulls are last by default in Prisma for asc? No, usually first or last depending on DB. 
+                    // Let's refine: We want earliest deadlines first.
+                ],
+                take: 3,
+                select: {
+                    id: true,
+                    title: true,
+                    status: true,
+                    priority: true,
+                    dueDate: true,
+                    projectId: true,
+                    project: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
+            });
+
+            // Process counts
+            let totalTasks = 0;
+            let todoTasks = 0;
+            let inProgressTasks = 0;
+            let underReviewTasks = 0;
+
+            statusCounts.forEach(stat => {
+                const count = stat._count.id;
+                const status = stat.status || 'Unknown';
+                
+                // Only count non-completed/non-archived as "active" workload logic usually
+                // But the UI showed "Total", "Overdue", "To Do", "In Progress", "Under Review"
+                
+                if (status === 'To Do') todoTasks = count;
+                if (status === 'Work In Progress') inProgressTasks = count;
+                if (status === 'Under Review') underReviewTasks = count;
+                
+                // Total usually implies active workload in this context
+                if (status !== 'Completed' && status !== 'Archived') {
+                    totalTasks += count;
+                }
+            });
+
+            return {
+                ...user,
+                totalTasks,
+                overdueTasks: overdueCount,
+                inProgressTasks,
+                todoTasks,
+                underReviewTasks,
+                tasks: activeTasks
+            };
+        }));
+
+        res.json({
+            data: developersWithStats,
+            meta: {
+                totalUsers,
+                page: pageNumber,
+                limit: limitNumber,
+                totalPages
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching developer assignments:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};

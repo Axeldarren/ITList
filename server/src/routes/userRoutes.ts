@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createUser, deleteUser, getUserById, getUsers, updateUser, uploadProfilePicture, getUserWeeklyStats } from "../controller/userController";
+import { createUser, deleteUser, getUserById, getUsers, updateUser, uploadProfilePicture, getUserWeeklyStats, getDeveloperAssignments } from "../controller/userController";
 import upload from "../middleware/upload";
 import { protect, restrictToAdmin } from "../middleware/authMiddleware";
 
@@ -10,6 +10,7 @@ router.use(protect);
 router.post("/", restrictToAdmin, createUser);
 
 router.get("/", getUsers);
+router.get("/assignments", getDeveloperAssignments);
 router.get("/:userId", getUserById);
 router.get("/:userId/weekly-stats", getUserWeeklyStats);
 

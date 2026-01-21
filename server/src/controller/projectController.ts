@@ -670,3 +670,82 @@ export const getProjectActivities = async (
       .json({ message: `Error retrieving project activities: ${error}` });
   }
 };
+
+export const getTimelineProjects = async (req: Request, res: Response): Promise<void> => {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    
+    try {
+        const pageNumber = Number(page);
+        const limitNumber = Number(limit);
+        const searchQuery = String(search).trim();
+        const skip = (pageNumber - 1) * limitNumber;
+
+        // Build where clause
+        const whereClause: any = {
+            deletedAt: null,
+        };
+
+        // Access control for non-admins
+        if (!req.user?.isAdmin && req.user?.userId) {
+            whereClause.projectTeams = {
+                some: {
+                    team: {
+                        members: {
+                            some: { userId: req.user.userId },
+                        },
+                    },
+                },
+            };
+        }
+
+        if (searchQuery) {
+            whereClause.OR = [
+                { name: { contains: searchQuery, mode: 'insensitive' } },
+                { description: { contains: searchQuery, mode: 'insensitive' } }
+            ];
+        }
+
+        // Get total count
+        const totalProjects = await Prisma.project.count({ where: whereClause });
+        const totalPages = Math.ceil(totalProjects / limitNumber);
+
+        // Fetch projects with versions directly
+        const projects = await Prisma.project.findMany({
+            where: whereClause,
+            skip,
+            take: limitNumber,
+            orderBy: { startDate: 'asc' }, // Sort by start date for timeline
+            include: {
+                versions: {
+                    orderBy: {
+                        version: 'asc'
+                    }
+                },
+                createdBy: {
+                    select: {
+                        username: true
+                    }
+                },
+                projectTeams: {
+                    include: {
+                        team: true
+                    }
+                }
+            }
+        });
+
+        res.json({
+            data: projects,
+            meta: {
+                totalProjects,
+                page: pageNumber,
+                limit: limitNumber,
+                totalPages
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching timeline projects:", error);
+        res.status(500).json({ message: `Error fetching timeline projects: ${error}` });
+    }
+};
