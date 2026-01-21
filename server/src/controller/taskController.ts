@@ -149,15 +149,24 @@ export const updateTaskStatus = async (req: Request, res: Response): Promise<voi
 
 export const getUserTasks = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
+  const { assignedOnly } = req.query;
+
   try {
+    const whereClause: any = {
+      deletedAt: null, // Only fetch non-deleted tasks
+    };
+
+    if (assignedOnly === 'true') {
+        whereClause.assignedUserId = Number(userId);
+    } else {
+        whereClause.OR = [
+            { authorUserId: Number(userId) },
+            { assignedUserId: Number(userId) },
+        ];
+    }
+
     const tasks = await Prisma.task.findMany({
-      where: {
-        deletedAt: null, // Only fetch non-deleted tasks
-        OR: [
-          { authorUserId: Number(userId) },
-          { assignedUserId: Number(userId) },
-        ],
-      },
+      where: whereClause,
       include: {
         author: true,
         assignee: true,

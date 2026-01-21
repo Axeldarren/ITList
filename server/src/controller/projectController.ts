@@ -672,12 +672,14 @@ export const getProjectActivities = async (
 };
 
 export const getTimelineProjects = async (req: Request, res: Response): Promise<void> => {
-    const { page = 1, limit = 10, search = '' } = req.query;
+    const { page = 1, limit = 10, search = '', status = 'all', sort = 'oldest' } = req.query;
     
     try {
         const pageNumber = Number(page);
         const limitNumber = Number(limit);
         const searchQuery = String(search).trim();
+        const statusFilter = String(status);
+        const sortOption = String(sort);
         const skip = (pageNumber - 1) * limitNumber;
 
         // Build where clause
@@ -705,6 +707,31 @@ export const getTimelineProjects = async (req: Request, res: Response): Promise<
             ];
         }
 
+        // Apply Status Filter
+        if (statusFilter && statusFilter !== 'all') {
+            whereClause.status = statusFilter;
+        }
+
+        // Determine Order By
+        let orderBy: any = { startDate: 'asc' }; // Default 'oldest'
+
+        switch (sortOption) {
+            case 'newest':
+                orderBy = { startDate: 'desc' };
+                break;
+            case 'oldest':
+                orderBy = { startDate: 'asc' };
+                break;
+            case 'a-z':
+                orderBy = { name: 'asc' };
+                break;
+            case 'z-a':
+                orderBy = { name: 'desc' };
+                break;
+            default:
+                orderBy = { startDate: 'asc' };
+        }
+
         // Get total count
         const totalProjects = await Prisma.project.count({ where: whereClause });
         const totalPages = Math.ceil(totalProjects / limitNumber);
@@ -714,7 +741,7 @@ export const getTimelineProjects = async (req: Request, res: Response): Promise<
             where: whereClause,
             skip,
             take: limitNumber,
-            orderBy: { startDate: 'asc' }, // Sort by start date for timeline
+            orderBy: orderBy,
             include: {
                 versions: {
                     orderBy: {

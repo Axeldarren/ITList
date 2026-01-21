@@ -404,15 +404,14 @@ export const getUserWeeklyStats = async (req: Request, res: Response): Promise<v
 };
 
 export const getDeveloperAssignments = async (req: Request, res: Response): Promise<void> => {
-    const { page = 1, limit = 10, search = '' } = req.query;
+    const { page = 1, limit = 10, search = '', sort = 'username_asc', filter = 'all' } = req.query;
     
     try {
         const pageNumber = Number(page);
         const limitNumber = Number(limit);
         const searchQuery = String(search).trim();
-
-        // Calculate offset
-        const skip = (pageNumber - 1) * limitNumber;
+        const sortOption = String(sort);
+        const filterOption = String(filter);
 
         // Build where clause for users
         const whereClause: any = {
@@ -426,16 +425,9 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
             ];
         }
 
-        // Get total count for pagination metadata
-        const totalUsers = await prisma.user.count({ where: whereClause });
-        const totalPages = Math.ceil(totalUsers / limitNumber);
-
-        // Fetch paginated users
+        // Fetch ALL users matching search criteria to allow filtering/sorting by stats
         const users = await prisma.user.findMany({
             where: whereClause,
-            skip,
-            take: limitNumber,
-            orderBy: { username: 'asc' },
             select: {
                 userId: true,
                 username: true,
@@ -445,13 +437,10 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
             }
         });
 
-        // For each user, fetch their task statistics concurrently
-        const developersWithStats = await Promise.all(users.map(async (user) => {
+        // Calculate stats for ALL fetched users
+        let developersWithStats = await Promise.all(users.map(async (user) => {
             const userId = user.userId;
 
-            // Fetch tasks for this user (only needed for stats aggregation)
-            // We can optimize this by using aggregate queries instead of fetching all tasks
-            
             // 1. Get total task counts by status
             const statusCounts = await prisma.task.groupBy({
                 by: ['status'],
@@ -497,8 +486,7 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
                     }
                 },
                 orderBy: [
-                    { dueDate: 'asc' }, // nulls are last by default in Prisma for asc? No, usually first or last depending on DB. 
-                    // Let's refine: We want earliest deadlines first.
+                    { dueDate: 'asc' },
                 ],
                 take: 3,
                 select: {
@@ -526,14 +514,11 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
                 const count = stat._count.id;
                 const status = stat.status || 'Unknown';
                 
-                // Only count non-completed/non-archived as "active" workload logic usually
-                // But the UI showed "Total", "Overdue", "To Do", "In Progress", "Under Review"
-                
                 if (status === 'To Do') todoTasks = count;
                 if (status === 'Work In Progress') inProgressTasks = count;
                 if (status === 'Under Review') underReviewTasks = count;
                 
-                // Total usually implies active workload in this context
+                // Total active workload
                 if (status !== 'Completed' && status !== 'Archived') {
                     totalTasks += count;
                 }
@@ -550,8 +535,35 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
             };
         }));
 
+        // --- FILTERING ---
+        if (filterOption === 'overdue') {
+            developersWithStats = developersWithStats.filter(dev => dev.overdueTasks > 0);
+        }
+
+        // --- SORTING ---
+        developersWithStats.sort((a, b) => {
+            switch (sortOption) {
+                case 'username_asc':
+                    return a.username.localeCompare(b.username);
+                case 'username_desc':
+                    return b.username.localeCompare(a.username);
+                case 'workload_high':
+                    return b.totalTasks - a.totalTasks;
+                case 'workload_low':
+                    return a.totalTasks - b.totalTasks;
+                default:
+                    return a.username.localeCompare(b.username);
+            }
+        });
+
+        // --- PAGINATION ---
+        const totalUsers = developersWithStats.length;
+        const totalPages = Math.ceil(totalUsers / limitNumber);
+        const startIndex = (pageNumber - 1) * limitNumber;
+        const paginatedDevelopers = developersWithStats.slice(startIndex, startIndex + limitNumber);
+
         res.json({
-            data: developersWithStats,
+            data: paginatedDevelopers,
             meta: {
                 totalUsers,
                 page: pageNumber,
