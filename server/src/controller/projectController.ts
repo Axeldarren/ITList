@@ -143,6 +143,7 @@ export const createProject = async (
 
     res.status(201).json(newProject);
   } catch (error) {
+    console.error("Error creating project:", error);
     res.status(500).json({ message: `Error creating project: ${error}` });
   }
 };
@@ -283,6 +284,11 @@ export const deleteProject = async (
         where: { projectId: numericProjectId },
       });
       await tx.projectVersion.deleteMany({
+        where: { projectId: numericProjectId },
+      });
+
+      // Hard delete the associated ProjectTicket
+      await tx.projectTicket.deleteMany({
         where: { projectId: numericProjectId },
       });
 
