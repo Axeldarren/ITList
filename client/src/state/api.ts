@@ -483,10 +483,12 @@ export const api = createApi({
                     ]
                     : [{ type: 'ProjectVersions', id: 'LIST' }],
         }),
-        getTimelineProjects: build.query<TimelineProjectsResponse, { page: number; limit: number; search?: string }>({
-            query: ({ page, limit, search }) => {
+        getTimelineProjects: build.query<TimelineProjectsResponse, { page: number; limit: number; search?: string; status?: string; sort?: string }>({
+            query: ({ page, limit, search, status, sort }) => {
                 let url = `projects/timeline?page=${page}&limit=${limit}`;
                 if (search) url += `&search=${encodeURIComponent(search)}`;
+                if (status && status !== 'all') url += `&status=${status}`;
+                if (sort) url += `&sort=${sort}`;
                 return url;
             },
             providesTags: ['Projects', 'ProjectVersions'],
@@ -638,16 +640,22 @@ export const api = createApi({
                 'TimeLogs' // For time tracking stats
             ],
         }),
-        getDeveloperAssignments: build.query<DeveloperAssignmentsResponse, { page: number; limit: number; search?: string }>({
-            query: ({ page, limit, search }) => {
+        getDeveloperAssignments: build.query<DeveloperAssignmentsResponse, { page: number; limit: number; search?: string; sort?: string; filter?: string }>({
+            query: ({ page, limit, search, sort, filter }) => {
                 let url = `users/assignments?page=${page}&limit=${limit}`;
                 if (search) url += `&search=${encodeURIComponent(search)}`;
+                if (sort) url += `&sort=${sort}`;
+                if (filter) url += `&filter=${filter}`;
                 return url;
             },
             providesTags: ['Users', 'Tasks'],
         }),
-        getTasksByUser: build.query<Task[], number>({
-            query: (userId) => `tasks/user/${userId}`,
+        getTasksByUser: build.query<Task[], { userId: number; assignedOnly?: boolean }>({
+            query: ({ userId, assignedOnly }) => {
+                let url = `tasks/user/${userId}`;
+                if (assignedOnly) url += `?assignedOnly=true`;
+                return url;
+            },
             // --- FIX: Add the 'LIST' tag here ---
             providesTags: (result) =>
                 result

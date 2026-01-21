@@ -23,15 +23,19 @@ const Timeline = () => {
     const [page, setPage] = useState(1);
     const [limit] = useState(12);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [sortOption, setSortOption] = useState('oldest');
 
     const { data: timelineData, isLoading, isFetching } = useGetTimelineProjectsQuery({
         page,
         limit,
-        search: searchQuery
+        search: searchQuery,
+        status: selectedStatus,
+        sort: sortOption
     });
 
-    const projects = timelineData?.data || [];
-    const meta = timelineData?.meta;
+    const projects = useMemo(() => timelineData?.data || [], [timelineData]);
+    const meta = useMemo(() => timelineData?.meta, [timelineData]);
 
     const loggedInUser = useAppSelector((state) => state.auth.user);
     const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
@@ -55,7 +59,7 @@ const Timeline = () => {
             }
         });
         
-        return tasks.sort((a, b) => a.start.getTime() - b.start.getTime());
+        return tasks;
     }, [projects, isDarkMode]);
 
     const handleTaskClick = (task: Task) => {
@@ -66,10 +70,7 @@ const Timeline = () => {
         }
     };
 
-    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
-        setPage(1); // Reset to first page on search
-    };
+
 
     return (
         <div className='max-w-full p-8'>
@@ -79,16 +80,51 @@ const Timeline = () => {
                 name='Projects Timeline'
                 buttonComponent={
                     <div className="flex flex-col sm:flex-row items-center gap-4">
-                         {/* Search Bar */}
+                        {/* Search Bar */}
                          <div className="relative">
                             <input
                                 type="text"
                                 placeholder="Search projects..."
-                                className="pl-4 pr-10 py-2 rounded-full border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64"
+                                className="pl-4 pr-10 py-2 rounded-full border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-48 transition-shadow"
                                 value={searchQuery}
-                                onChange={handleSearch}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setPage(1);
+                                }}
                             />
                         </div>
+
+                        {/* Status Filter */}
+                        <select 
+                            className="px-4 py-2 rounded-full border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer text-sm transition-shadow"
+                            value={selectedStatus}
+                            onChange={(e) => {
+                                setSelectedStatus(e.target.value);
+                                setPage(1);
+                            }}
+                        >
+                            <option value="all">All Statuses</option>
+                            <option value="Start">Start</option>
+                            <option value="OnProgress">On Progress</option>
+                            <option value="Resolve">Resolve</option>
+                            <option value="Finish">Finish</option>
+                            <option value="Cancel">Cancel</option>
+                        </select>
+
+                        {/* Sort Order */}
+                        <select 
+                            className="px-4 py-2 rounded-full border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer text-sm transition-shadow"
+                            value={sortOption}
+                            onChange={(e) => {
+                                setSortOption(e.target.value);
+                                setPage(1);
+                            }}
+                        >
+                            <option value="oldest">Earliest First</option>
+                            <option value="newest">Latest First</option>
+                            <option value="a-z">A-Z</option>
+                            <option value="z-a">Z-A</option>
+                        </select>
 
                         {/* View Mode Toggle */}
                         <div className="flex items-center rounded-full bg-gray-100 dark:bg-dark-tertiary p-1 dark:text-white">
@@ -113,30 +149,34 @@ const Timeline = () => {
                     </div>
                 ) : projects.length === 0 ? (
                     <p className="text-center text-gray-500 dark:text-gray-400 py-8">No projects found.</p>
-                ) : view === 'roadmap' ? (
-                    // --- Roadmap View ---
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                        {projects.map((project: TimelineProject) => (
-                            <ProjectLifecycleRow 
-                                key={project.id}
-                                project={project}
-                                versions={project.versions || []}
-                            />
-                        ))}
-                    </div>
                 ) : (
-                    // --- Gantt Chart View ---
-                    <div className="overflow-hidden rounded-md bg-white shadow dark:bg-dark-secondary dark:text-white">
-                        <div className='timeline'>
-                            <Gantt
-                                tasks={ganttTasks}
-                                viewMode={ViewMode.Month}
-                                onClick={handleTaskClick}
-                                listCellWidth=""
-                                barFill={50}
-                            />
-                        </div>
-                    </div>
+                   <div key={view} className="animate-in slide-in-from-right-5 fade-in duration-300">
+                        {view === 'roadmap' ? (
+                            // --- Roadmap View ---
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                                {projects.map((project: TimelineProject) => (
+                                    <ProjectLifecycleRow 
+                                        key={project.id}
+                                        project={project}
+                                        versions={project.versions || []}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            // --- Gantt Chart View ---
+                            <div className="overflow-hidden rounded-md bg-white shadow dark:bg-dark-secondary dark:text-white">
+                                <div className='timeline'>
+                                    <Gantt
+                                        tasks={ganttTasks}
+                                        viewMode={ViewMode.Month}
+                                        onClick={handleTaskClick}
+                                        listCellWidth=""
+                                        barFill={50}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                   </div>
                 )}
             </div>
 

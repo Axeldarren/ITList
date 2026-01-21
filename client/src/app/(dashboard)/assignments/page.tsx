@@ -14,6 +14,8 @@ const Assignments = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterOption, setFilterOption] = useState('all');
+    const [sortOption, setSortOption] = useState('username_asc');
     const [limit] = useState(8);
 
     const router = useRouter();
@@ -26,7 +28,9 @@ const Assignments = () => {
     } = useGetDeveloperAssignmentsQuery({
         page,
         limit,
-        search: searchQuery
+        search: searchQuery,
+        filter: filterOption,
+        sort: sortOption
     });
 
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
@@ -104,16 +108,46 @@ const Assignments = () => {
                     Overview of current developer workloads and task assignments
                 </p>
                 
-                {/* Search Bar */}
-                <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search developers..."
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-dark-secondary dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={searchQuery}
-                        onChange={handleSearch}
-                    />
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                    {/* Filter Dropdown */}
+                    <select
+                        className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer text-sm transition-shadow"
+                        value={filterOption}
+                        onChange={(e) => {
+                            setFilterOption(e.target.value);
+                            setPage(1);
+                        }}
+                    >
+                        <option value="all">Show All</option>
+                        <option value="overdue">Has Overdue Tasks</option>
+                    </select>
+
+                    {/* Sort Dropdown */}
+                    <select
+                        className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer text-sm transition-shadow"
+                        value={sortOption}
+                        onChange={(e) => {
+                            setSortOption(e.target.value);
+                            setPage(1);
+                        }}
+                    >
+                        <option value="username_asc">Name (A-Z)</option>
+                        <option value="username_desc">Name (Z-A)</option>
+                        <option value="workload_high">Workload (High-Low)</option>
+                        <option value="workload_low">Workload (Low-High)</option>
+                    </select>
+
+                    {/* Search Bar */}
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search developers..."
+                            className="w-full pl-10 pr-4 py-2 border rounded-lg border-gray-300 dark:border-dark-tertiary dark:bg-dark-secondary dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                            value={searchQuery}
+                            onChange={handleSearch}
+                        />
+                    </div>
                 </div>
             </div>
 

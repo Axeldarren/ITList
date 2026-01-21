@@ -29,9 +29,10 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
   const router = useRouter();
   
   // Fetch tasks for this user only when modal is open
-  const { data: tasks = [], isLoading } = useGetTasksByUserQuery(developer.userId, {
-    skip: !isOpen || !developer.userId,
-  });
+  const { data: tasks = [], isLoading } = useGetTasksByUserQuery(
+    { userId: developer.userId, assignedOnly: true },
+    { skip: !isOpen || !developer.userId }
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -280,7 +280,7 @@ const HomePage = () => {
 
   // --- Data Fetching ---
   const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });
-  const { data: userTasks = [], isLoading: tasksLoading } = useGetTasksByUserQuery(UserID!, { skip: !UserID });
+  const { data: userTasks = [], isLoading: tasksLoading } = useGetTasksByUserQuery({ userId: UserID! }, { skip: !UserID });
   const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
   const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
