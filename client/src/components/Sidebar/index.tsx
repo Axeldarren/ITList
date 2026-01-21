@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsSidebarCollapsed } from '@/state';
 import { useGetProjectsQuery, useDeleteProjectMutation, Project } from '@/state/api'; 
-import { AlertCircle, AlertOctagon, AlertTriangle, BarChartHorizontal, Briefcase, Calendar, ChevronUp, ChevronsLeft, ChevronsRight, FolderKanban, HomeIcon, Layers3, LucideIcon, Settings, ShieldAlert, Trash2, User, Users, UserCheck, Wrench } from 'lucide-react';
+import { BarChartHorizontal, Briefcase, Calendar, ChevronUp, ChevronsLeft, ChevronsRight, FolderKanban, HomeIcon, LucideIcon, Settings, Trash2, User, Users, UserCheck, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -44,8 +44,6 @@ const ContextMenu = ({ x, y, onDelete }: ContextMenuProps) => {
 
 const Sidebar = () => {
     const [showProjects, setShowProjects] = useState(true);
-    const [showPriority, setShowPriority] = useState(true);
-  
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; project: Project } | null>(null);
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
@@ -63,7 +61,7 @@ const Sidebar = () => {
     
     // Check if currently on a project or priority page
     const isProjectActive = pathname.startsWith('/projects/');
-    const isPriorityActive = pathname.startsWith('/priority/');
+
 
     const currentUser = useAppSelector(selectCurrentUser);
     
@@ -295,45 +293,7 @@ const Sidebar = () => {
                     </div>
                 )}
                 
-                {/* PRIORITY LINKS */}
-                {/* {isSidebarCollapsed ? (
-                    <div className="w-full">
-                        <button 
-                            onClick={() => dispatch(setIsSidebarCollapsed(false))} 
-                            className={`relative flex w-full cursor-pointer items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 justify-center px-4 py-2.5 rounded-md ${
-                                isPriorityActive ? 'bg-gray-50 dark:bg-white/5' : ''
-                            }`}
-                        >
-                            <ShieldAlert className={`h-5 w-5 flex-shrink-0 ${
-                                isPriorityActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'
-                            }`} />
-                        </button>
-                    </div>
-                ) : (
-                    <button 
-                        onClick={() => setShowPriority((prev) => !prev)} 
-                        className='flex w-full items-center justify-between px-6 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors rounded-md'
-                    >
-                        <div className='flex items-center gap-3'>
-                            <ShieldAlert className='h-5 w-5 flex-shrink-0 text-gray-700 dark:text-gray-200' />
-                            <span className='text-sm font-medium text-gray-800 dark:text-gray-100'>Priority</span>
-                        </div>
-                        <ChevronUp className={`h-5 w-5 text-gray-700 dark:text-gray-200 transition-transform duration-200 ease-in-out ${showPriority ? '' : 'rotate-180'}`} />
-                    </button>
-                )}
-                {!isSidebarCollapsed && (
-                    <div className={`grid transition-all duration-300 ease-in-out ${showPriority ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                        <div className="overflow-hidden">
-                            <div className="space-y-1.5 pl-4">
-                                <SidebarLink icon={AlertCircle} label='Urgent' href='/priority/urgent' />
-                                <SidebarLink icon={ShieldAlert} label='High' href='/priority/high' />
-                                <SidebarLink icon={AlertTriangle} label='Medium' href='/priority/medium' />
-                                <SidebarLink icon={AlertOctagon} label='Low' href='/priority/low' />
-                                <SidebarLink icon={Layers3} label='Backlog' href='/priority/backlog' />
-                            </div>
-                        </div>
-                    </div>
-                )} */}
+
 
             </div>
         </div>

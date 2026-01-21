@@ -1,6 +1,6 @@
 import React from "react";
 import Modal from "@/components/Modal";
-import { Task, Project } from "@/state/api";
+import { Task, Project, useGetTasksByUserQuery } from "@/state/api";
 import { format, isAfter } from "date-fns";
 import { Calendar, Flag, Folder, Clock, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,7 @@ interface ModalViewAllTasksProps {
     profilePictureUrl?: string;
     isAdmin?: boolean;
   };
-  tasks: Task[];
+  // tasks: Task[]; // Removed, we fetch inside
   projects: Map<number, Project>;
 }
 
@@ -24,10 +24,14 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
   isOpen,
   onClose,
   developer,
-  tasks,
   projects,
 }) => {
   const router = useRouter();
+  
+  // Fetch tasks for this user only when modal is open
+  const { data: tasks = [], isLoading } = useGetTasksByUserQuery(developer.userId, {
+    skip: !isOpen || !developer.userId,
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -91,7 +95,7 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
     return acc;
   }, {} as Record<string, Task[]>);
 
-  const statusOrder = ["To Do", "Work In Progress", "Under Review"];
+  const statusOrder = ["To Do", "Work In Progress", "Under Review", "Completed"]; // Added Completed
 
   return (
   <Modal isOpen={isOpen} onClose={onClose} name={`${developer.username}'s Tasks`} closeOnBackdropClick>
@@ -127,17 +131,21 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
                 {developer.email}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                {tasks.length} active tasks
+                {isLoading ? 'Loading...' : `${tasks.length} tasks total`}
               </p>
             </div>
           </div>
         </div>
 
-        {tasks.length === 0 ? (
+        {isLoading ? (
+             <div className="flex justify-center py-8">
+                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+             </div>
+        ) : tasks.length === 0 ? (
           <div className="text-center py-8">
             <Clock size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
             <p className="text-gray-500 dark:text-gray-400">
-              No active tasks assigned
+              No tasks found
             </p>
           </div>
         ) : (
@@ -269,3 +277,4 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
 };
 
 export default ModalViewAllTasks;
+

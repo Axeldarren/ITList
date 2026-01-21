@@ -59,6 +59,24 @@ export interface ProjectVersion {
     status: ProjectStatus; // Add status to ProjectVersion
 }
 
+export interface TimelineProject extends Project {
+    versions: ProjectVersion[];
+    createdBy?: {
+        username: string;
+    };
+}
+
+export interface TimelineProjectsResponse {
+    data: TimelineProject[];
+    meta: {
+        totalProjects: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    }
+}
+
+
 export enum Priority {
     Urgent = 'Urgent',
     High = 'High',
@@ -203,6 +221,25 @@ export interface DeveloperStats {
     totalStoryPoints: number;
     completedStoryPoints: number;
     isAdmin?: boolean;
+}
+
+export interface DeveloperAssignmentWithStats extends User {
+    totalTasks: number;
+    overdueTasks: number;
+    inProgressTasks: number;
+    todoTasks: number;
+    underReviewTasks: number;
+    tasks: Task[]; // Only preview tasks
+}
+
+export interface DeveloperAssignmentsResponse {
+    data: DeveloperAssignmentWithStats[];
+    meta: {
+        totalUsers: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    }
 }
 
 export interface ProductMaintenance {
@@ -446,6 +483,14 @@ export const api = createApi({
                     ]
                     : [{ type: 'ProjectVersions', id: 'LIST' }],
         }),
+        getTimelineProjects: build.query<TimelineProjectsResponse, { page: number; limit: number; search?: string }>({
+            query: ({ page, limit, search }) => {
+                let url = `projects/timeline?page=${page}&limit=${limit}`;
+                if (search) url += `&search=${encodeURIComponent(search)}`;
+                return url;
+            },
+            providesTags: ['Projects', 'ProjectVersions'],
+        }),
         getProjectActivities: build.query<Activity[], number>({
             query: (projectId) => `projects/${projectId}/activities`,
             providesTags: (result, error, projectId) => [{ type: 'Activities', id: projectId }],
@@ -592,6 +637,14 @@ export const api = createApi({
                 'Users', // For developer stats
                 'TimeLogs' // For time tracking stats
             ],
+        }),
+        getDeveloperAssignments: build.query<DeveloperAssignmentsResponse, { page: number; limit: number; search?: string }>({
+            query: ({ page, limit, search }) => {
+                let url = `users/assignments?page=${page}&limit=${limit}`;
+                if (search) url += `&search=${encodeURIComponent(search)}`;
+                return url;
+            },
+            providesTags: ['Users', 'Tasks'],
         }),
         getTasksByUser: build.query<Task[], number>({
             query: (userId) => `tasks/user/${userId}`,
@@ -1212,6 +1265,7 @@ export const {
     useArchiveAndIncrementVersionMutation,
     useGetProjectVersionHistoryQuery,
     useGetAllProjectVersionsQuery,
+    useGetTimelineProjectsQuery,
     useGetProjectActivitiesQuery,
     useGetAllTasksQuery,
     useGetTasksQuery,
@@ -1270,5 +1324,6 @@ export const {
     // ...existing hooks...
     useGetAllRunningTimeLogsQuery,
     useGetTicketsWithStatusCRQuery,
-    useGetTicketsWithStatusOpenQuery
+    useGetTicketsWithStatusOpenQuery,
+    useGetDeveloperAssignmentsQuery
 } = api;

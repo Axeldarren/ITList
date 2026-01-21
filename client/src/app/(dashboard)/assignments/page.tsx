@@ -1,87 +1,43 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { useGetUsersQuery, useGetAllTasksQuery, useGetProjectsQuery, User, Task } from '@/state/api';
+import { useGetDeveloperAssignmentsQuery, useGetProjectsQuery, User, Task, DeveloperAssignmentWithStats } from '@/state/api';
 import Header from '@/components/Header';
-import { AlertTriangle, CheckCircle, Target, Calendar, ArrowRight, User as UserIcon, ExternalLink } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Target, Calendar, ArrowRight, User as UserIcon, ExternalLink, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ModalViewAllTasks from '@/components/ModalViewAllTasks';
 
-interface DeveloperAssignment extends User {
-    totalTasks: number;
-    overdueTasks: number;
-    inProgressTasks: number;
-    todoTasks: number;
-    underReviewTasks: number;
-    tasks: Task[];
-    overdue: Task[];
-}
-
 const Assignments = () => {
-    const [selectedDeveloper, setSelectedDeveloper] = useState<DeveloperAssignment | null>(null);
+    const [selectedDeveloper, setSelectedDeveloper] = useState<DeveloperAssignmentWithStats | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [limit] = useState(8);
+
     const router = useRouter();
     
-    const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
-    const { data: tasks = [], isLoading: tasksLoading } = useGetAllTasksQuery();
+    // Fetch paginated assignments from backend
+    const { 
+        data: assignmentsData, 
+        isLoading: assignmentsLoading, 
+        isFetching: assignmentsFetching 
+    } = useGetDeveloperAssignmentsQuery({
+        page,
+        limit,
+        search: searchQuery
+    });
+
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
 
-    // Filter out deleted users (include both developers and admins)
-    const developers = useMemo(() => {
-        return users.filter(user => !user.deletedAt);
-    }, [users]);
+    const developers = assignmentsData?.data || [];
+    const meta = assignmentsData?.meta;
 
     // Create project lookup map
     const projectMap = useMemo(() => {
         return new Map(projects.map(p => [p.id, p]));
     }, [projects]);
-
-    // Process assignments for each developer
-    const developerAssignments = useMemo(() => {
-        return developers.map(developer => {
-            const assignedTasks = tasks.filter(task => 
-                task.assignedUserId === developer.userId && 
-                task.status !== 'Completed' && 
-                task.status !== 'Archived' &&
-                !task.project?.deletedAt // Exclude tasks from deleted projects
-            ).sort((a, b) => {
-                // Sort by due date (earliest first), with tasks without due dates at the end
-                if (!a.dueDate && !b.dueDate) return 0;
-                if (!a.dueDate) return 1;
-                if (!b.dueDate) return -1;
-                return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-            });
-
-            const overdueTasks = assignedTasks.filter(task => {
-                if (!task.id || !task.dueDate || task.status === 'Under Review' || task.status === 'Completed') return false;
-                if (new Date(task.dueDate).getTime() <= 0) return false; // Ensure valid date
-                return isAfter(new Date(), new Date(task.dueDate));
-            });
-
-            const inProgressTasks = assignedTasks.filter(task => task.status === 'Work In Progress');
-            const todoTasks = assignedTasks.filter(task => task.status === 'To Do');
-            const underReviewTasks = assignedTasks.filter(task => task.status === 'Under Review');
-
-            return {
-                ...developer,
-                totalTasks: assignedTasks.length,
-                overdueTasks: overdueTasks.length,
-                inProgressTasks: inProgressTasks.length,
-                todoTasks: todoTasks.length,
-                underReviewTasks: underReviewTasks.length,
-                tasks: assignedTasks,
-                overdue: overdueTasks
-            };
-        }).sort((a, b) => {
-            // Sort developers: those with tasks first, then by total task count (descending), then by name
-            if (a.totalTasks > 0 && b.totalTasks === 0) return -1;
-            if (a.totalTasks === 0 && b.totalTasks > 0) return 1;
-            if (a.totalTasks !== b.totalTasks) return b.totalTasks - a.totalTasks; // More tasks first
-            return (a.username || '').localeCompare(b.username || ''); // Alphabetical by name
-        });
-    }, [developers, tasks]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -104,7 +60,7 @@ const Assignments = () => {
         }
     };
 
-    const handleViewAllTasks = (dev: DeveloperAssignment) => {
+    const handleViewAllTasks = (dev: DeveloperAssignmentWithStats) => {
         if (dev.userId) {
             setSelectedDeveloper(dev);
             setIsModalOpen(true);
@@ -122,7 +78,12 @@ const Assignments = () => {
         }
     };
 
-    if (usersLoading || tasksLoading || projectsLoading) {
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        setPage(1); // Reset to first page on search
+    };
+
+    if (assignmentsLoading || projectsLoading) {
         return (
             <div className="p-6">
                 <Header name="Developer Assignments" />
@@ -137,9 +98,24 @@ const Assignments = () => {
     return (
         <div className="p-6">
             <Header name="Developer Assignments" />
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-                Overview of current developer workloads and task assignments
-            </p>
+            
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <p className="text-gray-500 dark:text-gray-400">
+                    Overview of current developer workloads and task assignments
+                </p>
+                
+                {/* Search Bar */}
+                <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search developers..."
+                        className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-dark-secondary dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={searchQuery}
+                        onChange={handleSearch}
+                    />
+                </div>
+            </div>
 
             {/* Modal for viewing all tasks */}
             {selectedDeveloper && selectedDeveloper.userId && (
@@ -153,12 +129,12 @@ const Assignments = () => {
                         profilePictureUrl: selectedDeveloper.profilePictureUrl,
                         isAdmin: selectedDeveloper.isAdmin
                     }}
-                    tasks={selectedDeveloper.tasks || []}
+                    // tasks prop removed, handled inside ModalViewAllTasks
                     projects={projectMap}
                 />
             )}
 
-            {developerAssignments.length === 0 ? (
+            {developers.length === 0 ? (
                 <div className="text-center py-12">
                     <UserIcon size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                     <p className="text-gray-500 dark:text-gray-400">
@@ -166,195 +142,201 @@ const Assignments = () => {
                     </p>
                 </div>
             ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {developerAssignments.map((dev) => (
-                        <div key={dev.userId} className="bg-white dark:bg-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
-                            {/* Developer Header */}
-                            <div className="p-4 border-b border-gray-200 dark:border-gray-600">
-                                <div className="flex items-center gap-3 mb-3">
-                                    {dev.profilePictureUrl ? (
-                                        <Image
-                                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${dev.profilePictureUrl}`}
-                                            alt={dev.username || 'Developer'}
-                                            width={48}
-                                            height={48}
-                                            className="h-12 w-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
-                                        />
-                                    ) : (
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
-                                            {dev.username?.substring(0, 2).toUpperCase() || <UserIcon size={24} className="text-gray-600 dark:text-gray-300" />}
+                <>
+                   {assignmentsFetching && (
+                        <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2">
+                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                             Updating...
+                        </div>
+                    )}
+
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                        {developers.map((dev: DeveloperAssignmentWithStats) => (
+                            <div key={dev.userId} className="bg-white dark:bg-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 overflow-hidden flex flex-col h-full">
+                                {/* Developer Header */}
+                                <div className="p-4 border-b border-gray-200 dark:border-gray-600">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        {dev.profilePictureUrl ? (
+                                            <Image
+                                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${dev.profilePictureUrl}`}
+                                                alt={dev.username || 'Developer'}
+                                                width={48}
+                                                height={48}
+                                                className="h-12 w-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
+                                            />
+                                        ) : (
+                                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
+                                                {dev.username?.substring(0, 2).toUpperCase() || <UserIcon size={24} className="text-gray-600 dark:text-gray-300" />}
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                                                    {dev.username}
+                                                </h3>
+                                                {dev.isAdmin && (
+                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                                        Admin
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                                {dev.email}
+                                            </p>
                                         </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                                                {dev.username}
-                                            </h3>
-                                            {dev.isAdmin && (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                                    Admin
-                                                </span>
-                                            )}
+                                    </div>
+
+                                    {/* Stats Overview */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="text-center p-2 bg-gray-50 dark:bg-dark-tertiary rounded">
+                                            <div className="flex items-center justify-center gap-1 mb-1">
+                                                <Target size={14} className="text-blue-500" />
+                                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Total</span>
+                                            </div>
+                                            <span className="text-lg font-bold text-gray-900 dark:text-white">
+                                                {dev.totalTasks}
+                                            </span>
                                         </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                            {dev.email}
-                                        </p>
+                                        <div className="text-center p-2 bg-gray-50 dark:bg-dark-tertiary rounded">
+                                            <div className="flex items-center justify-center gap-1 mb-1">
+                                                <AlertTriangle size={14} className="text-red-500" />
+                                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Overdue</span>
+                                            </div>
+                                            <span className={`text-lg font-bold ${dev.overdueTasks > 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
+                                                {dev.overdueTasks}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Stats Overview */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="text-center p-2 bg-gray-50 dark:bg-dark-tertiary rounded">
-                                        <div className="flex items-center justify-center gap-1 mb-1">
-                                            <Target size={14} className="text-blue-500" />
-                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Total</span>
+                                {/* Task Breakdown */}
+                                <div className="p-4 flex-1 flex flex-col">
+                                    <div className="space-y-2 mb-4">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">To Do</span>
+                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{dev.todoTasks}</span>
                                         </div>
-                                        <span className="text-lg font-bold text-gray-900 dark:text-white">
-                                            {dev.totalTasks}
-                                        </span>
-                                    </div>
-                                    <div className="text-center p-2 bg-gray-50 dark:bg-dark-tertiary rounded">
-                                        <div className="flex items-center justify-center gap-1 mb-1">
-                                            <AlertTriangle size={14} className="text-red-500" />
-                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Overdue</span>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">In Progress</span>
+                                            <span className="text-sm font-semibold text-blue-600">{dev.inProgressTasks}</span>
                                         </div>
-                                        <span className={`text-lg font-bold ${dev.overdueTasks > 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
-                                            {dev.overdueTasks}
-                                        </span>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">Under Review</span>
+                                            <span className="text-sm font-semibold text-yellow-600">{dev.underReviewTasks}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Task Breakdown */}
-                            <div className="p-4">
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">To Do</span>
-                                        <span className="text-sm font-semibold text-gray-900 dark:text-white">{dev.todoTasks}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">In Progress</span>
-                                        <span className="text-sm font-semibold text-blue-600">{dev.inProgressTasks}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">Under Review</span>
-                                        <span className="text-sm font-semibold text-yellow-600">{dev.underReviewTasks}</span>
-                                    </div>
-                                </div>
-
-                                {/* Recent/Priority Tasks */}
-                                {dev.tasks.length > 0 && (
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Current Tasks ({Math.min(3, dev.tasks.length)})
-                                        </h4>
-                                        {dev.tasks.slice(0, 3).map((task) => {
-                                            const project = projectMap.get(task.projectId);
-                                            const isOverdue = task.id && // Ensure task has an ID (not a new task)
-                                                            task.dueDate && 
-                                                            task.status !== 'Under Review' && 
-                                                            task.status !== 'Completed' &&
-                                                            new Date(task.dueDate).getTime() > 0 && // Ensure valid date
-                                                            isAfter(new Date(), new Date(task.dueDate));
-                                            
-                                            return (
-                                                <div 
-                                                    key={task.id} 
-                                                    onClick={() => handleTaskClick(task)}
-                                                    className={`p-2 bg-gray-50 dark:bg-dark-tertiary rounded border relative cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-tertiary/80 transition-colors ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}`}
-                                                >
-                                                    {/* Overdue stamp */}
-                                                    {isOverdue && (
-                                                        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full transform rotate-12 shadow-md z-[1]">
-                                                            OVERDUE
-                                                        </div>
-                                                    )}
-                                                    
-                                                    <div className="flex items-start justify-between mb-1">
-                                                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate flex-1">
-                                                            {task.title}
-                                                        </span>
-                                                        <div className="flex items-center gap-1 ml-2">
-                                                            {task.priority && (
-                                                                <span className={`text-xs ${getPriorityColor(task.priority)}`}>
-                                                                    {task.priority}
-                                                                </span>
-                                                            )}
-                                                            <ExternalLink size={12} className="text-gray-400 opacity-70" />
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(task.status || '')}`}>
-                                                                {task.status}
+                                    {/* Recent/Priority Tasks */}
+                                    {dev.tasks && dev.tasks.length > 0 && (
+                                        <div className="space-y-2 mb-4 flex-1">
+                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Top Priority
+                                            </h4>
+                                            {dev.tasks.slice(0, 3).map((task: Task) => {
+                                                const project = projectMap.get(task.projectId);
+                                                const isOverdue = task.id && // Ensure task has an ID
+                                                                task.dueDate && 
+                                                                task.status !== 'Under Review' && 
+                                                                task.status !== 'Completed' &&
+                                                                new Date(task.dueDate).getTime() > 0 && 
+                                                                isAfter(new Date(), new Date(task.dueDate));
+                                                
+                                                return (
+                                                    <div 
+                                                        key={task.id} 
+                                                        onClick={() => handleTaskClick(task)}
+                                                        className={`p-2 bg-gray-50 dark:bg-dark-tertiary rounded border relative cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-tertiary/80 transition-colors ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}`}
+                                                    >
+                                                        {/* Overdue stamp */}
+                                                        {isOverdue && (
+                                                            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full transform rotate-12 shadow-md z-[1]">
+                                                                !
+                                                            </div>
+                                                        )}
+                                                        
+                                                        <div className="flex items-start justify-between mb-1">
+                                                            <span className="text-xs font-medium text-gray-900 dark:text-white truncate flex-1">
+                                                                {task.title}
                                                             </span>
-                                                            {project && (
-                                                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                                    {project.name}
+                                                            {task.priority && (
+                                                                <span className={`text-[10px] ml-1 ${getPriorityColor(task.priority)}`}>
+                                                                    {task.priority}
                                                                 </span>
                                                             )}
                                                         </div>
                                                         
-                                                        {task.dueDate && (
-                                                            <div className="flex items-center gap-1">
-                                                                <Calendar size={12} className={isOverdue ? 'text-red-500' : 'text-gray-400'} />
-                                                                <span className={`text-xs ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${getStatusColor(task.status || '')}`}>
+                                                                {task.status}
+                                                            </span>
+                                                            
+                                                            {task.dueDate && (
+                                                                <span className={`text-[10px] ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
                                                                     {format(new Date(task.dueDate), 'MMM dd')}
                                                                 </span>
-                                                            </div>
-                                                        )}
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                        
-                                        {dev.tasks.length > 3 && (
-                                            <button 
-                                                onClick={() => handleViewAllTasks(dev)}
-                                                className="w-full text-center py-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 flex items-center justify-center gap-1"
-                                            >
-                                                View all {dev.tasks.length} tasks
-                                                <ArrowRight size={14} />
-                                            </button>
-                                        )}
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                    
+                                    <div className="mt-auto pt-2">
+                                         <button 
+                                            onClick={() => handleViewAllTasks(dev)}
+                                            className="w-full text-center py-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 flex items-center justify-center gap-1 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+                                        >
+                                            View all {dev.totalTasks} tasks
+                                            <ArrowRight size={14} />
+                                        </button>
                                     </div>
-                                )}
+                                </div>
 
-                                {dev.tasks.length === 0 && (
-                                    <div className="text-center py-4">
-                                        <CheckCircle size={32} className="mx-auto text-green-500 mb-2" />
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            No active tasks
-                                        </p>
+                                {/* Workload Indicator */}
+                                <div className="px-4 pb-4">
+                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div 
+                                            className={`h-2 rounded-full transition-all duration-300 ${
+                                                dev.totalTasks > 8 ? 'bg-red-500' : 
+                                                dev.totalTasks > 5 ? 'bg-yellow-500' : 
+                                                'bg-green-500'
+                                            }`}
+                                            style={{ width: `${Math.min(100, (dev.totalTasks / 10) * 100)}%` }}
+                                        />
                                     </div>
-                                )}
-                            </div>
-
-                            {/* Workload Indicator */}
-                            <div className="px-4 pb-4">
-                                <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                    <span>Workload</span>
-                                    <span>{dev.totalTasks} tasks</span>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div 
-                                        className={`h-2 rounded-full transition-all duration-300 ${
-                                            dev.totalTasks > 8 ? 'bg-red-500' : 
-                                            dev.totalTasks > 5 ? 'bg-yellow-500' : 
-                                            'bg-green-500'
-                                        }`}
-                                        style={{ width: `${Math.min(100, (dev.totalTasks / 10) * 100)}%` }}
-                                    />
-                                </div>
-                                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    <span>Light</span>
-                                    <span>Heavy</span>
                                 </div>
                             </div>
+                        ))}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {meta && (
+                         <div className="flex justify-center items-center mt-8 gap-4">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="flex items-center gap-1 px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-dark-secondary"
+                            >
+                                <ChevronLeft size={16} />
+                                Previous
+                            </button>
+                            
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                                Page {page} of {meta.totalPages}
+                            </span>
+
+                            <button
+                                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                                disabled={page === meta.totalPages}
+                                className="flex items-center gap-1 px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-dark-secondary"
+                            >
+                                Next
+                                <ChevronRight size={16} />
+                            </button>
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
         </div>
     );
