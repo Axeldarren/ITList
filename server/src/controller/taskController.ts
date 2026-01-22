@@ -5,7 +5,7 @@ import { broadcast } from "../websocket";
 const Prisma = new PrismaClient();
 
 export const getTasks = async (req: Request, res: Response): Promise<void> => {
-    const { projectId, version } = req.query;
+    const { projectId, version, page, limit, search } = req.query;
 
     const whereClause: any = {
         deletedAt: null, // Only fetch tasks that are not deleted
@@ -18,24 +18,74 @@ export const getTasks = async (req: Request, res: Response): Promise<void> => {
         }
     }
 
+    // Apply Search Filter
+    const searchQuery = String(search || '').trim();
+    if (searchQuery) {
+        whereClause.OR = [
+            { title: { contains: searchQuery, mode: 'insensitive' } },
+            { description: { contains: searchQuery, mode: 'insensitive' } },
+            { tags: { contains: searchQuery, mode: 'insensitive' } }, // Assuming tags is a string
+            { priority: { contains: searchQuery, mode: 'insensitive' } }
+        ];
+    }
+
     try {
-        const tasks = await Prisma.task.findMany({
-            where: whereClause,
-            include: {
-                author: true,
-                assignee: true,
-                comments: { where: { deletedAt: null } },
-                attachments: { where: { deletedAt: null } },
-                project: {
-                    select: {
-                        id: true,
-                        name: true,
-                        deletedAt: true
+        if (page && limit) {
+             const pageNumber = Number(page);
+             const limitNumber = Number(limit);
+             const skip = (pageNumber - 1) * limitNumber;
+
+             const totalTasks = await Prisma.task.count({ where: whereClause });
+             const totalPages = Math.ceil(totalTasks / limitNumber);
+
+             const tasks = await Prisma.task.findMany({
+                where: whereClause,
+                skip,
+                take: limitNumber,
+                include: {
+                    author: true,
+                    assignee: true,
+                    comments: { where: { deletedAt: null } },
+                    attachments: { where: { deletedAt: null } },
+                    project: {
+                        select: {
+                            id: true,
+                            name: true,
+                            deletedAt: true
+                        }
                     }
                 }
-            }
-        });
-        res.json(tasks);
+            });
+
+            res.json({
+                data: tasks,
+                meta: {
+                    totalTasks,
+                    page: pageNumber,
+                    limit: limitNumber,
+                    totalPages
+                }
+            });
+        } else {
+            // Original behavior for backward compatibility (e.g., BoardView)
+            const tasks = await Prisma.task.findMany({
+                where: whereClause,
+                include: {
+                    author: true,
+                    assignee: true,
+                    comments: { where: { deletedAt: null } },
+                    attachments: { where: { deletedAt: null } },
+                    project: {
+                        select: {
+                            id: true,
+                            name: true,
+                            deletedAt: true
+                        }
+                    }
+                }
+            });
+            res.json(tasks);
+        }
     } catch (error) {
         res.status(500).json({ message: `Error retrieving tasks: ${error}` });
     }

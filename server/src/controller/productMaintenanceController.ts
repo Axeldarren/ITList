@@ -5,11 +5,66 @@ import { broadcast } from "../websocket";
 const prisma = new PrismaClient();
 
 export const getProductMaintenances = async (req: Request, res: Response): Promise<void> => {
+  const { page = 1, limit = 10, search = '', status = 'All', priority = 'All' } = req.query;
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
+
   try {
+    // Build where clause
+    const whereClause: any = {
+      deletedAt: null,
+    };
+
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: String(search), mode: 'insensitive' } },
+        { description: { contains: String(search), mode: 'insensitive' } },
+        { project: { name: { contains: String(search), mode: 'insensitive' } } }
+      ];
+    }
+
+    if (status && status !== 'All') {
+      whereClause.status = status;
+    }
+
+    if (priority && priority !== 'All') {
+      whereClause.priority = priority;
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.productMaintenance.count({
+      where: whereClause,
+    });
+
+    // --- Stats Aggregation ---
+    // Fetch generic stats for the dashboard cards (Active, Inactive, This Month, High Priority)
+    // These should ideally respect the 'search' generic filter but NOT specific status/priority filters if we want them to show the "State of the World"
+    // OR they can be global. Usually dashboard top cards are global totals unless specified. 
+    // Let's make them global (ignoring filters) but maybe respecting search if present? 
+    // Standard approach: Status cards usually show totals across the whole dataset.
+    
+    const [activeCount, inactiveCount, highPriorityCount, thisMonthCount, totalMaintenances] = await Promise.all([
+        prisma.productMaintenance.count({ where: { status: 'Active', deletedAt: null } }),
+        prisma.productMaintenance.count({ where: { status: 'Inactive', deletedAt: null } }),
+        prisma.productMaintenance.count({ 
+            where: { 
+                OR: [{ priority: 'High' }, { priority: 'Critical' }],
+                deletedAt: null 
+            } 
+        }),
+        prisma.productMaintenance.count({
+            where: {
+                createdAt: {
+                    gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                },
+                deletedAt: null
+            }
+        }),
+        prisma.productMaintenance.count({ where: { deletedAt: null } })
+    ]);
+
     const productMaintenances = await prisma.productMaintenance.findMany({
-      where: {
-        deletedAt: null, // Only get non-deleted records
-      },
+      where: whereClause,
       include: {
         project: {
           select: {
@@ -63,6 +118,8 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
       orderBy: {
         createdAt: "desc",
       },
+      skip: (pageNumber - 1) * limitNumber,
+      take: limitNumber,
     });
 
     // Calculate total time logged for each product maintenance
@@ -87,7 +144,29 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
       };
     });
 
-    res.json(productMaintenancesWithTotals);
+    const totalPages = Math.ceil(totalCount / limitNumber);
+
+    res.json({
+      data: productMaintenancesWithTotals,
+      meta: {
+        total: totalCount,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages,
+      },
+      stats: {
+        active: activeCount,
+        inactive: inactiveCount,
+        highPriority: highPriorityCount,
+        thisMonth: thisMonthCount,
+        total: totalCount, // Note: this total is the filtered total, the cards might want global total? 
+                          // Actually the first card usually says "Total". 
+                          // Let's pass a global total too?
+                          // The first card in UI shows `meta.total` which is filtered.
+                          // Let's add `totalMaintenances` as global count.
+        totalMaintenances: totalMaintenances
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ message: `Error retrieving product maintenances: ${error.message}` });
   }

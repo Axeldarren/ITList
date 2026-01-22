@@ -598,15 +598,40 @@ export const getProjectVersionHistory = async (
   }
 
   try {
-    const versions = await Prisma.projectVersion.findMany({
-      where: {
-        projectId: numericProjectId,
-      },
-      orderBy: {
-        version: "desc",
-      },
-    });
-    res.json(versions);
+    const { page, limit } = req.query;
+    const whereClause = { projectId: numericProjectId };
+
+    if (page && limit) {
+         const pageNumber = Number(page);
+         const limitNumber = Number(limit);
+         const skip = (pageNumber - 1) * limitNumber;
+
+         const totalVersions = await Prisma.projectVersion.count({ where: whereClause });
+         const totalPages = Math.ceil(totalVersions / limitNumber);
+
+         const versions = await Prisma.projectVersion.findMany({
+            where: whereClause,
+            skip,
+            take: limitNumber,
+            orderBy: { version: "desc" },
+         });
+
+         res.json({
+             data: versions,
+             meta: {
+                 totalVersions,
+                 page: pageNumber,
+                 limit: limitNumber,
+                 totalPages
+             }
+         });
+    } else {
+        const versions = await Prisma.projectVersion.findMany({
+            where: whereClause,
+            orderBy: { version: "desc" },
+        });
+        res.json(versions);
+    }
   } catch (error) {
     res
       .status(500)
@@ -643,6 +668,7 @@ export const getProjectActivities = async (
   res: Response
 ): Promise<void> => {
   const { projectId } = req.params;
+  const { page, limit, search } = req.query;
   const numericProjectId = Number(projectId);
 
   // Access control: 404 if not allowed
@@ -652,18 +678,73 @@ export const getProjectActivities = async (
   }
 
   try {
-    const activities = await Prisma.activity.findMany({
-      where: { projectId: numericProjectId },
-      include: {
-        user: { select: { username: true, profilePictureUrl: true } },
-        task: { select: { title: true } },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const { startDate, endDate } = req.query;
+    const whereClause: any = { projectId: numericProjectId };
+    const searchQuery = String(search || '').trim();
+    if (searchQuery) {
+        whereClause.OR = [
+            { description: { contains: searchQuery, mode: 'insensitive' } },
+            { task: { title: { contains: searchQuery, mode: 'insensitive' } } },
+            { user: { username: { contains: searchQuery, mode: 'insensitive' } } }
+        ];
+    }
 
-    res.json(activities);
+    if (startDate || endDate) {
+        whereClause.createdAt = {};
+        if (startDate) {
+            whereClause.createdAt.gte = new Date(String(startDate));
+        }
+        if (endDate) {
+            // Set endDate to end of the day to ensure we capture activities ON that day
+            const end = new Date(String(endDate));
+            end.setHours(23, 59, 59, 999);
+            whereClause.createdAt.lte = end;
+        }
+    }
+
+    if (page && limit) {
+         const pageNumber = Number(page);
+         const limitNumber = Number(limit);
+         const skip = (pageNumber - 1) * limitNumber;
+
+         const totalActivities = await Prisma.activity.count({ where: whereClause });
+         const totalPages = Math.ceil(totalActivities / limitNumber);
+
+         const activities = await Prisma.activity.findMany({
+            where: whereClause,
+            skip,
+            take: limitNumber,
+            include: {
+                user: { select: { username: true, profilePictureUrl: true } },
+                task: { select: { title: true } },
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+         });
+
+         res.json({
+             data: activities,
+             meta: {
+                 totalActivities,
+                 page: pageNumber,
+                 limit: limitNumber,
+                 totalPages
+             }
+         });
+    } else {
+        const activities = await Prisma.activity.findMany({
+            where: whereClause,
+            include: {
+                user: { select: { username: true, profilePictureUrl: true } },
+                task: { select: { title: true } },
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+        res.json(activities);
+    }
   } catch (error) {
     res
       .status(500)
