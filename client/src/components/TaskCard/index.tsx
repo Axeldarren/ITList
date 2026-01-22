@@ -64,6 +64,7 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
                      task.dueDate && 
                      task.status !== "Under Review" && 
                      task.status !== "Completed" &&
+                     isProjectActive && // Only show overdue if project is active (not history/archived)
                      new Date(task.dueDate).getTime() > 0 && // Ensure valid date
                      isAfter(new Date(), new Date(task.dueDate));
 

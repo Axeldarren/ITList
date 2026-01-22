@@ -18,7 +18,7 @@ type Props = {
 const ListView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, isProjectActive }: Props) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const limit = 12;
+  const limit = 8;
 
   const { data, isLoading } = useGetTasksQuery({ 
       projectId: Number(projectId), 

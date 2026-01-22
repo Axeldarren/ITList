@@ -32,7 +32,7 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
     const [page, setPage] = useState(1);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const limit = 15;
+    const limit = 10;
     
     const { data: qData, isLoading, isError } = useGetProjectActivitiesQuery({ 
         projectId, 

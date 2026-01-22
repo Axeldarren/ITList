@@ -231,8 +231,10 @@ const TabButton = ({ name, icon, setActiveTab, activeTab }: TabButtonProps) => {
 
     return (
         <button
-            className={`relative flex items-center gap-1 sm:gap-2 px-1 py-2 text-xs sm:text-sm text-gray-500 after:absolute after:-bottom-[9px] after:left-0 after:h-[1px] after:w-full hover:text-blue-600 dark:text-neutral-500 dark:hover:text-white sm:px-2 lg:px-4 whitespace-nowrap ${
-                isActive ? "text-blue-600 after:bg-blue-600 dark:text-white" : ""
+            className={`relative flex items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm transition-colors rounded-md whitespace-nowrap ${
+                isActive 
+                    ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-200 font-medium" 
+                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
             }`}
             onClick={() => setActiveTab(name)}
         >
