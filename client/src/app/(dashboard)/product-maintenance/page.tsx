@@ -13,27 +13,41 @@ const ProductMaintenancePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
+  const [page, setPage] = useState(1);
   const [isModalNewProductMaintenanceOpen, setIsModalNewProductMaintenanceOpen] = useState(false);
 
   const loggedInUser = useAppSelector(selectCurrentUser);
 
   const {
-    data: productMaintenances,
+    data: productMaintenancesData,
     isLoading,
     isError,
-  } = useGetProductMaintenancesQuery();
-
-  const filteredProductMaintenances = productMaintenances?.filter((maintenance) => {
-    const matchesSearch = 
-      maintenance.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      maintenance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      maintenance.project?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "All" || maintenance.status === statusFilter;
-    const matchesPriority = priorityFilter === "All" || maintenance.priority === priorityFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority;
+  } = useGetProductMaintenancesQuery({
+    page,
+    limit: 8,
+    search: searchTerm,
+    status: statusFilter,
+    priority: priorityFilter
   });
+
+  const productMaintenances = productMaintenancesData?.data || [];
+  const meta = productMaintenancesData?.meta;
+  const stats = productMaintenancesData?.stats;
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value);
+    setPage(1);
+  };
+
+  const handlePriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPriorityFilter(e.target.value);
+    setPage(1);
+  };
 
   if (isLoading) return <div className="py-4">Loading...</div>;
   if (isError) return <div className="py-4 text-red-500">Error loading product maintenances</div>;
@@ -43,61 +57,54 @@ const ProductMaintenancePage = () => {
       <Header 
         name="Product Maintenance" 
         buttonComponent={
-          loggedInUser?.isAdmin ? (
-            <button
-              className="flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
-              onClick={() => setIsModalNewProductMaintenanceOpen(true)}
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+             {/* Search Bar */}
+             <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                    type="text"
+                    placeholder="Search maintenances..."
+                    className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 transition-shadow"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                />
+            </div>
+
+            {/* Filters */}
+            <select
+              value={statusFilter}
+              onChange={handleStatusChange}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer text-sm transition-shadow"
             >
-              <Plus className="mr-2 h-5 w-5" /> New Maintenance
-            </button>
-          ) : null
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+
+            <select
+              value={priorityFilter}
+              onChange={handlePriorityChange}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-secondary text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer text-sm transition-shadow"
+            >
+              <option value="All">All Priority</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+
+            {/* Add Button */}
+            {loggedInUser?.isAdmin && (
+              <button
+                className="flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600 shadow-md"
+                onClick={() => setIsModalNewProductMaintenanceOpen(true)}
+              >
+                <Plus className="mr-2 h-5 w-5" /> New Maintenance
+              </button>
+            )}
+          </div>
         }
       />
-
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        {/* Search */}
-        <div className="flex w-full max-w-md items-center rounded-lg border bg-white px-3 py-2 shadow-sm dark:bg-dark-secondary dark:border-dark-tertiary">
-          <Search className="mr-2 h-4 w-4 text-gray-500" />
-          <input
-            id="maintenanceSearch"
-            name="maintenanceSearch"
-            type="text"
-            placeholder="Search maintenances..."
-            className="w-full bg-transparent outline-none dark:text-white"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="flex gap-2">
-          <select
-            id="statusFilter"
-            name="statusFilter"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm dark:bg-dark-secondary dark:border-dark-tertiary dark:text-white"
-          >
-            <option value="All">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-
-          <select
-            id="priorityFilter"
-            name="priorityFilter"
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm dark:bg-dark-secondary dark:border-dark-tertiary dark:text-white"
-          >
-            <option value="All">All Priority</option>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
-          </select>
-        </div>
-      </div>
 
       {/* Statistics */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -106,7 +113,7 @@ const ProductMaintenancePage = () => {
             <Wrench className="mr-2 h-8 w-8 text-blue-500" />
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">Total</p>
-              <p className="text-2xl font-semibold text-blue-500">{productMaintenances?.length || 0}</p>
+              <p className="text-2xl font-semibold text-blue-500">{stats?.totalMaintenances || 0}</p>
             </div>
           </div>
         </div>
@@ -119,7 +126,7 @@ const ProductMaintenancePage = () => {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">Active</p>
               <p className="text-2xl font-semibold text-green-600">
-                {productMaintenances?.filter(m => m.status === "Active").length || 0}
+                {stats?.active || 0}
               </p>
             </div>
           </div>
@@ -133,28 +140,12 @@ const ProductMaintenancePage = () => {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">Inactive</p>
               <p className="text-2xl font-semibold text-gray-600">
-                {productMaintenances?.filter(m => m.status === "Inactive").length || 0}
+                {stats?.inactive || 0}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg bg-white p-4 shadow-sm dark:bg-dark-secondary">
-          <div className="flex items-center">
-            <div className="mr-2 h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-              <div className="h-4 w-4 rounded-full bg-purple-500"></div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">This Month</p>
-              <p className="text-2xl font-semibold text-purple-600">
-                {productMaintenances?.filter(m => {
-                  const createdThisMonth = new Date(m.createdAt).getMonth() === new Date().getMonth();
-                  return createdThisMonth;
-                }).length || 0}
-              </p>
-            </div>
-          </div>
-        </div>
 
         <div className="rounded-lg bg-white p-4 shadow-sm dark:bg-dark-secondary">
           <div className="flex items-center">
@@ -164,7 +155,7 @@ const ProductMaintenancePage = () => {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">High Priority</p>
               <p className="text-2xl font-semibold text-red-600">
-                {productMaintenances?.filter(m => m.priority === "High" || m.priority === "Critical").length || 0}
+                {stats?.highPriority || 0}
               </p>
             </div>
           </div>
@@ -172,8 +163,8 @@ const ProductMaintenancePage = () => {
       </div>
 
       {/* Product Maintenances Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredProductMaintenances?.map((maintenance) => (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {productMaintenances.map((maintenance) => (
           <ProductMaintenanceCard
             key={maintenance.id}
             productMaintenance={maintenance}
@@ -181,7 +172,7 @@ const ProductMaintenancePage = () => {
         ))}
       </div>
 
-      {filteredProductMaintenances?.length === 0 && (
+      {productMaintenances.length === 0 && (
         <div className="mt-8 text-center">
           <Wrench className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -192,6 +183,29 @@ const ProductMaintenancePage = () => {
               ? "Try adjusting your filters"
               : "Get started by creating a new product maintenance."}
           </p>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {meta && (
+        <div className="flex justify-center items-center mt-8 gap-4">
+             <button
+                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                 disabled={page === 1}
+                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-dark-secondary dark:text-white border border-gray-300 dark:border-dark-tertiary rounded-md hover:bg-gray-50 dark:hover:bg-dark-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+                 Previous
+             </button>
+             <span className="text-sm text-gray-600 dark:text-gray-400">
+                 Page {page} of {meta.totalPages}
+             </span>
+             <button
+                 onClick={() => setPage(p => Math.min(meta?.totalPages || 1, p + 1))}
+                 disabled={page === meta.totalPages}
+                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-dark-secondary dark:text-white border border-gray-300 dark:border-dark-tertiary rounded-md hover:bg-gray-50 dark:hover:bg-dark-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+                 Next
+             </button>
         </div>
       )}
 

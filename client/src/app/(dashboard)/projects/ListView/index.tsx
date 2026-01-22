@@ -2,55 +2,53 @@
 
 import Header from '@/components/Header';
 import TaskCard from '@/components/TaskCard';
-import { Task } from '@/state/api';
-import React, { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react'; 
+import { Task, useGetTasksQuery } from '@/state/api';
+import React, { useState } from 'react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'; 
 
 type Props = {
-    tasks: Task[]; // It now expects a 'tasks' array as a prop
+    projectId: number;
+    version: number;
+    tasks?: Task[]; // Made optional as we fetch internally
     setIsModalNewTaskOpen: (isOpen: boolean) => void;
     searchTerm: string; 
-    isProjectActive: boolean; // NEW: Prop to check if the project is active
+    isProjectActive: boolean;
 }
 
-const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }: Props) => {
+const ListView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, isProjectActive }: Props) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const limit = 12;
 
-  // The component no longer fetches its own data. It just filters and sorts the props.
-  const filteredTasks = useMemo(() => {
-    if (!tasks) return [];
-    
-    let filtered = tasks;
-    
-    // Apply search filter
-    if (searchTerm) {
-      const lowercasedSearchTerm = searchTerm.toLowerCase();
-      filtered = tasks.filter(task => 
-          task.title.toLowerCase().includes(lowercasedSearchTerm) ||
-          (task.description && task.description.toLowerCase().includes(lowercasedSearchTerm)) ||
-          (task.tags && task.tags.toLowerCase().includes(lowercasedSearchTerm)) ||
-          (task.priority && task.priority.toLowerCase().includes(lowercasedSearchTerm))
-      );
-    }
+  const { data, isLoading } = useGetTasksQuery({ 
+      projectId: Number(projectId), 
+      version: Number(version),
+      page,
+      limit,
+      search: searchTerm
+  });
 
-    // Sort by earliest due date
-    return [...filtered].sort((a, b) => {
-      // Tasks with due dates come first, sorted by earliest date
-      if (a.dueDate && b.dueDate) {
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      }
-      // Tasks with due dates come before tasks without
-      if (a.dueDate && !b.dueDate) return -1;
-      if (!a.dueDate && b.dueDate) return 1;
-      // If both have no due date, maintain original order
-      return 0;
-    });
-  }, [tasks, searchTerm]);
+  const tasks = (data && 'data' in data) ? data.data : (Array.isArray(data) ? data : []);
+  const meta = (data && 'meta' in data) ? data.meta : null;
 
   const handleMenuToggle = (taskId: number) => {
     setOpenMenuId(openMenuId === taskId ? null : taskId);
   };
   
+  const handleNextPage = () => {
+    if (meta && page < meta.totalPages) {
+        setPage(page + 1);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (page > 1) {
+        setPage(page - 1);
+    }
+  };
+
+  if (isLoading) return <div className="p-4">Loading tasks...</div>;
+
   return (
       <div className='px-4 pb-8 xl:px-6'>
           <div className='pt-5'>
@@ -72,15 +70,15 @@ const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }:
               />
           </div>
 
-          <div className='mt-4 grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-6'>
-              {filteredTasks?.length > 0 ? (
-                  filteredTasks.map((task: Task) => (
+          <div className='mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6'>
+              {tasks?.length > 0 ? (
+                  tasks.map((task: Task) => (
                       <TaskCard 
                           key={task.id} 
                           task={task}
                           openMenuId={openMenuId}
                           onMenuToggle={handleMenuToggle}
-                          isProjectActive={isProjectActive} // Pass the new prop
+                          isProjectActive={isProjectActive}
                       />
                   ))
               ) : (
@@ -89,6 +87,29 @@ const ListView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }:
                   </p>
               )}
           </div>
+
+          {/* Pagination Controls */}
+          {meta && (
+             <div className="flex justify-center items-center gap-4 mt-8">
+                <button
+                    onClick={handlePreviousPage}
+                    disabled={page === 1}
+                    className="flex items-center gap-1 rounded px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                    <ChevronLeft size={16} /> Previous
+                </button>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    Page {page} of {meta.totalPages || 1}
+                </span>
+                <button
+                    onClick={handleNextPage}
+                    disabled={page >= (meta.totalPages || 1)}
+                    className="flex items-center gap-1 rounded px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                    Next <ChevronRight size={16} />
+                </button>
+             </div>
+          )}
       </div>
   );
 }

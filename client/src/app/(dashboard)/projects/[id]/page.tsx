@@ -55,16 +55,21 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const currentProject = useMemo(() => projects.find((p: ProjectType) => p.id === Number(id)), [projects, id]);
 
     const { data: allTasksForProject, isLoading: tasksLoading } = useGetTasksQuery(
-        { projectId: Number(id) }, { skip: !currentProject }
+        { projectId: Number(id), version: currentProject?.version }, 
+        { skip: !currentProject }
     );
     
     const [archiveAndIncrement, { isLoading: isArchiving }] = useArchiveAndIncrementVersionMutation();
-    const { data: versionHistory = [] } = useGetProjectVersionHistoryQuery(Number(id));
     const [updateProjectStatus, { isLoading: isUpdatingStatus }] = useUpdateProjectStatusMutation();
 
     // --- Derived State ---
-    const activeTasks = useMemo(() => allTasksForProject?.filter(t => t.version === currentProject?.version) || [], [allTasksForProject, currentProject]);
-    const archivedTasks = useMemo(() => allTasksForProject?.filter(t => t.version !== currentProject?.version) || [], [allTasksForProject, currentProject]);
+    const tasks = useMemo(() => {
+        if (!allTasksForProject) return [];
+        if (Array.isArray(allTasksForProject)) return allTasksForProject;
+        return 'data' in allTasksForProject ? allTasksForProject.data : [];
+    }, [allTasksForProject]);
+
+    const activeTasks = tasks; 
     
     const allActiveTasksCompleted = useMemo(() => {
         if (!activeTasks || activeTasks.length === 0) return false;
@@ -201,13 +206,13 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
             />
 
             { activeTab === "Activity" && <ActivityView projectId={Number(id)} searchTerm={localSearchTerm} /> }
-            { activeTab === "History" && <ArchiveView versionHistory={versionHistory} tasks={archivedTasks} /> }
+            { activeTab === "History" && <ArchiveView projectId={Number(id)} /> }
 
             {/* Existing views */}
             { activeTab !== "History" && activeTab !== "Activity" && (
                 <>
                     { activeTab === "Board" && <BoardView id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
-                    { activeTab === "List" && <ListView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
+                    { activeTab === "List" && <ListView projectId={Number(id)} version={currentProject?.version || 1} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
                     { activeTab === "Table" && <TableView tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
                     { activeTab === "Timeline" && <Timeline tasks={activeTasks} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
                 </>

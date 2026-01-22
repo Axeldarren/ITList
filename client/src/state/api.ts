@@ -76,6 +76,33 @@ export interface TimelineProjectsResponse {
     }
 }
 
+export interface ProductMaintenancesResponse {
+    data: ProductMaintenance[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+    stats: {
+        active: number;
+        inactive: number;
+        highPriority: number;
+        thisMonth: number;
+        totalMaintenances: number;
+    }
+}
+
+export interface TimelineProjectsResponse {
+    data: TimelineProject[];
+    meta: {
+        totalProjects: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    }
+}
+
 
 export enum Priority {
     Urgent = 'Urgent',
@@ -469,9 +496,17 @@ export const api = createApi({
                       ]
                     : [{ type: 'Projects', id: 'LIST' }],
         }),
-        getProjectVersionHistory: build.query<ProjectVersion[], number>({
-            query: (projectId) => `projects/${projectId}/versions`,
-            providesTags: (result, error, projectId) => [{ type: 'ProjectVersions', id: projectId }],
+        getProjectVersionHistory: build.query<ProjectVersion[] | { data: ProjectVersion[]; meta: any }, { projectId: number; page?: number; limit?: number }>({
+            query: ({ projectId, page, limit }) => {
+                let url = `projects/${projectId}/versions`;
+                if (page && limit) {
+                    url += `?page=${page}&limit=${limit}`;
+                }
+                return url;
+            },
+            providesTags: (result, error, { projectId }) => {
+                 return [{ type: 'ProjectVersions', id: projectId }];
+            },
         }),
         getAllProjectVersions: build.query<ProjectVersion[], void>({
             query: () => 'projects/versions',
@@ -493,9 +528,32 @@ export const api = createApi({
             },
             providesTags: ['Projects', 'ProjectVersions'],
         }),
-        getProjectActivities: build.query<Activity[], number>({
-            query: (projectId) => `projects/${projectId}/activities`,
-            providesTags: (result, error, projectId) => [{ type: 'Activities', id: projectId }],
+        getProjectActivities: build.query<Activity[] | { data: Activity[]; meta: any }, { projectId: number; page?: number; limit?: number; search?: string; startDate?: string; endDate?: string }>({
+            query: ({ projectId, page, limit, search, startDate, endDate }) => {
+                let url = `projects/${projectId}/activities`;
+                const params = new URLSearchParams();
+                if (page && limit) {
+                    params.append('page', page.toString());
+                    params.append('limit', limit.toString());
+                }
+                if (search) params.append('search', search);
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+                
+                if (Array.from(params).length > 0) {
+                    url += `?${params.toString()}`;
+                }
+                return url;
+            },
+            providesTags: (result, error, { projectId }) => {
+                let activities: Activity[] = [];
+                if (Array.isArray(result)) {
+                    activities = result;
+                } else if (result && 'data' in result) {
+                    activities = result.data;
+                }
+                return [{ type: 'Activities', id: projectId }];
+            },
         }),
 
         createProject: build.mutation<Project, Partial<Project> & { ticket_id?: string }>({
@@ -586,25 +644,35 @@ export const api = createApi({
                       ]
                     : [{ type: 'Tasks', id: 'LIST' }],
         }),
-        getTasks: build.query<Task[], { projectId: number; version?: number }>({
-            query: ({ projectId, version }) => {
+        getTasks: build.query<Task[] | { data: Task[]; meta: any }, { projectId: number; version?: number; page?: number; limit?: number; search?: string }>({
+            query: ({ projectId, version, page, limit, search }) => {
                 let url = `tasks?projectId=${projectId}`;
-                if (version) {
-                    url += `&version=${version}`;
+                if (version) url += `&version=${version}`;
+                if (page && limit) {
+                     url += `&page=${page}&limit=${limit}`;
                 }
+                if (search) url += `&search=${encodeURIComponent(search)}`;
                 return url;
             },
-            providesTags: (result, error, { projectId }) =>
-                result
+            providesTags: (result, error, { projectId }) => {
+                 let tasks: Task[] = [];
+                 if (Array.isArray(result)) {
+                     tasks = result;
+                 } else if (result && 'data' in result) {
+                     tasks = result.data;
+                 }
+                 
+                 return tasks
                     ? [
-                        ...result.map(({ id }) => ({ type: 'Tasks' as const, id })),
+                        ...tasks.map(({ id }) => ({ type: 'Tasks' as const, id })),
                         { type: 'Tasks', id: 'LIST' },
-                        { type: 'Tasks', id: `PROJECT_${projectId}` }, // Add project-specific tag
+                        { type: 'Tasks', id: `PROJECT_${projectId}` },
                     ]
                     : [
                         { type: 'Tasks', id: 'LIST' },
                         { type: 'Tasks', id: `PROJECT_${projectId}` }
-                    ],
+                    ];
+            },
         }),
         getTaskById: build.query<Task, number>({
             query: (taskId) => `tasks/${taskId}`,
@@ -923,12 +991,15 @@ export const api = createApi({
         }),
 
         // Product Maintenance endpoints
-        getProductMaintenances: build.query<ProductMaintenance[], void>({
-            query: () => 'product-maintenance',
+        getProductMaintenances: build.query<ProductMaintenancesResponse, { page: number; limit: number; search?: string; status?: string; priority?: string }>({
+            query: ({ page, limit, search, status, priority }) => ({
+                url: 'product-maintenance',
+                params: { page, limit, search, status, priority }
+            }),
             providesTags: (result) =>
                 result
                     ? [
-                        ...result.map(({ id }) => ({ type: 'ProductMaintenances' as const, id })),
+                        ...result.data.map(({ id }) => ({ type: 'ProductMaintenances' as const, id })),
                         { type: 'ProductMaintenances', id: 'LIST' },
                       ]
                     : [{ type: 'ProductMaintenances', id: 'LIST' }],
