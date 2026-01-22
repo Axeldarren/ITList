@@ -17,7 +17,8 @@ const ProjectRecap = () => {
     const { data: allTasks = [], isLoading: tLoading } = useGetAllTasksQuery();
     const { data: teams = [], isLoading: mLoading } = useGetTeamsQuery();
     const { data: users = [], isLoading: uLoading } = useGetUsersQuery();
-    const { data: productMaintenances = [], isLoading: pmLoading } = useGetProductMaintenancesQuery();
+    const { data: productMaintenanceData, isLoading: pmLoading } = useGetProductMaintenancesQuery({ page: 1, limit: 1000 });
+    const productMaintenances = productMaintenanceData?.data || [];
 
     // State for advanced filters
     const [includeArchived, setIncludeArchived] = useState(false);

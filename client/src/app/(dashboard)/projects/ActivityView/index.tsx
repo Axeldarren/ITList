@@ -111,7 +111,7 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
                             onChange={handleEndDateChange} 
                         />
                     </div>
-                    {meta && <div className="text-xs text-gray-500 ml-2">Total: {meta.totalActivities}</div>}
+                    {meta && <div className="text-xs text-gray-500 ml-2">Total: {meta.total}</div>}
                 </div>
             </div>
 

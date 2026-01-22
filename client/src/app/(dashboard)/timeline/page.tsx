@@ -38,7 +38,6 @@ const Timeline = () => {
     const meta = useMemo(() => timelineData?.meta, [timelineData]);
 
     const loggedInUser = useAppSelector((state) => state.auth.user);
-    const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
     const router = useRouter();
 
     const ganttTasks = useMemo(() => {
@@ -60,7 +59,7 @@ const Timeline = () => {
         });
         
         return tasks;
-    }, [projects, isDarkMode]);
+    }, [projects]);
 
     const handleTaskClick = (task: Task) => {
         const idParts = task.id.split('-');

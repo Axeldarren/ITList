@@ -34,10 +34,17 @@ const taskStatus = ["To Do", "Work In Progress", "Under Review", "Completed"];
 
 const BoardView = ({ id, setIsModalNewTaskOpen, searchTerm, isProjectActive }: BoardProps) => {
   const {
-    data: tasks,
+    data,
     isLoading,
     error,
   } = useGetTasksQuery({ projectId: Number(id) });
+
+  const tasks = useMemo(() => {
+    if (!data) return [];
+    if ('data' in data) return data.data;
+    if (Array.isArray(data)) return data;
+    return [];
+  }, [data]);
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 

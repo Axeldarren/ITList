@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { useGetDeveloperAssignmentsQuery, useGetProjectsQuery, User, Task, DeveloperAssignmentWithStats } from '@/state/api';
+import { useGetDeveloperAssignmentsQuery, useGetProjectsQuery, Task, DeveloperAssignmentWithStats } from '@/state/api';
 import Header from '@/components/Header';
-import { AlertTriangle, CheckCircle, Target, Calendar, ArrowRight, User as UserIcon, ExternalLink, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { AlertTriangle, Target, ArrowRight, User as UserIcon, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -267,7 +267,7 @@ const Assignments = () => {
                                                 Top Priority
                                             </h4>
                                             {dev.tasks.slice(0, 3).map((task: Task) => {
-                                                const project = projectMap.get(task.projectId);
+                                                // const project = projectMap.get(task.projectId);
                                                 const isOverdue = task.id && // Ensure task has an ID
                                                                 task.dueDate && 
                                                                 task.status !== 'Under Review' && 

@@ -27,7 +27,6 @@ import {
     useGetProjectsQuery,
     useGetTasksQuery,
     useArchiveAndIncrementVersionMutation,
-    useGetProjectVersionHistoryQuery,
     useGetTeamsQuery,
     useGetUsersQuery,
     useUpdateProjectStatusMutation,

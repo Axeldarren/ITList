@@ -38,7 +38,8 @@ const WeeklyReport = () => {
   const { data: prevTimeLogs = [], isLoading: lPrevLoading } = useGetTimeLogsQuery({ month: prevMonthStr });
   const { data: nextTimeLogs = [], isLoading: lNextLoading } = useGetTimeLogsQuery({ month: nextMonthStr });
   // Product maintenance data (for grouping maintenance tasks)
-  const { data: productMaintenances = [], isLoading: pmLoading } = useGetProductMaintenancesQuery();
+  const { data: productMaintenanceData, isLoading: pmLoading } = useGetProductMaintenancesQuery({ page: 1, limit: 1000 });
+  const productMaintenances = productMaintenanceData?.data || [];
 
   const isLoading = pLoading || tLoading || uLoading || lLoading || lPrevLoading || lNextLoading || pmLoading;
 

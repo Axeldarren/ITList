@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   useGetTaskByIdQuery,
   useUpdateTaskMutation,
-  useCreateCommentMutation,
   useAddAttachmentMutation,
   useGetProjectUsersQuery,
   useDeleteAttachmentMutation,
@@ -84,7 +83,6 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
     { skip: !task || !task.projectId },
   );
   const [updateTask] = useUpdateTaskMutation();
-  const [createComment] = useCreateCommentMutation();
   const [addAttachment] = useAddAttachmentMutation();
   const [deleteAttachment] = useDeleteAttachmentMutation();
 
@@ -136,16 +134,6 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
       .finally(() => onClose());
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim() || !loggedInUser || !loggedInUser.userId) return;
-    toast.promise(createComment({ taskId, text: newComment, userId: loggedInUser.userId }).unwrap(), {
-      loading: 'Posting comment...',
-      success: 'Comment added!',
-      error: (err) => err.data?.message || "You must start a timer to comment."
-    }).then(() => {
-      setNewComment("");
-    });
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

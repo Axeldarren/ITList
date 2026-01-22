@@ -66,6 +66,13 @@ export interface TimelineProject extends Project {
     };
 }
 
+export interface Meta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
 export interface TimelineProjectsResponse {
     data: TimelineProject[];
     meta: {
@@ -90,16 +97,6 @@ export interface ProductMaintenancesResponse {
         highPriority: number;
         thisMonth: number;
         totalMaintenances: number;
-    }
-}
-
-export interface TimelineProjectsResponse {
-    data: TimelineProject[];
-    meta: {
-        totalProjects: number;
-        page: number;
-        limit: number;
-        totalPages: number;
     }
 }
 
@@ -496,7 +493,7 @@ export const api = createApi({
                       ]
                     : [{ type: 'Projects', id: 'LIST' }],
         }),
-        getProjectVersionHistory: build.query<ProjectVersion[] | { data: ProjectVersion[]; meta: any }, { projectId: number; page?: number; limit?: number }>({
+        getProjectVersionHistory: build.query<ProjectVersion[] | { data: ProjectVersion[]; meta: Meta }, { projectId: number; page?: number; limit?: number }>({
             query: ({ projectId, page, limit }) => {
                 let url = `projects/${projectId}/versions`;
                 if (page && limit) {
@@ -528,7 +525,7 @@ export const api = createApi({
             },
             providesTags: ['Projects', 'ProjectVersions'],
         }),
-        getProjectActivities: build.query<Activity[] | { data: Activity[]; meta: any }, { projectId: number; page?: number; limit?: number; search?: string; startDate?: string; endDate?: string }>({
+        getProjectActivities: build.query<Activity[] | { data: Activity[]; meta: Meta }, { projectId: number; page?: number; limit?: number; search?: string; startDate?: string; endDate?: string }>({
             query: ({ projectId, page, limit, search, startDate, endDate }) => {
                 let url = `projects/${projectId}/activities`;
                 const params = new URLSearchParams();
@@ -546,12 +543,6 @@ export const api = createApi({
                 return url;
             },
             providesTags: (result, error, { projectId }) => {
-                let activities: Activity[] = [];
-                if (Array.isArray(result)) {
-                    activities = result;
-                } else if (result && 'data' in result) {
-                    activities = result.data;
-                }
                 return [{ type: 'Activities', id: projectId }];
             },
         }),
@@ -644,7 +635,7 @@ export const api = createApi({
                       ]
                     : [{ type: 'Tasks', id: 'LIST' }],
         }),
-        getTasks: build.query<Task[] | { data: Task[]; meta: any }, { projectId: number; version?: number; page?: number; limit?: number; search?: string }>({
+        getTasks: build.query<Task[] | { data: Task[]; meta: Meta }, { projectId: number; version?: number; page?: number; limit?: number; search?: string }>({
             query: ({ projectId, version, page, limit, search }) => {
                 let url = `tasks?projectId=${projectId}`;
                 if (version) url += `&version=${version}`;
