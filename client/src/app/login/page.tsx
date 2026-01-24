@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setCredentials } from '@/state/authSlice';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
-import { ButtonSpinner } from '@/components/LoadingSpinner';
+import { ButtonSpinner, FullPageLoading } from '@/components/LoadingSpinner';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -45,7 +45,7 @@ const LoginPage = () => {
     // If already logged in, show a small placeholder while redirecting
     if (token) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
+            <>
                 <Toaster
                     position="top-right"
                     toastOptions={{
@@ -55,8 +55,8 @@ const LoginPage = () => {
                         },
                     }}
                 />
-                <div className="text-gray-700 dark:text-gray-200">Redirecting…</div>
-            </div>
+               <FullPageLoading text="Redirecting..." />
+            </>
         );
     }
     

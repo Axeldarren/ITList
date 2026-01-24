@@ -7,6 +7,7 @@ import { useAppSelector } from "../redux";
 import { useRouter } from "next/navigation";
 import { useWebSocketQuery } from "@/state/api";
 import { Toaster } from "react-hot-toast";
+import { FullPageLoading } from "@/components/LoadingSpinner";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { token } = useAppSelector((state) => state.auth);
@@ -44,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // While checking for the token, you can show a loading state or nothing
   if (!token) {
-      return <div className="flex items-center justify-center min-h-screen">Loading...</div>; 
+      return <FullPageLoading />;
   }
 
   // If the token exists, render the full dashboard layout

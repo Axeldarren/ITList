@@ -88,4 +88,15 @@ export const ButtonSpinner: React.FC<{
   );
 };
 
+// Full Page Loading Component
+export const FullPageLoading: React.FC<{
+  text?: string;
+}> = ({ text = "Loading..." }) => {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
+      <LoadingSpinner size="xl" color="primary" text={text} />
+    </div>
+  );
+};
+
 export default LoadingSpinner;
