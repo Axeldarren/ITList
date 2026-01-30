@@ -10,7 +10,7 @@ export interface Activity {
   description: string;
   createdAt: string;
   projectId: number;
-  userId: number;
+  userId: string;
   taskId?: number;
   user: {
     username: string;
@@ -36,9 +36,9 @@ export interface Project {
     totalMaintenanceTimeLogged?: number; // in seconds, just maintenance tasks
     createdAt?: string;
     updatedAt?: string;
-    createdById?: number;
-    updatedById?: number;
-    deletedById?: number;
+    createdById?: string;
+    updatedById?: string;
+    deletedById?: string;
     ticket_id?: string;
     projectTicket?: {
         ticket_id: string;
@@ -125,7 +125,7 @@ export enum Status {
 }
 
 export interface User {
-    userId?: number;
+    userId?: string;
     username: string;
     email: string;
     password?: string;
@@ -141,7 +141,7 @@ export interface Attachment {
     fileURL: string;
     fileName: string;
     taskId: number;
-    uploadedById: number;
+    uploadedById: string;
 }
 
 // Define the shape of a Comment
@@ -150,7 +150,7 @@ export interface Comment {
     text: string;
     taskId?: number; // Optional - either task or maintenance task
     maintenanceTaskId?: number; // Optional - either task or maintenance task  
-    userId: number;
+    userId: string;
     user?: User;
     createdAt: string;
     updatedAt: string;
@@ -160,8 +160,8 @@ export interface Comment {
 export interface Team {
     id: number;
     teamName: string;
-    productOwnerUserId?: number;
-    projectManagerUserId?: number;
+    productOwnerUserId?: string;
+    projectManagerUserId?: string;
     users?: User[]; // Add the users array here
     productOwnerUsername?: string;
     projectManagerUsername?: string;
@@ -178,8 +178,8 @@ export interface Task {
     dueDate?: string;
     points?: number;
     projectId: number;
-    authorUserId?: number;
-    assignedUserId?: number;
+    authorUserId?: string;
+    assignedUserId?: string;
     version: number;
     updatedAt?: string;
     author?: User;
@@ -203,7 +203,7 @@ export interface TimeLog {
   createdAt: string;
   taskId?: number; // Optional - either task or maintenance task
   maintenanceTaskId?: number; // Optional - either task or maintenance task
-  userId: number;
+  userId: string;
   commentId?: number; // Link to associated comment
   user?: { username: string };
   task?: Task & { project?: Project };
@@ -220,15 +220,15 @@ export interface SearchResults {
 export interface Team {
     id: number;
     teamName: string;
-    productOwnerUserId?: number;
-    projectManagerUserId?: number;
+    productOwnerUserId?: string;
+    projectManagerUserId?: string;
 }
 
 export interface AddAttachmentPayload {
     taskId: number;
     fileURL: string;
     fileName: string;
-    uploadedById: number;
+    uploadedById: string;
 }
 
 export interface Suggestion {
@@ -236,7 +236,7 @@ export interface Suggestion {
     type: 'Project' | 'Task';
 }
 export interface DeveloperStats {
-    userId: number;
+    userId: string;
     username: string;
     totalTasks: number;
     completedTasks: number;
@@ -245,6 +245,16 @@ export interface DeveloperStats {
     totalStoryPoints: number;
     completedStoryPoints: number;
     isAdmin?: boolean;
+}
+
+export interface DeveloperStatsResponse {
+    data: DeveloperStats[];
+    meta: Meta;
+}
+
+export interface TimeLogsResponse {
+    data: TimeLog[];
+    meta: Meta;
 }
 
 export interface DeveloperAssignmentWithStats extends User {
@@ -282,15 +292,15 @@ export interface ProductMaintenance {
     };
     createdAt: string;
     updatedAt: string;
-    createdById: number;
+    createdById: string;
     createdBy: {
-        userId: number;
+        userId: string;
         username: string;
         profilePictureUrl?: string;
     };
     maintainers: ProductMaintainer[];
     maintenanceTasks: MaintenanceTask[];
-    statusHistory?: Array<{ id: number; status: 'Planned' | 'Maintaining' | 'Finished'; changedAt: string; changedBy: { userId: number; username: string } }>
+    statusHistory?: Array<{ id: number; status: 'Planned' | 'Maintaining' | 'Finished'; changedAt: string; changedBy: { userId: string; username: string } }>
     _count?: {
         maintenanceTasks: number;
     };
@@ -299,11 +309,11 @@ export interface ProductMaintenance {
 export interface ProductMaintainer {
     id: number;
     productMaintenanceId: number;
-    userId: number;
+    userId: string;
     role: string; // "Lead", "Maintainer", "Support"
     createdAt: string;
     user: {
-        userId: number;
+        userId: string;
         username: string;
         profilePictureUrl?: string;
         email: string;
@@ -321,17 +331,17 @@ export interface MaintenanceTask {
     actualHours?: number;
     totalTimeLogged?: number; // in seconds, calculated from time logs
     productMaintenanceId: number;
-    assignedToId?: number;
+    assignedToId?: string;
     assignedTo?: {
-        userId: number;
+        userId: string;
         username: string;
         profilePictureUrl?: string;
     };
     createdAt: string;
     updatedAt: string;
-    createdById: number;
+    createdById: string;
     createdBy: {
-        userId: number;
+        userId: string;
         username: string;
         profilePictureUrl?: string;
     };
@@ -348,7 +358,7 @@ export interface CreateProductMaintenancePayload {
     description?: string;
     priority?: string;
     projectId?: number;
-    maintainerIds?: number[];
+    maintainerIds?: string[];
 }
 
 export interface UpdateProductMaintenancePayload {
@@ -356,7 +366,7 @@ export interface UpdateProductMaintenancePayload {
     description?: string;
     status?: string;
     priority?: string;
-    maintainerIds?: number[];
+    maintainerIds?: string[];
 }
 
 export interface CreateMaintenanceTaskPayload {
@@ -365,7 +375,7 @@ export interface CreateMaintenanceTaskPayload {
     priority?: string;
     type?: string;
     estimatedHours?: number;
-    assignedToId?: number;
+    assignedToId?: string;
     ticket_id?: string;
 }
 
@@ -376,7 +386,7 @@ export interface UpdateMaintenanceTaskPayload {
     type?: string;
     estimatedHours?: number;
     actualHours?: number;
-    assignedToId?: number;
+    assignedToId?: string;
     ticket_id?: string;
 }
 
@@ -523,7 +533,14 @@ export const api = createApi({
                 if (sort) url += `&sort=${sort}`;
                 return url;
             },
-            providesTags: ['Projects', 'ProjectVersions'],
+            providesTags: (result) => 
+                result 
+                    ? [
+                        ...result.data.map(({ id }) => ({ type: 'Projects' as const, id })), 
+                        { type: 'Projects', id: 'LIST' },
+                        { type: 'ProjectVersions', id: 'LIST' }
+                    ]
+                    : [{ type: 'Projects', id: 'LIST' }, { type: 'ProjectVersions', id: 'LIST' }],
         }),
         getProjectActivities: build.query<Activity[] | { data: Activity[]; meta: Meta }, { projectId: number; page?: number; limit?: number; search?: string; startDate?: string; endDate?: string }>({
             query: ({ projectId, page, limit, search, startDate, endDate }) => {
@@ -709,7 +726,7 @@ export const api = createApi({
             },
             providesTags: ['Users', 'Tasks'],
         }),
-        getTasksByUser: build.query<Task[], { userId: number; assignedOnly?: boolean }>({
+        getTasksByUser: build.query<Task[], { userId: string; assignedOnly?: boolean }>({
             query: ({ userId, assignedOnly }) => {
                 let url = `tasks/user/${userId}`;
                 if (assignedOnly) url += `?assignedOnly=true`;
@@ -772,12 +789,12 @@ export const api = createApi({
                       ]
                     : [{ type: 'Users', id: 'LIST' }],
         }),
-        getUserById: build.query<User, number>({
+        getUserById: build.query<User, string>({
             query: (userId) => `users/${userId}`,
             providesTags: (result, error, id) => [{ type: 'Users', id }],
         }),
 
-        updateUser: build.mutation<User, Partial<User> & { userId: number }>({
+        updateUser: build.mutation<User, Partial<User> & { userId: string }>({
             query: ({ userId, ...patch }) => ({
                 url: `users/${userId}`,
                 method: 'PATCH',
@@ -797,7 +814,7 @@ export const api = createApi({
             }),
             invalidatesTags: ['Users'], // Invalidate the Users tag to refetch the list
         }),
-        deleteUser: build.mutation<{ message: string }, number>({
+        deleteUser: build.mutation<{ message: string }, string>({
             query: (userId) => ({
                 url: `users/${userId}`,
                 method: 'DELETE',
@@ -805,7 +822,7 @@ export const api = createApi({
             invalidatesTags: [{ type: 'Users', id: 'LIST' }],
         }),
 
-        uploadProfilePicture: build.mutation<User, { userId: number; file: File }>({
+        uploadProfilePicture: build.mutation<User, { userId: string; file: File }>({
             query: ({ userId, file }) => {
                 const formData = new FormData();
                 formData.append('profilePicture', file);
@@ -867,7 +884,7 @@ export const api = createApi({
                 'TimeLogs' // For time tracking stats
             ],
         }),
-        createComment: build.mutation<Comment, { taskId: number; text: string; userId: number }>({
+        createComment: build.mutation<Comment, { taskId: number; text: string; userId: string }>({
             query: (body) => ({
                 url: 'comments',
                 method: 'POST',
@@ -951,7 +968,7 @@ export const api = createApi({
             providesTags: ['RunningTimeLog'],
         }),
 
-        getUserWeeklyStats: build.query<{ totalHours: number; totalStoryPoints: number; timeLogs: TimeLog[]; completedTasks: Task[] }, { userId: number; weekOffset?: number }>({
+        getUserWeeklyStats: build.query<{ totalHours: number; totalStoryPoints: number; timeLogs: TimeLog[]; completedTasks: Task[] }, { userId: string; weekOffset?: number }>({
             query: ({ userId, weekOffset = 0 }) => ({
                 url: `users/${userId}/weekly-stats`,
                 params: { weekOffset }
@@ -960,14 +977,22 @@ export const api = createApi({
         }),
 
         getDeveloperStats: build.query<DeveloperStats[], { startMonth?: string; endMonth?: string; month?: string }>({
-            query: ({ startMonth, endMonth, month }) => ({ // FIX: Destructure all parameters
+            query: ({ startMonth, endMonth, month }) => ({
                 url: 'productivity',
-                params: { startMonth, endMonth, month }, // FIX: Pass all parameters
+                params: { startMonth, endMonth, month },
             }),
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),
 
-        getTimeLogs: build.query<TimeLog[], { userId?: number; month?: string }>({
+        getDeveloperStatsPaginated: build.query<DeveloperStatsResponse, { startMonth?: string; endMonth?: string; month?: string; page: number; limit: number }>({
+            query: ({ startMonth, endMonth, month, page, limit }) => ({
+                url: 'productivity',
+                params: { startMonth, endMonth, month, page, limit },
+            }),
+            providesTags: ['Users', 'Tasks', 'TimeLogs'],
+        }),
+
+        getTimeLogs: build.query<TimeLog[], { userId?: string; month?: string }>({
             query: ({ userId, month }) => ({
                 url: 'timelogs',
                 params: { userId, month },
@@ -976,6 +1001,20 @@ export const api = createApi({
                 result
                     ? [
                         ...result.map(({ id }) => ({ type: 'TimeLogs' as const, id })),
+                        { type: 'TimeLogs', id: 'LIST' },
+                      ]
+                    : [{ type: 'TimeLogs', id: 'LIST' }],
+        }),
+
+        getTimeLogsPaginated: build.query<TimeLogsResponse, { userId?: string; month?: string; page: number; limit: number }>({
+            query: ({ userId, month, page, limit }) => ({
+                url: 'timelogs',
+                params: { userId, month, page, limit },
+            }),
+            providesTags: (result) =>
+                result?.data
+                    ? [
+                        ...result.data.map(({ id }) => ({ type: 'TimeLogs' as const, id })),
                         { type: 'TimeLogs', id: 'LIST' },
                       ]
                     : [{ type: 'TimeLogs', id: 'LIST' }],
@@ -1211,7 +1250,8 @@ export const api = createApi({
                                     { type: 'Users' as const, id: 'LIST' }, // Assignment page might need project data
                                     { type: 'TimeLogs' as const, id: 'LIST' }, // Productivity stats might need project data
                                     { type: 'Tasks' as const, id: 'LIST' }, // Tasks are related to projects
-                                    { type: 'Comments' as const, id: 'LIST' } // Comments might be related to project tasks
+                                    { type: 'Comments' as const, id: 'LIST' }, // Comments might be related to project tasks
+                                    { type: 'ProjectVersions' as const, id: 'LIST' } // Update timeline view
                                 ];
                                 
                                 if (data.projectId) {
@@ -1370,7 +1410,9 @@ export const {
     useGetRunningTimeLogQuery,
     useGetUserWeeklyStatsQuery,
     useGetDeveloperStatsQuery,
+    useGetDeveloperStatsPaginatedQuery,
     useGetTimeLogsQuery,
+    useGetTimeLogsPaginatedQuery,
     useGetProductMaintenancesQuery,
     useGetProductMaintenanceByIdQuery,
     useGetFinishedProjectsQuery,
@@ -1381,17 +1423,14 @@ export const {
     useCreateMaintenanceTaskMutation,
     useUpdateMaintenanceTaskMutation,
     useDeleteMaintenanceTaskMutation,
-    // Unified Timer System hooks (works for both tasks and maintenance)
     useGetMaintenanceTaskTimeLogsQuery,
     useGetMaintenanceTaskCommentsQuery,
     useStartMaintenanceTimerMutation,
     useStopMaintenanceTimerMutation,
-    // Devlog hooks (kept for compatibility)
     useCreateDevlogCommentMutation,
     useStopDevlogTimerMutation,
     useGetActiveDevlogsQuery,
     useWebSocketQuery,
-    // ...existing hooks...
     useGetAllRunningTimeLogsQuery,
     useGetTicketsWithStatusCRQuery,
     useGetTicketsWithStatusOpenQuery,

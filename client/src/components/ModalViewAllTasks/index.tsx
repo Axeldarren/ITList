@@ -10,7 +10,7 @@ interface ModalViewAllTasksProps {
   isOpen: boolean;
   onClose: () => void;
   developer: {
-    userId: number;
+    userId: string;
     username: string;
     email: string;
     profilePictureUrl?: string;

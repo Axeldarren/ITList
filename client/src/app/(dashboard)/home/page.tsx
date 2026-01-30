@@ -152,7 +152,7 @@ const RunningTimerCard = () => {
     );
 };
 
-const WeeklyStatsCard = ({ userId }: { userId: number }) => {
+const WeeklyStatsCard = ({ userId }: { userId: string }) => {
     const [weekOffset, setWeekOffset] = useState(0);
     const { data: weeklyStats, isLoading } = useGetUserWeeklyStatsQuery({ userId, weekOffset });
     
@@ -273,6 +273,10 @@ const HomePage = () => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<Priority | "all" | "Completed">("all");
   const [showCompleted, setShowCompleted] = useState(false);
+  const [ongoingPage, setOngoingPage] = useState(1);
+  const [overduePage, setOverduePage] = useState(1);
+  const [projectTab, setProjectTab] = useState<'ongoing' | 'overdue'>('ongoing');
+  const PROJECTS_PER_PAGE = 5;
   const router = useRouter();
   
   const loggedInUser = useAppSelector(selectCurrentUser);
@@ -454,69 +458,147 @@ const assignedUserTasks = useMemo(() => {
                                     </button>
                                 ))}
               </div>
-              <div style={{ height: 400, width: "100%" }}>
+              <div style={{ height: 587.5, width: "100%" }}>
                 <DataGrid rows={filteredTasksForGrid} columns={taskColumns} loading={tasksLoading} onRowClick={handleRowClick} sx={dataGridSxStyles(isDarkMode)} />
               </div>
-            </div>
-
-            <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4 shadow">
-                <h3 className="mb-4 text-lg font-semibold text-red-700 dark:text-red-400">Overdue Projects</h3>
-                <div className="space-y-4">
-                    {overdueProjects.map(project => (
-                        <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-red-500/10 cursor-pointer">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <span className="font-semibold text-red-800 dark:text-red-300">{project.name}</span>
-                                    {project.ticket_id && (
-                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
-                                    )}
-                                </div>
-                                <span className="text-sm font-medium text-red-700 dark:text-red-400">
-                                    {Math.abs(project.daysRemaining)} days overdue
-                                </span>
-                            </div>
-                            <div className="mt-2 flex items-center gap-2">
-                                <div className="h-2 w-full flex-1 rounded-full bg-gray-200 dark:bg-dark-tertiary">
-                                    <div className="h-2 rounded-full bg-red-500" style={{ width: `${project.percentage}%` }} />
-                                </div>
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{project.percentage}%</span>
-                            </div>
-                        </Link>
-                    ))}
-                    {overdueProjects.length === 0 && <p className="text-sm text-red-700 dark:text-red-400">No projects are overdue.</p>}
-                </div>
             </div>
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-1">
             {UserID && <WeeklyStatsCard userId={UserID} />}
             
+            {/* Tabbed Projects Section */}
             <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
-                <h3 className="mb-4 text-lg font-semibold dark:text-white">Ongoing Projects</h3>
-                <div className="space-y-4">
-                    {ongoingProjects.map(project => (
-                        <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-tertiary cursor-pointer">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <span className="font-semibold dark:text-gray-200">{project.name}</span>
-                                    {project.ticket_id && (
-                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
-                                    )}
-                                </div>
-                                <span className={`text-sm font-medium ${project.daysRemaining < 7 ? 'text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`}>
-                                    {project.daysRemaining} days left
-                                </span>
-                            </div>
-                            <div className="mt-2 flex items-center gap-2">
-                                <div className="h-2 w-full flex-1 rounded-full bg-gray-200 dark:bg-dark-tertiary">
-                                    <div className="h-2 rounded-full bg-blue-primary" style={{ width: `${project.percentage}%` }} />
-                                </div>
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{project.percentage}%</span>
-                            </div>
-                        </Link>
-                    ))}
-                    {ongoingProjects.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">No projects are currently ongoing.</p>}
+                {/* Tab Headers */}
+                <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
+                    <button
+                        onClick={() => { setProjectTab('ongoing'); setOngoingPage(1); }}
+                        className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            projectTab === 'ongoing'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                        }`}
+                    >
+                        Ongoing ({ongoingProjects.length})
+                    </button>
+                    <button
+                        onClick={() => { setProjectTab('overdue'); setOverduePage(1); }}
+                        className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            projectTab === 'overdue'
+                                ? 'border-red-500 text-red-600 dark:text-red-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                        }`}
+                    >
+                        Overdue ({overdueProjects.length})
+                    </button>
                 </div>
+
+                {/* Tab Content */}
+                {projectTab === 'ongoing' ? (
+                    <>
+                        <div className="space-y-4">
+                            {ongoingProjects
+                                .slice((ongoingPage - 1) * PROJECTS_PER_PAGE, ongoingPage * PROJECTS_PER_PAGE)
+                                .map(project => (
+                                <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-tertiary cursor-pointer">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-semibold dark:text-gray-200">{project.name}</span>
+                                            {project.ticket_id && (
+                                                <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
+                                            )}
+                                        </div>
+                                        <span className={`text-sm font-medium ${project.daysRemaining < 7 ? 'text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                                            {project.daysRemaining} days left
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <div className="h-2 w-full flex-1 rounded-full bg-gray-200 dark:bg-dark-tertiary">
+                                            <div className="h-2 rounded-full bg-blue-primary" style={{ width: `${project.percentage}%` }} />
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{project.percentage}%</span>
+                                    </div>
+                                </Link>
+                            ))}
+                            {ongoingProjects.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">No projects are currently ongoing.</p>}
+                        </div>
+                        {Math.ceil(ongoingProjects.length / PROJECTS_PER_PAGE) > 1 && (
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    Page {ongoingPage} of {Math.ceil(ongoingProjects.length / PROJECTS_PER_PAGE)}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setOngoingPage(p => Math.max(1, p - 1))}
+                                        disabled={ongoingPage === 1}
+                                        className="p-1 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
+                                    </button>
+                                    <button
+                                        onClick={() => setOngoingPage(p => Math.min(Math.ceil(ongoingProjects.length / PROJECTS_PER_PAGE), p + 1))}
+                                        disabled={ongoingPage === Math.ceil(ongoingProjects.length / PROJECTS_PER_PAGE)}
+                                        className="p-1 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        <div className="space-y-4">
+                            {overdueProjects
+                                .slice((overduePage - 1) * PROJECTS_PER_PAGE, overduePage * PROJECTS_PER_PAGE)
+                                .map(project => (
+                                <Link href={`/projects/${project.id}`} key={project.id} className="block p-3 rounded-lg hover:bg-red-500/10 cursor-pointer">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="font-semibold text-red-800 dark:text-red-300">{project.name}</span>
+                                            {project.ticket_id && (
+                                                <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">Ticket #{project.ticket_id}</span>
+                                            )}
+                                        </div>
+                                        <span className="text-sm font-medium text-red-700 dark:text-red-400">
+                                            {Math.abs(project.daysRemaining)} days overdue
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <div className="h-2 w-full flex-1 rounded-full bg-gray-200 dark:bg-dark-tertiary">
+                                            <div className="h-2 rounded-full bg-red-500" style={{ width: `${project.percentage}%` }} />
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{project.percentage}%</span>
+                                    </div>
+                                </Link>
+                            ))}
+                            {overdueProjects.length === 0 && <p className="text-sm text-red-700 dark:text-red-400">No projects are overdue.</p>}
+                        </div>
+                        {Math.ceil(overdueProjects.length / PROJECTS_PER_PAGE) > 1 && (
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <span className="text-sm text-red-600 dark:text-red-400">
+                                    Page {overduePage} of {Math.ceil(overdueProjects.length / PROJECTS_PER_PAGE)}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setOverduePage(p => Math.max(1, p - 1))}
+                                        disabled={overduePage === 1}
+                                        className="p-1 rounded-md border border-red-300/50 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronLeft size={16} className="text-red-600 dark:text-red-400" />
+                                    </button>
+                                    <button
+                                        onClick={() => setOverduePage(p => Math.min(Math.ceil(overdueProjects.length / PROJECTS_PER_PAGE), p + 1))}
+                                        disabled={overduePage === Math.ceil(overdueProjects.length / PROJECTS_PER_PAGE)}
+                                        className="p-1 rounded-md border border-red-300/50 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronRight size={16} className="text-red-600 dark:text-red-400" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
         </div>
       </div>

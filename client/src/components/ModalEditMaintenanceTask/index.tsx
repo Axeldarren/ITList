@@ -32,7 +32,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
   const [type, setType] = useState("General");
   const [estimatedHours, setEstimatedHours] = useState<number | "">("");
   const [actualHours, setActualHours] = useState<number | "">("");
-  const [assignedToId, setAssignedToId] = useState<number | "">("");
+  const [assignedToId, setAssignedToId] = useState<string | "">("");
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [workDescription, setWorkDescription] = useState("");
   const [ticketId, setTicketId] = useState<string>("");
@@ -358,7 +358,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
             id="assignedTo"
             value={assignedToId}
             onChange={(e) =>
-              setAssignedToId(e.target.value ? Number(e.target.value) : "")
+              setAssignedToId(e.target.value ?? "")
             }
             className="dark:bg-dark-tertiary w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:text-white"
           >

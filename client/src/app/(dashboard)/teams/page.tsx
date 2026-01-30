@@ -55,10 +55,10 @@ const ViewMembersModal = ({ isOpen, onClose, team }: { isOpen: boolean, onClose:
 // --- Multi-select component for users (no changes needed here) ---
 type MultiUserSelectorProps = {
     allUsers: User[];
-    selectedIds: number[];
-    onSelectionChange: (ids: number[]) => void;
-    poId: string | number;
-    pmId: string | number;
+    selectedIds: string[];
+    onSelectionChange: (ids: string[]) => void;
+    poId: string;
+    pmId: string;
 };
 
 const MultiUserSelector = ({ allUsers, selectedIds, onSelectionChange, poId, pmId }: MultiUserSelectorProps) => {
@@ -67,16 +67,16 @@ const MultiUserSelector = ({ allUsers, selectedIds, onSelectionChange, poId, pmI
     const selectedUsers = useMemo(() => allUsers.filter(u => u.userId !== undefined && selectedIds.includes(u.userId)), [allUsers, selectedIds]);
     const availableUsers = useMemo(() => allUsers.filter(u => u.userId !== undefined && !selectedIds.includes(u.userId)), [allUsers, selectedIds]);
 
-    const handleSelect = (userId: number) => {
+    const handleSelect = (userId: string) => {
         onSelectionChange([...selectedIds, userId]);
     };
 
-    const handleRemove = (userId: number) => {
+    const handleRemove = (userId: string) => {
         onSelectionChange(selectedIds.filter(id => id !== userId));
     };
     
-    const isRemovable = (userId: number) => {
-        return userId !== Number(poId) && userId !== Number(pmId);
+    const isRemovable = (userId: string) => {
+        return userId !== poId && userId !== pmId;
     };
 
     return (
@@ -118,7 +118,7 @@ const MultiUserSelector = ({ allUsers, selectedIds, onSelectionChange, poId, pmI
 type TeamFormProps = {
     initialData?: Partial<Team> & { users?: User[] };
     allUsers?: User[];
-    onSubmit: (data: Partial<Team> & { memberIds: number[] }) => void;
+    onSubmit: (data: Partial<Team> & { memberIds: string[] }) => void;
     isLoading: boolean;
 };
 
@@ -126,7 +126,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ initialData, allUsers = [], onSubmi
     const [teamName, setTeamName] = useState('');
     const [poId, setPoId] = useState('');
     const [pmId, setPmId] = useState('');
-    const [memberIds, setMemberIds] = useState<number[]>([]);
+    const [memberIds, setMemberIds] = useState<string[]>([]);
 
     useEffect(() => {
         setTeamName(initialData?.teamName || '');
@@ -142,23 +142,23 @@ const TeamForm: React.FC<TeamFormProps> = ({ initialData, allUsers = [], onSubmi
     }, [initialData]);
 
     const handlePoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newPoId = Number(e.target.value);
+        const newPoId = e.target.value;
         setPoId(e.target.value);
-        setMemberIds(Array.from(new Set([...memberIds, newPoId])));
+        if (newPoId) setMemberIds(Array.from(new Set([...memberIds, newPoId])));
     };
 
     const handlePmChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newPmId = Number(e.target.value);
+        const newPmId = e.target.value;
         setPmId(e.target.value);
-        setMemberIds(Array.from(new Set([...memberIds, newPmId])));
+        if (newPmId) setMemberIds(Array.from(new Set([...memberIds, newPmId])));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit({ 
             teamName, 
-            productOwnerUserId: Number(poId), 
-            projectManagerUserId: Number(pmId),
+            productOwnerUserId: poId, 
+            projectManagerUserId: pmId,
             memberIds,
         });
     };
@@ -224,7 +224,7 @@ const Teams = () => {
     setIsConfirmModalOpen(true);
   };
 
-  const handleCreateSubmit = (teamData: Partial<Team> & { memberIds: number[] }) => {
+  const handleCreateSubmit = (teamData: Partial<Team> & { memberIds: string[] }) => {
     toast.promise(createTeam(teamData).unwrap(), {
         loading: 'Creating team...',
         success: 'Team created successfully!',
@@ -232,7 +232,7 @@ const Teams = () => {
     }).finally(() => setIsNewModalOpen(false));
   };
   
-  const handleUpdateSubmit = (teamData: Partial<Team> & { memberIds: number[] }) => {
+  const handleUpdateSubmit = (teamData: Partial<Team> & { memberIds: string[] }) => {
     if (!selectedTeam) return;
     toast.promise(updateTeam({ id: selectedTeam.id, ...teamData }).unwrap(), {
         loading: 'Updating team...',

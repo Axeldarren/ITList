@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import ModalViewAllTasks from '@/components/ModalViewAllTasks';
 
 const Assignments = () => {
+    // Force rebuild of types
     const [selectedDeveloper, setSelectedDeveloper] = useState<DeveloperAssignmentWithStats | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(1);
@@ -279,7 +280,8 @@ const Assignments = () => {
                                                     <div 
                                                         key={task.id} 
                                                         onClick={() => handleTaskClick(task)}
-                                                        className={`p-2 bg-gray-50 dark:bg-dark-tertiary rounded border relative cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-tertiary/80 transition-colors ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}`}
+                                                        className={`p-2 bg-white dark:bg-dark-tertiary rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-tertiary/80 transition-all ${isOverdue ? 'border border-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}`}
+                                                        style={{ boxShadow: '3px 4px 6px rgba(0, 0, 0, 0.1)' }}
                                                     >
                                                         {/* Overdue stamp */}
                                                         {isOverdue && (

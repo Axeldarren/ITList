@@ -11,7 +11,7 @@ interface ModalViewCompletedTasksProps {
   isOpen: boolean;
   onClose: () => void;
   developer: {
-    userId: number;
+    userId: string;
     username: string;
     profilePictureUrl?: string;
     isAdmin?: boolean;

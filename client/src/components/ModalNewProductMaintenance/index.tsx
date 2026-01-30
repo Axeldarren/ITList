@@ -18,7 +18,7 @@ const ModalNewProductMaintenance = ({ isOpen, onClose }: Props) => {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [projectId, setProjectId] = useState<number | "">(""); 
-  const [selectedMaintainers, setSelectedMaintainers] = useState<number[]>([]);
+  const [selectedMaintainers, setSelectedMaintainers] = useState<string[]>([]);
   const [showUserSelect, setShowUserSelect] = useState(false);
 
   const [createProductMaintenance, { isLoading: isCreating }] = useCreateProductMaintenanceMutation();
@@ -62,7 +62,7 @@ const ModalNewProductMaintenance = ({ isOpen, onClose }: Props) => {
     setShowUserSelect(false);
   };
 
-  const handleMaintainerToggle = (userId: number) => {
+  const handleMaintainerToggle = (userId: string) => {
     setSelectedMaintainers(prev => 
       prev.includes(userId)
         ? prev.filter(id => id !== userId)

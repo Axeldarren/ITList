@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useGetDeveloperStatsQuery, useGetUsersQuery, useGetTimeLogsQuery, useGetAllRunningTimeLogsQuery } from '@/state/api';
+import { useGetDeveloperStatsPaginatedQuery, useGetUsersQuery, useGetTimeLogsQuery, useGetAllRunningTimeLogsQuery } from '@/state/api';
 
-import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User } from 'lucide-react';
+import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -11,6 +11,8 @@ import ModalViewTimeLogs from '@/components/ModalViewTimeLogs';
 import ModalViewCompletedTasks from '@/components/ModalViewCompletedTasks';
 import MonthPicker from '@/components/MonthPicker';
 import LiveTimerDisplay from '@/components/LiveTimerDisplay';
+
+const DEVELOPERS_PER_PAGE = 10;
 
 const formatDuration = (seconds: number): string => {
     if (!seconds || seconds < 0) return '0:00:00';
@@ -26,22 +28,29 @@ const DeveloperProductivity = () => {
     // Fetch all running time logs (for all users)
     const { data: runningTimeLogs = [] } = useGetAllRunningTimeLogsQuery();
     // Helper: Map userId to their running time log (if any)
-    const runningLogByUserId = new Map<number, import('@/state/api').TimeLog>();
+    const runningLogByUserId = new Map<string, import('@/state/api').TimeLog>();
     runningTimeLogs.forEach((log: import('@/state/api').TimeLog) => {
         if (log.userId) runningLogByUserId.set(log.userId, log);
     });
     // State for the month range filter
     const [startMonth, setStartMonth] = useState(format(new Date(), 'yyyy-MM'));
     const [endMonth, setEndMonth] = useState(format(new Date(), 'yyyy-MM'));
+    const [currentPage, setCurrentPage] = useState(1);
     
     // Modal states
-    const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
-    const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: number; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
+    const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
+    const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
 
-    const { data: stats = [], isLoading } = useGetDeveloperStatsQuery({ 
+    const { data: statsResponse, isLoading } = useGetDeveloperStatsPaginatedQuery({ 
         startMonth,
-        endMonth
+        endMonth,
+        page: currentPage,
+        limit: DEVELOPERS_PER_PAGE
     });
+    
+    const stats = statsResponse?.data ?? [];
+    const meta = statsResponse?.meta;
+    
     const { data: users = [] } = useGetUsersQuery();
     
     // Get today's time logs to calculate today's time for each developer
@@ -51,7 +60,7 @@ const DeveloperProductivity = () => {
     });
 
     // Helper function to calculate today's time logged for a specific user
-    const getTodayTimeLogged = (userId: number): number => {
+    const getTodayTimeLogged = (userId: string): number => {
         const userTodayLogs = todayTimeLogs.filter(log => {
             if (!log.startTime || !log.endTime || log.userId !== userId) return false;
             const logDate = format(new Date(log.startTime), 'yyyy-MM-dd');
@@ -65,7 +74,7 @@ const DeveloperProductivity = () => {
         exportProductivityToPDF(sortedStats, getDateRangeLabel());
     };
 
-    const getUserProfile = (userId: number) => {
+    const getUserProfile = (userId: string) => {
         return users.find(user => user.userId === userId);
     };
 
@@ -85,6 +94,7 @@ const DeveloperProductivity = () => {
             setStartMonth(newEndMonth);
         }
         setEndMonth(newEndMonth);
+        setCurrentPage(1); // Reset to first page on date change
     };
 
     const handleStartMonthChange = (newStartMonth: string) => {
@@ -92,9 +102,10 @@ const DeveloperProductivity = () => {
             setEndMonth(newStartMonth);
         }
         setStartMonth(newStartMonth);
+        setCurrentPage(1); // Reset to first page on date change
     };
 
-    const handleTimeLogsClick = (dev: { userId: number; username: string; isAdmin?: boolean }) => {
+    const handleTimeLogsClick = (dev: { userId: string; username: string; isAdmin?: boolean }) => {
         const userProfile = getUserProfile(dev.userId);
         setTimeLogsModal({
             isOpen: true,
@@ -107,7 +118,7 @@ const DeveloperProductivity = () => {
         });
     };
 
-    const handleCompletedTasksClick = (dev: { userId: number; username: string; isAdmin?: boolean }) => {
+    const handleCompletedTasksClick = (dev: { userId: string; username: string; isAdmin?: boolean }) => {
         const userProfile = getUserProfile(dev.userId);
         setCompletedTasksModal({
             isOpen: true,
@@ -226,6 +237,7 @@ const DeveloperProductivity = () => {
                     </p>
                 </div>
             ) : (
+            <>
                 <div className="grid gap-4">
                     {sortedStats.map((dev) => {
                         const userProfile = getUserProfile(dev.userId);
@@ -342,6 +354,35 @@ const DeveloperProductivity = () => {
                         );
                     })}
                 </div>
+
+                {/* Pagination Controls */}
+                {meta && meta.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Showing {(currentPage - 1) * DEVELOPERS_PER_PAGE + 1}-{Math.min(currentPage * DEVELOPERS_PER_PAGE, meta.total)} of {meta.total} developers
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 px-2">
+                                Page {currentPage} of {meta.totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(meta.totalPages, p + 1))}
+                                disabled={currentPage === meta.totalPages}
+                                className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </>
             )}
 
             {/* Modals */}

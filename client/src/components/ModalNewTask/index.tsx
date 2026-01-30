@@ -84,7 +84,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         dueDate: dueDate ? formatISO(new Date(dueDate)) : undefined,
         points: points ? Number(points) : undefined,
         authorUserId: loggedInUser.userId,
-        assignedUserId: assignedUserId ? parseInt(assignedUserId) : undefined,
+        assignedUserId: assignedUserId && assignedUserId !== "" ? assignedUserId : undefined,
         projectId: id ? Number(id) : Number(projectId),
     }).unwrap();
 

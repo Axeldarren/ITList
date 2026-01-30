@@ -21,7 +21,7 @@ const Timeline = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [view, setView] = useState<'roadmap' | 'gantt'>('roadmap');
     const [page, setPage] = useState(1);
-    const [limit] = useState(10);
+    const [limit] = useState(12);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('all');
     const [sortOption, setSortOption] = useState('oldest');

@@ -3,20 +3,22 @@ import Modal from "@/components/Modal";
 import Calendar from "@/components/Calendar";
 import { useGetTimeLogsQuery } from "@/state/api";
 import { format, parseISO } from "date-fns";
-import { Clock, Calendar as CalendarIcon, Play, Square, Filter } from "lucide-react";
+import { Clock, Calendar as CalendarIcon, Play, Square, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
 interface ModalViewTimeLogsProps {
   isOpen: boolean;
   onClose: () => void;
   developer: {
-    userId: number;
+    userId: string;
     username: string;
     profilePictureUrl?: string;
     isAdmin?: boolean;
   };
   selectedMonth: string;
 }
+
+const LOGS_PER_PAGE = 5;
 
 const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
   isOpen,
@@ -25,6 +27,7 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
   selectedMonth,
 }) => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [currentPage, setCurrentPage] = useState(1);
   
   const { data: timeLogs = [], isLoading } = useGetTimeLogsQuery({
     userId: developer.userId,
@@ -46,6 +49,19 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
       return logDate === selectedDate;
     });
   }, [timeLogs, selectedDate]);
+
+  // Pagination for filtered logs
+  const totalPages = Math.ceil(filteredLogs.length / LOGS_PER_PAGE);
+  const paginatedLogs = useMemo(() => {
+    const start = (currentPage - 1) * LOGS_PER_PAGE;
+    return filteredLogs.slice(start, start + LOGS_PER_PAGE);
+  }, [filteredLogs, currentPage]);
+
+  // Reset page when date changes
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
+    setCurrentPage(1);
+  };
 
   // Group logs by date for date selector
   const logsByDate = useMemo(() => {
@@ -121,7 +137,7 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
             </div>
             <Calendar
               value={selectedDate}
-              onChange={setSelectedDate}
+              onChange={handleDateChange}
               placeholder="Select Date"
               className="min-w-[200px]"
               highlightedDates={Object.keys(logsByDate)}
@@ -135,6 +151,9 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
                 <CalendarIcon size={16} className="text-blue-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {format(new Date(selectedDate), 'EEEE, MMMM dd, yyyy')}
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({filteredLogs.length} log{filteredLogs.length !== 1 ? 's' : ''})
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -161,67 +180,97 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredLogs.map((log) => {
-              const startTime = new Date(log.startTime);
-              const endTime = log.endTime ? new Date(log.endTime) : null;
-              const duration = endTime ? 
-                (endTime.getTime() - startTime.getTime()) / 1000 : 0;
+          <>
+            <div className="space-y-3">
+              {paginatedLogs.map((log) => {
+                const startTime = new Date(log.startTime);
+                const endTime = log.endTime ? new Date(log.endTime) : null;
+                const duration = endTime ? 
+                  (endTime.getTime() - startTime.getTime()) / 1000 : 0;
 
-              return (
-                <div
-                  key={log.id}
-                  className="p-4 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-gray-600 rounded-lg"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {endTime ? (
-                        <Square size={16} className="text-red-500" fill="currentColor" />
-                      ) : (
-                        <Play size={16} className="text-green-500" fill="currentColor" />
-                      )}
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {log.task?.title || 'No task specified'}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-purple-600">
-                        {formatDuration(duration)}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {endTime ? 'Completed' : 'In Progress'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                    <div className="flex items-center gap-4">
-                      <span>
-                        Started: {format(startTime, 'h:mm a')}
-                      </span>
-                      {endTime && (
-                        <span>
-                          Ended: {format(endTime, 'h:mm a')}
+                return (
+                  <div
+                    key={log.id}
+                    className="p-4 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-gray-600 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {endTime ? (
+                          <Square size={16} className="text-red-500" fill="currentColor" />
+                        ) : (
+                          <Play size={16} className="text-green-500" fill="currentColor" />
+                        )}
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {log.task?.title || 'No task specified'}
                         </span>
-                      )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-purple-600">
+                          {formatDuration(duration)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {endTime ? 'Completed' : 'In Progress'}
+                        </div>
+                      </div>
                     </div>
+
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                      <div className="flex items-center gap-4">
+                        <span>
+                          Started: {format(startTime, 'h:mm a')}
+                        </span>
+                        {endTime && (
+                          <span>
+                            Ended: {format(endTime, 'h:mm a')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {log.description && (
+                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-dark-tertiary p-2 rounded">
+                        {log.description}
+                      </p>
+                    )}
+
+                    {log.task?.project && (
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Project: {log.task.project.name}
+                      </div>
+                    )}
                   </div>
+                );
+              })}
+            </div>
 
-                  {log.description && (
-                    <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-dark-tertiary p-2 rounded">
-                      {log.description}
-                    </p>
-                  )}
-
-                  {log.task?.project && (
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      Project: {log.task.project.name}
-                    </div>
-                  )}
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {(currentPage - 1) * LOGS_PER_PAGE + 1}-{Math.min(currentPage * LOGS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 px-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </Modal>

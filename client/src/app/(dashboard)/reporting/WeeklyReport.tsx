@@ -55,7 +55,7 @@ const WeeklyReport = () => {
   }, [tasks]);
 
   const rows: Row[] = useMemo(() => {
-    const userById = new Map<number, User>();
+    const userById = new Map<string, User>();
     users.forEach(u => { if (u.userId != null) userById.set(u.userId, u); });
   // Note: teamById is not required for per-department attribution
 
@@ -122,7 +122,7 @@ const WeeklyReport = () => {
         if (pmId && !productById.has(pmId) && ml.maintenanceTask.productMaintenanceId) {
           // We may not have product details (like name); keep placeholder entry minimal
           // Consumers should guard for missing name
-          productById.set(pmId, { id: pmId, name: `Product ${pmId}`, status: 'Active', createdAt: '', updatedAt: '', createdById: 0, createdBy: { userId: 0, username: '' }, maintainers: [], maintenanceTasks: [] } as ProductMaintenance);
+          productById.set(pmId, { id: pmId, name: `Product ${pmId}`, status: 'Active', createdAt: '', updatedAt: '', createdById: '', createdBy: { userId: '', username: '' }, maintainers: [], maintenanceTasks: [] } as ProductMaintenance);
         }
       }
     }

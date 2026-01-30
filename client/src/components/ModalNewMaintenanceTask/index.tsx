@@ -23,7 +23,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
   const [priority, setPriority] = useState("Medium");
   const [type, setType] = useState("General");
   const [estimatedHours, setEstimatedHours] = useState<number | "">("");
-  const [assignedToId, setAssignedToId] = useState<number | "">("");
+  const [assignedToId, setAssignedToId] = useState<string | "">("");
   const [ticketId, setTicketId] = useState<string>("");
 
   const [createMaintenanceTask, { isLoading: isCreating }] = useCreateMaintenanceTaskMutation();
@@ -201,7 +201,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
           <select
             id="assignedTo"
             value={assignedToId}
-            onChange={(e) => setAssignedToId(e.target.value ? Number(e.target.value) : "")}
+            onChange={(e) => setAssignedToId(e.target.value ?? "")}
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
           >
             <option value="">Unassigned</option>
