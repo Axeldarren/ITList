@@ -34,7 +34,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     try {
         const user = await prisma.user.findUnique({
             where: { 
-                userId: Number(userId),
+                userId: userId,
                 deletedAt: null 
              },
         });
@@ -87,7 +87,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
         }
 
         const updatedUser = await prisma.user.update({
-            where: { userId: Number(userId) },
+            where: { userId: userId },
             data: dataToUpdate,
         });
 
@@ -121,7 +121,7 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
     try {
         // Find the user to get the old profile picture URL
         const user = await prisma.user.findUnique({
-            where: { userId: Number(userId) },
+            where: { userId: userId },
         });
 
         // The URL path where the new file is accessible
@@ -129,7 +129,7 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
 
         // Update the user with the new profile picture URL
         const updatedUser = await prisma.user.update({
-            where: { userId: Number(userId) },
+            where: { userId: userId },
             data: { profilePictureUrl },
         });
 
@@ -272,7 +272,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
     const loggedInUser = req.user;
-    const numericUserId = Number(userId);
+
 
     if (!loggedInUser) {
         res.status(401).json({ message: "Not authorized." });
@@ -280,14 +280,14 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
     }
 
     // Prevent a user from deleting themselves
-    if (loggedInUser.userId === numericUserId) {
+    if (loggedInUser.userId === userId) {
         res.status(400).json({ message: "You cannot delete your own account." });
         return;
     }
 
     try {
         await prisma.user.update({
-            where: { userId: numericUserId },
+            where: { userId: userId },
             data: {
                 deletedAt: new Date(),
                 deletedById: loggedInUser.userId,
@@ -308,7 +308,6 @@ export const getUserWeeklyStats = async (req: Request, res: Response): Promise<v
     const { weekOffset = 0 } = req.query;
     
     try {
-        const numericUserId = Number(userId);
         const offset = Number(weekOffset);
         
         // Calculate the start and end of the target week
@@ -326,7 +325,7 @@ export const getUserWeeklyStats = async (req: Request, res: Response): Promise<v
         // Get time logs for the week (excluding logs from deleted tasks)
         const timeLogs = await prisma.timeLog.findMany({
             where: {
-                userId: numericUserId,
+                userId: userId,
                 task: {
                     deletedAt: null // Exclude logs from deleted tasks
                 },
@@ -354,7 +353,7 @@ export const getUserWeeklyStats = async (req: Request, res: Response): Promise<v
         // Get tasks completed in the target week (excluding deleted tasks)
         const completedTasks = await prisma.task.findMany({
             where: {
-                assignedUserId: numericUserId,
+                assignedUserId: userId,
                 status: 'Completed',
                 deletedAt: null, // Exclude deleted tasks
                 updatedAt: {

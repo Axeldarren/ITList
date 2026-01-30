@@ -28,7 +28,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
 
     try {
         // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: number };
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
 
         // Check if user still exists
         const currentUser = await prisma.user.findUnique({ where: { userId: decoded.id } });

@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
 import http from 'http';
+import { PrismaClient } from '@prisma/client';
 import { initWebSocket } from './websocket';
 import { generalLimiter } from './middleware/rateLimiter';
 import { xssProtection, noSQLProtection, securityLogger } from './middleware/securityMiddleware';
@@ -107,9 +108,25 @@ app.use('/osticket', osticketRoutes);
 const port = process.env.PORT || 8008;
 const server = http.createServer(app);
 
+// Initialize Prisma Client
+const prisma = new PrismaClient();
+
 // Initialize WebSocket Server
 initWebSocket(server);
 
-server.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-})
+// Test database connection
+async function startServer() {
+    try {
+        await prisma.$connect();
+        console.log('✅ Database connected successfully');
+        
+        server.listen(port, () => {
+            console.log(`🚀 Server is running on port ${port}`);
+        });
+    } catch (error) {
+        console.error('❌ Database connection failed:', error);
+        process.exit(1);
+    }
+}
+
+startServer();

@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  userId                   Int                    @id @default(autoincrement())
+  userId                   String                 @id @default(uuid())
   username                 String                 @unique
   email                    String                 @unique
   password                 String
@@ -17,7 +17,7 @@ model User {
   department               String?
   isAdmin                  Boolean                @default(false)
   deletedAt                DateTime?
-  deletedById              Int?
+  deletedById              String?
   activities               Activity[]
   deletedAttachments       Attachment[]           @relation("DeletedAttachments")
   attachments              Attachment[]
@@ -60,12 +60,12 @@ model Project {
   endDate             DateTime?
   version             Int                    @default(1)
   createdAt           DateTime               @default(now())
-  createdById         Int?
+  createdById         String?
   deletedAt           DateTime?
-  deletedById         Int?
+  deletedById         String?
   status              ProjectStatus          @default(Start)
   updatedAt           DateTime               @default(now()) @updatedAt
-  updatedById         Int?
+  updatedById         String?
   activities          Activity[]
   productMaintenances ProductMaintenance[]
   createdBy           User?                  @relation("CreatedProjects", fields: [createdById], references: [userId])
@@ -88,7 +88,7 @@ model ProjectStatusHistory {
   projectId   Int
   status      ProjectStatus
   changedAt   DateTime      @default(now())
-  changedById Int
+  changedById String
   changedBy   User          @relation(fields: [changedById], references: [userId])
   project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -109,13 +109,13 @@ model Task {
   points          Int?
   version         Int
   projectId       Int
-  authorUserId    Int
-  assignedUserId  Int?
+  authorUserId    String
+  assignedUserId  String?
   createdAt       DateTime         @default(now())
   deletedAt       DateTime?
-  deletedById     Int?
+  deletedById     String?
   updatedAt       DateTime         @default(now()) @updatedAt
-  updatedById     Int?
+  updatedById     String?
   activities      Activity[]
   attachments     Attachment[]
   comments        Comment[]
@@ -139,12 +139,12 @@ model Comment {
   id          Int       @id @default(autoincrement())
   text        String    @db.Text
   taskId      Int?      // Make optional to support maintenance tasks
-  userId      Int
+  userId      String
   createdAt   DateTime  @default(now())
   deletedAt   DateTime?
-  deletedById Int?
+  deletedById String?
   updatedAt   DateTime  @default(now()) @updatedAt
-  updatedById Int?
+  updatedById String?
   
   // Add maintenance task support
   maintenanceTaskId   Int?
@@ -167,14 +167,14 @@ model Comment {
 model Team {
   id                   Int              @id @default(autoincrement())
   teamName             String
-  productOwnerUserId   Int?
-  projectManagerUserId Int?
+  productOwnerUserId   String?
+  projectManagerUserId String?
   createdAt            DateTime         @default(now())
-  createdById          Int?
+  createdById          String?
   deletedAt            DateTime?
-  deletedById          Int?
+  deletedById          String?
   updatedAt            DateTime         @default(now()) @updatedAt
-  updatedById          Int?
+  updatedById          String?
   projectTeams         ProjectTeam[]
   createdBy            User?            @relation("CreatedTeams", fields: [createdById], references: [userId])
   deletedBy            User?            @relation("DeletedTeams", fields: [deletedById], references: [userId])
@@ -195,7 +195,7 @@ model TimeLog {
   description String? // Add description field
   createdAt DateTime  @default(now())
   taskId    Int?      // Make optional to support maintenance tasks
-  userId    Int
+  userId    String
   commentId Int?      @unique
   
   // Add maintenance task support
@@ -234,7 +234,7 @@ model Activity {
   description String
   createdAt   DateTime     @default(now())
   projectId   Int
-  userId      Int
+  userId      String
   taskId      Int?
   project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   task        Task?        @relation(fields: [taskId], references: [id])
@@ -248,7 +248,7 @@ model Activity {
 
 model TeamMembership {
   id     Int  @id @default(autoincrement())
-  userId Int
+  userId String
   teamId Int
   team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user   User @relation(fields: [userId], references: [userId])
@@ -272,7 +272,7 @@ model ProjectTeam {
 
 model TaskAssignment {
   id     Int  @id @default(autoincrement())
-  userId Int
+  userId String
   taskId Int
   task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user   User @relation(fields: [userId], references: [userId])
@@ -287,10 +287,10 @@ model Attachment {
   fileURL      String    @db.Text
   fileName     String?
   taskId       Int
-  uploadedById Int
+  uploadedById String
   createdAt    DateTime  @default(now())
   deletedAt    DateTime?
-  deletedById  Int?
+  deletedById  String?
   deletedBy    User?     @relation("DeletedAttachments", fields: [deletedById], references: [userId])
   task         Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
   uploadedBy   User      @relation(fields: [uploadedById], references: [userId])
@@ -311,10 +311,10 @@ model ProductMaintenance {
   projectId        Int?
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @default(now()) @updatedAt
-  createdById      Int
-  updatedById      Int?
+  createdById      String
+  updatedById      String?
   deletedAt        DateTime?
-  deletedById      Int?
+  deletedById      String?
   maintenanceTasks MaintenanceTask[]
   maintainers      ProductMaintainer[]
   createdBy        User                     @relation("CreatedMaintenances", fields: [createdById], references: [userId])
@@ -339,11 +339,11 @@ model MaintenanceTask {
   estimatedHours       Int?
   actualHours          Int?
   productMaintenanceId Int
-  assignedToId         Int?
+  assignedToId         String?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @default(now()) @updatedAt
-  createdById          Int
-  updatedById          Int?
+  createdById          String
+  updatedById          String?
   
   // Add missing relationships
   timeLogs             TimeLog[]          // Relationship to TimeLog
@@ -365,7 +365,7 @@ model MaintenanceTask {
 model ProductMaintainer {
   id                   Int                @id @default(autoincrement())
   productMaintenanceId Int
-  userId               Int
+  userId               String
   role                 String             @default("Maintainer")
   createdAt            DateTime           @default(now())
   productMaintenance   ProductMaintenance @relation(fields: [productMaintenanceId], references: [id], onDelete: Cascade)
@@ -400,7 +400,7 @@ model ProductMaintenanceStatusHistory {
   productMaintenanceId Int
   status               MaintenanceLifecycle
   changedAt            DateTime             @default(now())
-  changedById          Int
+  changedById          String
   changedBy            User                 @relation(fields: [changedById], references: [userId])
   productMaintenance   ProductMaintenance   @relation(fields: [productMaintenanceId], references: [id], onDelete: Cascade)
 

@@ -42,13 +42,13 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
         const newTeam = await prisma.team.create({
             data: {
                 teamName,
-                productOwnerUserId: Number(productOwnerUserId),
-                projectManagerUserId: Number(projectManagerUserId),
+                productOwnerUserId: productOwnerUserId,
+                projectManagerUserId: projectManagerUserId,
                 createdById: loggedInUser?.userId,
                 updatedById: loggedInUser?.userId, // The creator is the first updater
                 members: {
-                    create: memberIds.map((id: number) => ({
-                        userId: Number(id)
+                    create: memberIds.map((id: string) => ({
+                        userId: id
                     }))
                 }
             },
@@ -77,8 +77,8 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
                 where: { id: teamIdNum },
                 data: {
                     teamName,
-                    productOwnerUserId: Number(productOwnerUserId),
-                    projectManagerUserId: Number(projectManagerUserId),
+                    productOwnerUserId: productOwnerUserId,
+                    projectManagerUserId: projectManagerUserId,
                     updatedById: loggedInUser?.userId, // Stamp the updater
                 },
             });
@@ -87,9 +87,9 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
 
             if (memberIds.length > 0) {
                 await tx.teamMembership.createMany({
-                    data: memberIds.map((id: number) => ({
+                    data: memberIds.map((id: string) => ({
                         teamId: teamIdNum,
-                        userId: Number(id),
+                        userId: id,
                     })),
                 });
             }

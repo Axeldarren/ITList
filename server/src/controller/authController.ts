@@ -7,7 +7,7 @@ import validator from 'validator';
 
 const prisma = new PrismaClient();
 
-const signToken = (id: number) => {
+const signToken = (id: string) => {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
         throw new Error('JWT_SECRET is not defined in the environment variables.');
@@ -18,7 +18,7 @@ const signToken = (id: number) => {
     });
 };
 
-const createSendToken = (user: { userId: number, username: string, email: string, isAdmin: boolean }, statusCode: number, res: Response) => {
+const createSendToken = (user: { userId: string, username: string, email: string, isAdmin: boolean }, statusCode: number, res: Response) => {
     const token = signToken(user.userId);
 
     const cookieOptions = {

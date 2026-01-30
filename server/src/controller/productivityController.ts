@@ -5,13 +5,30 @@ import { startOfMonth, endOfMonth, parseISO } from 'date-fns';
 const prisma = new PrismaClient();
 
 export const getDeveloperStats = async (req: Request, res: Response) => {
-    const { month, startMonth, endMonth } = req.query as { month?: string; startMonth?: string; endMonth?: string };
+    const { month, startMonth, endMonth, page, limit } = req.query as { 
+        month?: string; 
+        startMonth?: string; 
+        endMonth?: string;
+        page?: string;
+        limit?: string;
+    };
+
+    // Pagination defaults
+    const pageNum = parseInt(page || '1', 10);
+    const limitNum = parseInt(limit || '10', 10);
 
     try {
+        // Get total count of active users
+        const totalUsers = await prisma.user.count({
+            where: { deletedAt: null }
+        });
+
         const users = await prisma.user.findMany({
             where: {
                 deletedAt: null, // Only get active users
-            }
+            },
+            skip: page && limit ? (pageNum - 1) * limitNum : undefined,
+            take: page && limit ? limitNum : undefined,
         });
 
         const now = new Date();
@@ -100,7 +117,21 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
             };
         }));
 
-        res.status(200).json(stats);
+        // Return paginated response if pagination params provided
+        if (page && limit) {
+            res.status(200).json({
+                data: stats,
+                meta: {
+                    total: totalUsers,
+                    page: pageNum,
+                    limit: limitNum,
+                    totalPages: Math.ceil(totalUsers / limitNum)
+                }
+            });
+        } else {
+            // Return array for backward compatibility
+            res.status(200).json(stats);
+        }
 
     } catch (error: any) {
         console.error(`Error fetching developer stats: ${error.message}`);

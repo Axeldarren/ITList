@@ -344,7 +344,7 @@ export const createProductMaintenance = async (req: Request, res: Response): Pro
         projectId: projectId ? Number(projectId) : null,
         createdById: userId,
         maintainers: {
-          create: maintainerIds.map((maintainerId: number) => ({
+          create: maintainerIds.map((maintainerId: string) => ({
             userId: maintainerId,
           })),
         },
@@ -455,7 +455,7 @@ export const updateProductMaintenance = async (req: Request, res: Response): Pro
       // Add new maintainers
       if (maintainerIds.length > 0) {
         await prisma.productMaintainer.createMany({
-          data: maintainerIds.map((maintainerId: number) => ({
+          data: maintainerIds.map((maintainerId: string) => ({
             productMaintenanceId: Number(id),
             userId: maintainerId,
           })),
@@ -548,7 +548,7 @@ export const createMaintenanceTask = async (req: Request, res: Response): Promis
         priority: priority || "Medium",
         type: type || "General",
         estimatedHours: estimatedHours ? Number(estimatedHours) : null,
-        assignedToId: assignedToId ? Number(assignedToId) : null,
+        assignedToId: assignedToId ? assignedToId : null,
         productMaintenanceId: Number(productMaintenanceId),
         createdById: userId,
       },
@@ -616,7 +616,7 @@ export const updateMaintenanceTask = async (req: Request, res: Response): Promis
     if (type !== undefined) updateData.type = type;
     if (estimatedHours !== undefined) updateData.estimatedHours = estimatedHours ? Number(estimatedHours) : null;
     if (actualHours !== undefined) updateData.actualHours = actualHours ? Number(actualHours) : null;
-    if (assignedToId !== undefined) updateData.assignedToId = assignedToId ? Number(assignedToId) : null;
+    if (assignedToId !== undefined) updateData.assignedToId = assignedToId ? assignedToId : null;
 
     const maintenanceTask = await prisma.maintenanceTask.update({
       where: { id: Number(id) },

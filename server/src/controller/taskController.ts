@@ -207,11 +207,11 @@ export const getUserTasks = async (req: Request, res: Response): Promise<void> =
     };
 
     if (assignedOnly === 'true') {
-        whereClause.assignedUserId = Number(userId);
+        whereClause.assignedUserId = userId;
     } else {
         whereClause.OR = [
-            { authorUserId: Number(userId) },
-            { assignedUserId: Number(userId) },
+            { authorUserId: userId },
+            { assignedUserId: userId },
         ];
     }
 
@@ -381,7 +381,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
             startDate: startDate ? new Date(startDate) : null,
             dueDate: dueDate ? new Date(dueDate) : null,
             points: points ? Number(points) : null,
-            assignedUserId: assignedUserId ? Number(assignedUserId) : null,
+            assignedUserId: assignedUserId ? assignedUserId : null,
             updatedById: loggedInUser?.userId, // Always stamp the updater
         };
 

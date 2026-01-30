@@ -221,13 +221,23 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
 
 export const getAllTimeLogs = async (req: Request, res: Response) => {
   try {
-    const { userId, month } = req.query as { userId?: string; month?: string };
+    const { userId, month, page, limit } = req.query as { 
+      userId?: string; 
+      month?: string;
+      page?: string;
+      limit?: string;
+    };
+    
+    // Pagination defaults
+    const pageNum = parseInt(page || '1', 10);
+    const limitNum = parseInt(limit || '10', 10);
+    const skip = (pageNum - 1) * limitNum;
     
     // Build the where clause
     let whereClause: any = {};
     
     // Filter by user if userId is provided
-    if (userId) whereClause.userId = parseInt(userId);
+    if (userId) whereClause.userId = userId;
     
     // Filter by month if month is provided
     if (month) {
@@ -243,6 +253,9 @@ export const getAllTimeLogs = async (req: Request, res: Response) => {
       { task: { deletedAt: null } },
       { maintenanceTaskId: { not: null } }
     ];
+    
+    // Get total count for pagination meta
+    const total = await prisma.timeLog.count({ where: whereClause });
     
     const timeLogs = await prisma.timeLog.findMany({
       where: whereClause,
@@ -261,8 +274,25 @@ export const getAllTimeLogs = async (req: Request, res: Response) => {
       orderBy: {
         startTime: "desc",
       },
+      skip: page && limit ? skip : undefined,
+      take: page && limit ? limitNum : undefined,
     });
-    res.status(200).json(timeLogs);
+    
+    // Return paginated response if pagination params provided
+    if (page && limit) {
+      res.status(200).json({
+        data: timeLogs,
+        meta: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum)
+        }
+      });
+    } else {
+      // Return array for backward compatibility
+      res.status(200).json(timeLogs);
+    }
   } catch (error: any) {
     res
       .status(500)

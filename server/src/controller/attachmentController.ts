@@ -35,7 +35,7 @@ export const createAttachment = async (req: Request, res: Response) => {
         const newAttachment = await Prisma.attachment.create({
             data: {
                 taskId: Number(taskId),
-                uploadedById: Number(uploadedById),
+                uploadedById: uploadedById,
                 fileName: req.file.originalname,
                 // Save the path to the file provided by multer
                 fileURL: `/uploads/${req.file.filename}`, 
