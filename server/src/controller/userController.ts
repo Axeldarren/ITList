@@ -18,7 +18,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
             username: u.username,
             email: u.email,
             profilePictureUrl: u.profilePictureUrl,
-            isAdmin: u.isAdmin,
+            role: u.role,
             NIK: u.NIK,
             department: u.department || null,
         }));
@@ -58,7 +58,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const { userId } = req.params;
     const loggedInUser = req.user;
     
-    const { username, email, NIK, isAdmin, department } = req.body;
+    const { username, email, NIK, role, department } = req.body;
 
     if (!loggedInUser) {
         res.status(401).json({ message: 'Not authorized' });
@@ -75,14 +75,14 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 
         // --- THIS IS THE FIX ---
         // Securely handle the isAdmin flag
-        if (loggedInUser.isAdmin) {
-            // Only an admin can change the isAdmin status
-            if (typeof isAdmin === 'boolean') {
-                dataToUpdate.isAdmin = isAdmin;
+        if (loggedInUser.role === 'ADMIN') {
+            // Only an admin can change the role
+            if (typeof role === 'string') {
+                dataToUpdate.role = role;
             }
-        } else if (isAdmin === true && !loggedInUser.isAdmin) {
+        } else if (role === 'ADMIN' && loggedInUser.role !== 'ADMIN') {
             // A non-admin cannot make themselves an admin
-            res.status(403).json({ message: 'You do not have permission to change admin status.' });
+            res.status(403).json({ message: 'You do not have permission to change role to ADMIN.' });
             return;
         }
 
@@ -102,7 +102,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 
     } catch (error: any) {
         if (error.code === 'P2002') {
-            res.status(409).json({ message: 'Username or email already in use.' });
+            res.status(409).json({ message: 'Email or NIK already in use.' });
         } else {
             res.status(500).json({ message: 'Error updating user', error: error.message });
         }
@@ -156,13 +156,13 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
 };
 
 export const createUser = async (req: Request, res: Response): Promise<void> => {
-    const { username, email, password, NIK, isAdmin, department } = req.body;
+    const { username, email, password, NIK, role, department } = req.body;
 
     // Input validation
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !NIK) {
         res.status(400).json({ 
             status: 'error',
-            message: 'Username, email, and password are required.' 
+            message: 'Username, email, password, and NIK are required.' 
         });
         return;
     }
@@ -216,7 +216,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
             where: {
                 OR: [
                     { email: sanitizedEmail },
-                    { username: sanitizedUsername }
+                    // Username is no longer unique, so we don't check for it here
                 ]
             }
         });
@@ -224,7 +224,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
         if (existingUser) {
             res.status(409).json({ 
                 status: 'error',
-                message: 'User with this email or username already exists' 
+                message: 'User with this email already exists' 
             });
             return;
         }
@@ -237,8 +237,8 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
                 username: sanitizedUsername,
                 email: sanitizedEmail,
                 password: hashedPassword,
-                NIK: NIK ? Number(NIK) : 0,
-                isAdmin: isAdmin || false,
+                NIK: Number(NIK),
+                role: role || 'DEVELOPER',
                 ...( department ? { department } : {} ),
             } as any,
         });
@@ -258,7 +258,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
         if (error.code === 'P2002') {
             res.status(409).json({ 
                 status: 'error',
-                message: 'User with this email or username already exists' 
+                message: 'User with this email or NIK already exists' 
             });
         } else {
             res.status(500).json({ 
@@ -432,7 +432,7 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
                 username: true,
                 email: true,
                 profilePictureUrl: true,
-                isAdmin: true,
+                role: true,
             }
         });
 

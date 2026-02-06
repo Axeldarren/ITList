@@ -94,7 +94,7 @@ const ProductMaintenancePage = () => {
             </select>
 
             {/* Add Button */}
-            {loggedInUser?.isAdmin && (
+            {loggedInUser?.role === 'ADMIN' && (
               <button
                 className="flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600 shadow-md"
                 onClick={() => setIsModalNewProductMaintenanceOpen(true)}

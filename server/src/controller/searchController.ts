@@ -11,7 +11,7 @@ export const search = async (
     try {
         // For non-admin users, restrict results to projects where the user is a team member
         const userId = req.user?.userId;
-        const isAdmin = !!req.user?.isAdmin;
+        const isAdmin = req.user?.role === 'ADMIN';
 
         const tasks = await Prisma.task.findMany({
             where: {
@@ -94,7 +94,7 @@ export const getSuggestions = async (req: Request, res: Response): Promise<void>
 
     try {
         const userId = req.user?.userId;
-        const isAdmin = !!req.user?.isAdmin;
+        const isAdmin = req.user?.role === 'ADMIN';
         const taskSuggestions = await Prisma.task.findMany({
             where: {
                 title: { contains: q },

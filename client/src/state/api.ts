@@ -132,7 +132,7 @@ export interface User {
     NIK?: number;
     profilePictureUrl?: string;
     department?: string;
-    isAdmin?: boolean;
+    role?: string;
     deletedAt?: string | null;
 }
 
@@ -244,7 +244,7 @@ export interface DeveloperStats {
     totalTimeLogged: number; // in seconds
     totalStoryPoints: number;
     completedStoryPoints: number;
-    isAdmin?: boolean;
+    role?: string;
 }
 
 export interface DeveloperStatsResponse {
@@ -976,26 +976,26 @@ export const api = createApi({
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),
 
-        getDeveloperStats: build.query<DeveloperStats[], { startMonth?: string; endMonth?: string; month?: string }>({
-            query: ({ startMonth, endMonth, month }) => ({
+        getDeveloperStats: build.query<DeveloperStats[], { startMonth?: string; endMonth?: string; month?: string; projectId?: number }>({
+            query: ({ startMonth, endMonth, month, projectId }) => ({
                 url: 'productivity',
-                params: { startMonth, endMonth, month },
+                params: { startMonth, endMonth, month, projectId },
             }),
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),
 
-        getDeveloperStatsPaginated: build.query<DeveloperStatsResponse, { startMonth?: string; endMonth?: string; month?: string; page: number; limit: number }>({
-            query: ({ startMonth, endMonth, month, page, limit }) => ({
+        getDeveloperStatsPaginated: build.query<DeveloperStatsResponse, { startMonth?: string; endMonth?: string; month?: string; projectId?: number; page: number; limit: number }>({
+            query: ({ startMonth, endMonth, month, projectId, page, limit }) => ({
                 url: 'productivity',
-                params: { startMonth, endMonth, month, page, limit },
+                params: { startMonth, endMonth, month, projectId, page, limit },
             }),
             providesTags: ['Users', 'Tasks', 'TimeLogs'],
         }),
 
-        getTimeLogs: build.query<TimeLog[], { userId?: string; month?: string }>({
-            query: ({ userId, month }) => ({
+        getTimeLogs: build.query<TimeLog[], { userId?: string; startMonth?: string; endMonth?: string; month?: string; projectId?: number }>({
+            query: ({ userId, startMonth, endMonth, month, projectId }) => ({
                 url: 'timelogs',
-                params: { userId, month },
+                params: { userId, startMonth, endMonth, month, projectId },
             }),
             providesTags: (result) =>
                 result

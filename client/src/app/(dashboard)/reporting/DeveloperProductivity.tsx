@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useGetDeveloperStatsPaginatedQuery, useGetUsersQuery, useGetTimeLogsQuery, useGetAllRunningTimeLogsQuery } from '@/state/api';
+import { useGetDeveloperStatsPaginatedQuery, useGetDeveloperStatsQuery, useGetUsersQuery, useGetTimeLogsQuery, useGetAllRunningTimeLogsQuery, useGetProjectsQuery } from '@/state/api';
 
-import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User, ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react';
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -35,15 +35,17 @@ const DeveloperProductivity = () => {
     // State for the month range filter
     const [startMonth, setStartMonth] = useState(format(new Date(), 'yyyy-MM'));
     const [endMonth, setEndMonth] = useState(format(new Date(), 'yyyy-MM'));
+    const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(undefined);
     const [currentPage, setCurrentPage] = useState(1);
     
     // Modal states
-    const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
-    const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; isAdmin?: boolean } } | null>(null);
+    const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; role?: string } } | null>(null);
+    const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; role?: string } } | null>(null);
 
     const { data: statsResponse, isLoading } = useGetDeveloperStatsPaginatedQuery({ 
         startMonth,
         endMonth,
+        projectId: selectedProjectId,
         page: currentPage,
         limit: DEVELOPERS_PER_PAGE
     });
@@ -52,6 +54,14 @@ const DeveloperProductivity = () => {
     const meta = statsResponse?.meta;
     
     const { data: users = [] } = useGetUsersQuery();
+    const { data: projects = [] } = useGetProjectsQuery();
+    
+    // Separate query for totals (non-paginated) to calculate overall stats
+    const { data: allStats = [] } = useGetDeveloperStatsQuery({
+        startMonth,
+        endMonth,
+        projectId: selectedProjectId
+    });
     
     // Get today's time logs to calculate today's time for each developer
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -105,7 +115,7 @@ const DeveloperProductivity = () => {
         setCurrentPage(1); // Reset to first page on date change
     };
 
-    const handleTimeLogsClick = (dev: { userId: string; username: string; isAdmin?: boolean }) => {
+    const handleTimeLogsClick = (dev: { userId: string; username: string; role?: string }) => {
         const userProfile = getUserProfile(dev.userId);
         setTimeLogsModal({
             isOpen: true,
@@ -113,12 +123,12 @@ const DeveloperProductivity = () => {
                 userId: dev.userId,
                 username: dev.username,
                 profilePictureUrl: userProfile?.profilePictureUrl,
-                isAdmin: dev.isAdmin
+                role: dev.role
             }
         });
     };
 
-    const handleCompletedTasksClick = (dev: { userId: string; username: string; isAdmin?: boolean }) => {
+    const handleCompletedTasksClick = (dev: { userId: string; username: string; role?: string }) => {
         const userProfile = getUserProfile(dev.userId);
         setCompletedTasksModal({
             isOpen: true,
@@ -126,34 +136,26 @@ const DeveloperProductivity = () => {
                 userId: dev.userId,
                 username: dev.username,
                 profilePictureUrl: userProfile?.profilePictureUrl,
-                isAdmin: dev.isAdmin
+                role: dev.role
             }
         });
     };
 
     const dateRangeLabel = getDateRangeLabel();
 
-    // Sort developers: those with a running time log at the very top, then by previous logic
+    // Sort developers: those with a running time log at the very top, then by most time logged
     const sortedStats = [...stats].sort((a, b) => {
         const aHasRunning = runningLogByUserId.has(a.userId);
         const bHasRunning = runningLogByUserId.has(b.userId);
         if (aHasRunning && !bHasRunning) return -1;
         if (!aHasRunning && bHasRunning) return 1;
-        // Fallback to previous logic
-        if (a.totalTimeLogged > 0 && b.totalTimeLogged === 0) return -1;
-        if (a.totalTimeLogged === 0 && b.totalTimeLogged > 0) return 1;
-        if (a.totalTimeLogged > 0 && b.totalTimeLogged > 0) {
-            return b.totalTimeLogged - a.totalTimeLogged;
-        }
-        if (a.totalTimeLogged === 0 && b.totalTimeLogged === 0) {
-            return b.completedTasks - a.completedTasks;
-        }
-        return 0;
+        // Sort by total time logged (most to least)
+        return b.totalTimeLogged - a.totalTimeLogged;
     });
 
-    // Calculate overall totals for summary
-    const totalTimeLogged = sortedStats.reduce((sum, dev) => sum + dev.totalTimeLogged, 0);
-    const totalCompletedTasks = sortedStats.reduce((sum, dev) => sum + dev.completedTasks, 0);
+    // Calculate overall totals for summary from ALL developers (not just current page)
+    const totalTimeLogged = allStats.reduce((sum, dev) => sum + dev.totalTimeLogged, 0);
+    const totalCompletedTasks = allStats.reduce((sum, dev) => sum + dev.completedTasks, 0);
 
     return (
         <div className="p-6 bg-white rounded-lg shadow dark:bg-dark-secondary">
@@ -180,6 +182,19 @@ const DeveloperProductivity = () => {
                             placeholder="End Month"
                             className="min-w-[180px]"
                         />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <FolderOpen size={18} className="text-gray-400" />
+                        <select
+                            value={selectedProjectId ?? ''}
+                            onChange={(e) => setSelectedProjectId(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                            className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-tertiary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">All Projects</option>
+                            {projects.map((project) => (
+                                <option key={project.id} value={project.id}>{project.name}</option>
+                            ))}
+                        </select>
                     </div>
                     <button 
                         onClick={handleExport}
@@ -273,7 +288,7 @@ const DeveloperProductivity = () => {
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{dev.username}</h3>
-                                                {dev.isAdmin && (
+                                                {dev.role === 'ADMIN' && (
                                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                                                         Admin
                                                     </span>
@@ -391,7 +406,9 @@ const DeveloperProductivity = () => {
                     isOpen={timeLogsModal.isOpen}
                     onClose={() => setTimeLogsModal(null)}
                     developer={timeLogsModal.developer}
-                    selectedMonth={endMonth}
+                    startMonth={startMonth}
+                    endMonth={endMonth}
+                    projectId={selectedProjectId}
                 />
             )}
 

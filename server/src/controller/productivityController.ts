@@ -5,10 +5,11 @@ import { startOfMonth, endOfMonth, parseISO } from 'date-fns';
 const prisma = new PrismaClient();
 
 export const getDeveloperStats = async (req: Request, res: Response) => {
-    const { month, startMonth, endMonth, page, limit } = req.query as { 
+    const { month, startMonth, endMonth, projectId, page, limit } = req.query as { 
         month?: string; 
         startMonth?: string; 
         endMonth?: string;
+        projectId?: string;
         page?: string;
         limit?: string;
     };
@@ -16,21 +17,17 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
     // Pagination defaults
     const pageNum = parseInt(page || '1', 10);
     const limitNum = parseInt(limit || '10', 10);
+    const projectIdNum = projectId ? parseInt(projectId, 10) : undefined;
 
     try {
-        // Get total count of active users
-        const totalUsers = await prisma.user.count({
-            where: { deletedAt: null }
-        });
-
+        // Get ALL active users first (we'll paginate after sorting by stats)
         const users = await prisma.user.findMany({
             where: {
                 deletedAt: null, // Only get active users
             },
-            skip: page && limit ? (pageNum - 1) * limitNum : undefined,
-            take: page && limit ? limitNum : undefined,
         });
-
+        
+        const totalUsers = users.length;
         const now = new Date();
         
         const stats = await Promise.all(users.map(async (user) => {
@@ -51,29 +48,35 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 endDate = endOfMonth(now);
             }
 
-            // 1. Calculate Time Logs within the date range
+            // 1. Calculate Time Logs within the date range (with optional project filter)
+            const timeLogWhere: any = {
+                userId: user.userId,
+                task: {
+                    deletedAt: null,
+                    ...(projectIdNum && { projectId: projectIdNum })
+                },
+                startTime: { gte: startDate, lte: endDate }
+            };
+            
             const timeLogs = await prisma.timeLog.findMany({
-                where: {
-                    userId: user.userId,
-                    task: {
-                        deletedAt: null
-                    },
-                    startTime: { gte: startDate, lte: endDate }
-                }
+                where: timeLogWhere
             });
             const totalTimeLogged = timeLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
             
-            // 2. Get all relevant assigned tasks for the user
-            const allAssignedTasks = await prisma.task.findMany({
-                where: {
-                    assignedUserId: user.userId,
+            // 2. Get all relevant assigned tasks for the user (with optional project filter)
+            const taskWhere: any = {
+                assignedUserId: user.userId,
+                deletedAt: null,
+                status: { not: 'Archived' },
+                project: {
                     deletedAt: null,
-                    status: { not: 'Archived' },
-                    project: {
-                        deletedAt: null,
-                        status: { not: 'Cancel' }
-                    }
+                    status: { not: 'Cancel' }
                 },
+                ...(projectIdNum && { projectId: projectIdNum })
+            };
+            
+            const allAssignedTasks = await prisma.task.findMany({
+                where: taskWhere,
                 select: {
                     status: true,
                     dueDate: true,
@@ -113,14 +116,18 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 totalTimeLogged,
                 totalStoryPoints,
                 completedStoryPoints,
-                isAdmin: user.isAdmin,
+                role: user.role,
             };
         }));
 
+        // Sort all stats by totalTimeLogged (most to least) before pagination
+        const sortedStats = stats.sort((a, b) => b.totalTimeLogged - a.totalTimeLogged);
+
         // Return paginated response if pagination params provided
         if (page && limit) {
+            const paginatedStats = sortedStats.slice((pageNum - 1) * limitNum, pageNum * limitNum);
             res.status(200).json({
-                data: stats,
+                data: paginatedStats,
                 meta: {
                     total: totalUsers,
                     page: pageNum,
@@ -129,8 +136,8 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 }
             });
         } else {
-            // Return array for backward compatibility
-            res.status(200).json(stats);
+            // Return sorted array for backward compatibility
+            res.status(200).json(sortedStats);
         }
 
     } catch (error: any) {

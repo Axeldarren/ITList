@@ -17,7 +17,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [NIK, setNIK] = useState('');
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [role, setRole] = useState('DEVELOPER');
     const [department, setDepartment] = useState('');
     const departmentOptions = [
         'SUPPORT',
@@ -34,7 +34,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
             setUsername(user.username);
             setEmail(user.email);
             setNIK(String(user.NIK || ''));
-            setIsAdmin(user.isAdmin || false);
+            setRole(user.role || 'DEVELOPER');
             setDepartment(user.department || '');
         }
     }, [user]);
@@ -47,7 +47,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
             username,
             email,
             NIK: NIK ? Number(NIK) : undefined,
-            isAdmin,
+            role,
             department: department || undefined,
         }).unwrap();
 
@@ -71,7 +71,7 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
             >
                 <input type='text' className={inputStyles} placeholder='Username' value={username} onChange={(e) => setUsername(e.target.value)} required />
                 <input type='email' className={inputStyles} placeholder='Email' value={email} onChange={(e) => setEmail(e.target.value)} required />
-                <input type='number' className={inputStyles} placeholder='NIK' value={NIK} onChange={(e) => setNIK(e.target.value)} />
+                <input type='number' className={inputStyles} placeholder='NIK' value={NIK} onChange={(e) => setNIK(e.target.value)} required />
                 <select
                     className={inputStyles}
                     value={department}
@@ -84,16 +84,15 @@ const ModalEditUser = ({ isOpen, onClose, user }: Props) => {
                 </select>
                 
                 <div className="flex items-center">
-                    <input
-                        id="isAdminEdit"
-                        type="checkbox"
-                        checked={isAdmin}
-                        onChange={(e) => setIsAdmin(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-primary focus:ring-blue-500"
-                    />
-                    <label htmlFor="isAdminEdit" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                        Administrator
-                    </label>
+                <select
+                    className={inputStyles}
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                >
+                    <option value="DEVELOPER">Developer</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="BUSINESS_OWNER">Business Owner</option>
+                </select>
                 </div>
 
                 <button

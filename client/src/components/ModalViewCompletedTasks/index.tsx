@@ -14,7 +14,7 @@ interface ModalViewCompletedTasksProps {
     userId: string;
     username: string;
     profilePictureUrl?: string;
-    isAdmin?: boolean;
+    role?: string;
   };
   selectedMonth: string;
 }
@@ -130,7 +130,7 @@ const ModalViewCompletedTasks: React.FC<ModalViewCompletedTasksProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {developer.username}&apos;s Completed Tasks
                 </h3>
-                {developer.isAdmin && (
+                {developer.role === 'ADMIN' && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                     Admin
                   </span>

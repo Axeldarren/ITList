@@ -139,12 +139,12 @@ const Navbar = () => {
         <div className='flex items-center gap-1 md:gap-1.5'>
             {/* Role Badge */}
             <div className="hidden md:flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 dark:bg-white/5 dark:text-gray-300 mr-2">
-                {userData?.isAdmin ? (
+                {userData?.role === 'ADMIN' ? (
                     <Shield className="h-4 w-4 text-blue-primary" />
                 ) : (
                     <Code className="h-4 w-4 text-green-500" />
                 )}
-                <span className="hidden lg:inline">{userData?.isAdmin ? 'Admin' : 'Developer'}</span>
+                <span className="hidden lg:inline">{userData?.role || 'Developer'}</span>
             </div>
             <button
               onClick={() => dispatch(setIsDarkMode(!isDarkMode))}

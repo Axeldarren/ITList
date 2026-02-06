@@ -51,7 +51,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
 };
 
 export const restrictToAdmin = (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user || !req.user.isAdmin) {
+    if (!req.user || req.user.role !== 'ADMIN') {
         // Add an explicit 'return' after sending the response
         res.status(403).json({ message: 'You do not have permission to perform this action.' });
         return;

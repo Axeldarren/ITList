@@ -78,10 +78,11 @@ export const validateUserCreation = [
         .isNumeric()
         .withMessage('NIK must be a number'),
     
-    body('isAdmin')
+    body('role')
         .optional()
-        .isBoolean()
-        .withMessage('isAdmin must be a boolean'),
+        .isString()
+        .isIn(['ADMIN', 'DEVELOPER', 'BUSINESS_OWNER'])
+        .withMessage('Role must be one of: ADMIN, DEVELOPER, BUSINESS_OWNER'),
     
     (req: Request, res: Response, next: NextFunction) => {
         const errors = validationResult(req);

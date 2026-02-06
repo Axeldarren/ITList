@@ -287,7 +287,7 @@ const Teams = () => {
   ];
 
   // Conditionally add the Actions column if the user is an admin
-  if (currentUser?.isAdmin) {
+  if (currentUser?.role === 'ADMIN') {
       columns.push({
         field: 'actions',
         type: 'actions',
@@ -332,7 +332,7 @@ const Teams = () => {
       />
       
       <Header name="Teams" buttonComponent={
-          currentUser?.isAdmin && (
+          currentUser?.role === 'ADMIN' && (
             <button onClick={() => setIsNewModalOpen(true)} className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white">
                 <Plus size={18} /> Add Team
             </button>

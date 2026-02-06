@@ -13,25 +13,32 @@ interface ModalViewTimeLogsProps {
     userId: string;
     username: string;
     profilePictureUrl?: string;
-    isAdmin?: boolean;
+    role?: string;
   };
-  selectedMonth: string;
+  startMonth: string;
+  endMonth: string;
+  projectId?: number;
 }
 
-const LOGS_PER_PAGE = 5;
+const LOGS_PER_PAGE = 4;
 
 const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
   isOpen,
   onClose,
   developer,
-  selectedMonth,
+  startMonth,
+  endMonth,
+  projectId,
 }) => {
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'recent' | 'byDate'>('recent');
   
   const { data: timeLogs = [], isLoading } = useGetTimeLogsQuery({
     userId: developer.userId,
-    month: selectedMonth
+    startMonth,
+    endMonth,
+    projectId
   });
 
   // Format duration helper
@@ -42,13 +49,23 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
     return [h > 0 ? `${h}h` : '', m > 0 ? `${m}m` : ''].filter(Boolean).join(' ');
   };
 
-  // Filter logs by selected date
+  // Sort all logs by date descending (most recent first)
+  const sortedLogs = useMemo(() => {
+    return [...timeLogs].sort((a, b) => 
+      new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    );
+  }, [timeLogs]);
+
+  // Filter logs by selected date (only when viewMode is 'byDate')
   const filteredLogs = useMemo(() => {
-    return timeLogs.filter(log => {
+    if (viewMode === 'recent' || !selectedDate) {
+      return sortedLogs;
+    }
+    return sortedLogs.filter(log => {
       const logDate = format(parseISO(log.startTime), 'yyyy-MM-dd');
       return logDate === selectedDate;
     });
-  }, [timeLogs, selectedDate]);
+  }, [sortedLogs, selectedDate, viewMode]);
 
   // Pagination for filtered logs
   const totalPages = Math.ceil(filteredLogs.length / LOGS_PER_PAGE);
@@ -57,9 +74,18 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
     return filteredLogs.slice(start, start + LOGS_PER_PAGE);
   }, [filteredLogs, currentPage]);
 
-  // Reset page when date changes
+  // Reset page when date or view mode changes
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
+    setViewMode('byDate');
+    setCurrentPage(1);
+  };
+
+  const handleViewModeChange = (mode: 'recent' | 'byDate') => {
+    setViewMode(mode);
+    if (mode === 'recent') {
+      setSelectedDate(null);
+    }
     setCurrentPage(1);
   };
 
@@ -89,7 +115,10 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
       (new Date(log.endTime).getTime() - new Date(log.startTime).getTime()) / 1000 : 0);
   }, 0);
 
-  const monthName = format(new Date(`${selectedMonth}-01`), 'MMMM yyyy');
+  // Format date range label
+  const monthLabel = startMonth === endMonth
+    ? format(new Date(`${startMonth}-01`), 'MMMM yyyy')
+    : `${format(new Date(`${startMonth}-01`), 'MMM yyyy')} - ${format(new Date(`${endMonth}-01`), 'MMM yyyy')}`;
 
   return (
   <Modal isOpen={isOpen} onClose={onClose} name="" closeOnBackdropClick>
@@ -115,55 +144,102 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {developer.username}&apos;s Time Logs
                 </h3>
-                {developer.isAdmin && (
+                {developer.role === 'ADMIN' && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                     Admin
                   </span>
                 )}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {monthName}
+                {monthLabel}
               </p>
             </div>
           </div>
 
-          {/* Date Filter */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter size={16} className="text-gray-400" />
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Filter by date:
-              </label>
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+              <button
+                onClick={() => handleViewModeChange('recent')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'recent'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white dark:bg-dark-tertiary text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                Recent
+              </button>
+              <button
+                onClick={() => handleViewModeChange('byDate')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'byDate'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white dark:bg-dark-tertiary text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                By Date
+              </button>
             </div>
-            <Calendar
-              value={selectedDate}
-              onChange={handleDateChange}
-              placeholder="Select Date"
-              className="min-w-[200px]"
-              highlightedDates={Object.keys(logsByDate)}
-            />
           </div>
 
-          {/* Selected Date Summary */}
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <div className="flex items-center justify-between">
+          {/* Date Filter - show when in byDate mode */}
+          {viewMode === 'byDate' && (
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <CalendarIcon size={16} className="text-blue-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {format(new Date(selectedDate), 'EEEE, MMMM dd, yyyy')}
-                </span>
-                <span className="text-xs text-gray-500">
-                  ({filteredLogs.length} log{filteredLogs.length !== 1 ? 's' : ''})
-                </span>
+                <Filter size={16} className="text-gray-400" />
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Filter by date:
+                </label>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock size={16} className="text-purple-500" />
-                <span className="text-lg font-bold text-purple-600">
-                  {formatDuration(totalTimeForDate)}
-                </span>
+              <Calendar
+                value={selectedDate || format(new Date(), 'yyyy-MM-dd')}
+                onChange={handleDateChange}
+                placeholder="Select Date"
+                className="min-w-[200px]"
+                highlightedDates={Object.keys(logsByDate)}
+              />
+            </div>
+          )}
+
+          {/* Selected Date Summary - only show in byDate mode with selected date */}
+          {viewMode === 'byDate' && selectedDate && (
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon size={16} className="text-blue-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {format(new Date(selectedDate), 'EEEE, MMMM dd, yyyy')}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({filteredLogs.length} log{filteredLogs.length !== 1 ? 's' : ''})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-purple-500" />
+                  <span className="text-lg font-bold text-purple-600">
+                    {formatDuration(totalTimeForDate)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Recent View Summary */}
+          {viewMode === 'recent' && (
+            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-green-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    All recent time logs
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({timeLogs.length} total)
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Time Logs List */}
@@ -176,7 +252,10 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
           <div className="text-center py-8">
             <Clock size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
             <p className="text-gray-500 dark:text-gray-400">
-              No time logs found for {format(new Date(selectedDate), 'MMMM dd, yyyy')}
+              {viewMode === 'byDate' && selectedDate 
+                ? `No time logs found for ${format(new Date(selectedDate), 'MMMM dd, yyyy')}`
+                : 'No time logs found for this period'
+              }
             </p>
           </div>
         ) : (

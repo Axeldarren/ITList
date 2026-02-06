@@ -332,11 +332,11 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
             <div className="relative flex-shrink-0">
               {isProjectActive && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); onMenuToggle(task.id); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                  <button onClick={(e) => { e.stopPropagation(); onMenuToggle(task.id); }} className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-neutral-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors">
                     <MoreVertical size={20} />
                   </button>
                   {openMenuId === task.id && (
-                    <div className="dark:bg-dark-tertiary absolute right-0 z-[5] mt-2 w-48 rounded-md bg-white py-1 shadow-lg">
+                    <div className="dark:bg-dark-tertiary absolute right-0 bottom-full mb-2 z-[5] w-48 rounded-md bg-white py-1 shadow-lg">
                       <div className="py-1" role="menu">
                         <button onClick={handleEditClick} className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600" role="menuitem">
                           <Edit className="mr-3 h-5 w-5" />

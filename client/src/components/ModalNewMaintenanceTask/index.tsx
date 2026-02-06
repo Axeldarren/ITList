@@ -32,7 +32,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
   
   // Get the current user from the Redux store to check their admin status
   const user = useSelector((state: RootState) => state.auth.user);
-  const isAdmin = user?.isAdmin;
+  const isAdmin = user?.role === 'ADMIN';
 
   // Filter users to only show maintainers assigned to this product maintenance
   const availableAssignees = users?.filter(user => 

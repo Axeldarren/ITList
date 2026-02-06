@@ -132,7 +132,7 @@ const Timeline = () => {
                         </div>
 
                         {/* Add Project Button */}
-                        {loggedInUser?.isAdmin && (
+                        {loggedInUser?.role === 'ADMIN' && (
                             <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 rounded-full bg-blue-primary px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-blue-600">
                                 <Plus size={18} /> Add Project
                             </button>

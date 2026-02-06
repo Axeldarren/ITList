@@ -404,7 +404,7 @@ const assignedUserTasks = useMemo(() => {
       <Header 
         name={`Hi, ${fullCurrentUser?.username}`}
         buttonComponent={
-          loggedInUser?.isAdmin && (
+          loggedInUser?.role === 'ADMIN' && (
             <div className="flex items-center gap-2">
               <button 
                 className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"

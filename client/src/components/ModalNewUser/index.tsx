@@ -17,7 +17,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [NIK, setNIK] = useState('');
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [role, setRole] = useState('DEVELOPER');
     const [department, setDepartment] = useState('');
     const departmentOptions = [
         'SUPPORT',
@@ -34,7 +34,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
         setEmail('');
         setPassword('');
         setNIK('');
-    setIsAdmin(false);
+    setRole('DEVELOPER');
     setDepartment('');
     };
 
@@ -49,7 +49,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
             email,
             password,
             NIK: NIK ? Number(NIK) : undefined,
-            isAdmin,
+            role,
             department: department || undefined,
         }).unwrap();
 
@@ -64,7 +64,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
         });
     };
 
-    const isFormValid = () => username && email && password;
+    const isFormValid = () => username && email && password && NIK;
 
     const inputStyles = "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
@@ -77,7 +77,7 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
                 <input type='text' className={inputStyles} placeholder='Username' value={username} onChange={(e) => setUsername(e.target.value)} required />
                 <input type='email' className={inputStyles} placeholder='Email' value={email} onChange={(e) => setEmail(e.target.value)} required />
                 <input type='password' className={inputStyles} placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} required />
-                <input type='number' className={inputStyles} placeholder='NIK (Optional)' value={NIK} onChange={(e) => setNIK(e.target.value)} />
+                <input type='number' className={inputStyles} placeholder='NIK' value={NIK} onChange={(e) => setNIK(e.target.value)} required />
                 <select
                     className={inputStyles}
                     value={department}
@@ -90,16 +90,15 @@ const ModalNewUser = ({ isOpen, onClose }: Props) => {
                 </select>
                 
                 <div className="flex items-center">
-                    <input
-                        id="isAdmin"
-                        type="checkbox"
-                        checked={isAdmin}
-                        onChange={(e) => setIsAdmin(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-primary focus:ring-blue-500"
-                    />
-                    <label htmlFor="isAdmin" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                        Make this user an Administrator
-                    </label>
+                <select
+                    className={inputStyles}
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                >
+                    <option value="DEVELOPER">Developer</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="BUSINESS_OWNER">Business Owner</option>
+                </select>
                 </div>
 
                 <button

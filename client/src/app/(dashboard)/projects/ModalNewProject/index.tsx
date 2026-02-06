@@ -36,7 +36,7 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
     };
 
     const handleSubmit = async () => {
-        const isTicketRequired = !currentUser?.isAdmin;
+        const isTicketRequired = !(currentUser?.role === 'ADMIN');
         if (!projectName || !startDate || !endDate || !teamId || (isTicketRequired && !ticketId)) {
             toast.error('All required fields must be filled.');
             return;
@@ -76,7 +76,7 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
     };
 
     const isFormValid = () => {
-        const isTicketRequired = !currentUser?.isAdmin;
+        const isTicketRequired = !(currentUser?.role === 'ADMIN');
         return projectName && description && startDate && endDate && teamId && (!isTicketRequired || ticketId);
     };
 
@@ -132,10 +132,10 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
                     className={selectStyles}
                     value={ticketId}
                     onChange={(e) => setTicketId(e.target.value)}
-                    required={!currentUser?.isAdmin}
+                    required={!(currentUser?.role === 'ADMIN')}
                 >
                     <option value=''>
-                        {currentUser?.isAdmin ? 'Select a Ticket (Optional)' : 'Select a Ticket'}
+                        {currentUser?.role === 'ADMIN' ? 'Select a Ticket (Optional)' : 'Select a Ticket'}
                     </option>
                     {ticketsCR?.map((ticket) => (
                         <option key={ticket.ticket_id} value={String(ticket.ticket_id)}>

@@ -515,7 +515,7 @@ export const createMaintenanceTask = async (req: Request, res: Response): Promis
   const { productMaintenanceId } = req.params;
   const { title, description, priority, type, estimatedHours, assignedToId, ticket_id } = req.body;
   const userId = req.user?.userId;
-  const isAdmin = req.user?.isAdmin; // Get isAdmin status from the authenticated user
+  const isAdmin = req.user?.role === 'ADMIN'; // Get isAdmin status from the authenticated user
 
   if (!userId) {
     res.status(401).json({ message: "User not authenticated" });
@@ -718,7 +718,7 @@ export const getFinishedProjects = async (req: Request, res: Response): Promise<
       where: {
         status: "Finish",
         deletedAt: null,
-        ...(req.user?.isAdmin
+        ...(req.user?.role === 'ADMIN'
           ? {}
           : {
               projectTeams: {

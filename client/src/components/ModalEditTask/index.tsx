@@ -70,7 +70,7 @@ type Props = {
 const ModalEditTask = ({ taskId, onClose }: Props) => {
   // Get the current logged-in user from the Redux store
   const loggedInUser = useAppSelector(selectCurrentUser);
-  const isAdmin = loggedInUser?.isAdmin || false;
+  const isAdmin = loggedInUser?.role === 'ADMIN';
 
   // Queries and Mutations
   const { data: task, isLoading, isError } = useGetTaskByIdQuery(taskId);

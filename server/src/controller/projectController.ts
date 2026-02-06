@@ -13,7 +13,7 @@ async function userHasProjectAccess(
   user: any,
   projectId: number
 ): Promise<boolean> {
-  if (user?.isAdmin) return true;
+  if (user?.role === 'ADMIN') return true;
   if (!user?.userId) return false;
   const project = await Prisma.project.findFirst({
     where: {
@@ -40,7 +40,7 @@ export const getProjects = async (
   try {
     // If user is not admin, limit to projects where the user's teams are attached
     const whereClause: any = { deletedAt: null };
-    if (!req.user?.isAdmin && req.user?.userId) {
+    if (req.user?.role !== 'ADMIN' && req.user?.userId) {
       whereClause.projectTeams = {
         some: {
           team: {
@@ -769,7 +769,7 @@ export const getTimelineProjects = async (req: Request, res: Response): Promise<
         };
 
         // Access control for non-admins
-        if (!req.user?.isAdmin && req.user?.userId) {
+        if (req.user?.role !== 'ADMIN' && req.user?.userId) {
             whereClause.projectTeams = {
                 some: {
                     team: {

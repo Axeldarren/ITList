@@ -18,7 +18,7 @@ const signToken = (id: string) => {
     });
 };
 
-const createSendToken = (user: { userId: string, username: string, email: string, isAdmin: boolean }, statusCode: number, res: Response) => {
+const createSendToken = (user: { userId: string, username: string, email: string, role: string }, statusCode: number, res: Response) => {
     const token = signToken(user.userId);
 
     const cookieOptions = {
@@ -41,7 +41,7 @@ const createSendToken = (user: { userId: string, username: string, email: string
                 userId: user.userId,
                 username: user.username,
                 email: user.email,
-                isAdmin: user.isAdmin
+                role: user.role
             },
         },
     });
@@ -117,7 +117,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                 username: true,
                 email: true,
                 password: true,
-                isAdmin: true
+                role: true
             }
         });
 
@@ -134,7 +134,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             userId: user.userId,
             username: user.username,
             email: user.email,
-            isAdmin: user.isAdmin
+            role: user.role
         };
 
         createSendToken(secureUser, 200, res);

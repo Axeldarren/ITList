@@ -8,15 +8,5 @@
   { "id": 7, "teamId": 2, "projectId": 7 },
   { "id": 8, "teamId": 3, "projectId": 8 },
   { "id": 9, "teamId": 4, "projectId": 9 },
-  { "id": 10, "teamId": 5, "projectId": 10 },
-  { "id": 11, "teamId": 1, "projectId": 11 },
-  { "id": 12, "teamId": 2, "projectId": 12 },
-  { "id": 13, "teamId": 3, "projectId": 13 },
-  { "id": 14, "teamId": 4, "projectId": 14 },
-  { "id": 15, "teamId": 5, "projectId": 15 },
-  { "id": 16, "teamId": 1, "projectId": 16 },
-  { "id": 17, "teamId": 2, "projectId": 17 },
-  { "id": 18, "teamId": 3, "projectId": 18 },
-  { "id": 19, "teamId": 4, "projectId": 19 },
-  { "id": 20, "teamId": 5, "projectId": 20 }
+  { "id": 10, "teamId": 5, "projectId": 10 }
 ]

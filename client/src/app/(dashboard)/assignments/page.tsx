@@ -162,7 +162,7 @@ const Assignments = () => {
                         username: selectedDeveloper.username || '',
                         email: selectedDeveloper.email || '',
                         profilePictureUrl: selectedDeveloper.profilePictureUrl,
-                        isAdmin: selectedDeveloper.isAdmin
+                        role: selectedDeveloper.role
                     }}
                     // tasks prop removed, handled inside ModalViewAllTasks
                     projects={projectMap}
@@ -209,7 +209,7 @@ const Assignments = () => {
                                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                                                     {dev.username}
                                                 </h3>
-                                                {dev.isAdmin && (
+                                                {dev.role === 'ADMIN' && (
                                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                                                         Admin
                                                     </span>

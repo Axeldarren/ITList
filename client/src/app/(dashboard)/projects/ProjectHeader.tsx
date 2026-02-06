@@ -78,7 +78,7 @@ const ProjectHeader = ({
                         <button onClick={() => onStatusChange('OnProgress')} className='flex items-center rounded-md bg-blue-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-blue-600'>
                             <Play className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">Start Project</span><span className="sm:hidden">Start</span>
                         </button>
-                        {loggedInUser?.isAdmin && (
+                        {loggedInUser?.role === 'ADMIN' && (
                             <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-red-600'>
                                 <span className="hidden sm:inline">Cancel Project</span><span className="sm:hidden">Cancel</span>
                             </button>
@@ -89,7 +89,7 @@ const ProjectHeader = ({
             case 'Resolve':
                 return (
                     <>
-                        {status === 'Resolve' && loggedInUser?.isAdmin && (
+                        {status === 'Resolve' && loggedInUser?.role === 'ADMIN' && (
                             <>
                                 <button 
                                     onClick={() => onStatusChange('Finish')} 
@@ -99,7 +99,7 @@ const ProjectHeader = ({
                                 </button>
                             </>
                         )}
-                        {loggedInUser?.isAdmin && (
+                        {loggedInUser?.role === 'ADMIN' && (
                             <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-red-600'>
                                 <span className="hidden sm:inline">Cancel Project</span><span className="sm:hidden">Cancel</span>
                             </button>
@@ -109,7 +109,7 @@ const ProjectHeader = ({
             case 'Finish':
                  return (
                     <>
-                        {loggedInUser?.isAdmin && (
+                        {loggedInUser?.role === 'ADMIN' && (
                             <button onClick={onArchive} disabled={!isArchivable} className='flex items-center rounded-md bg-green-600 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'>
                                 <Archive className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">New Version</span><span className="sm:hidden">Version</span>
                             </button>
@@ -119,7 +119,7 @@ const ProjectHeader = ({
             case 'Cancel':
                  return (
                     <>
-                        {loggedInUser?.isAdmin && (
+                        {loggedInUser?.role === 'ADMIN' && (
                             <button 
                                 onClick={onArchive} 
                                 disabled={!isArchivable} // 'isArchivable' is now powered by our new logic
@@ -146,7 +146,7 @@ const ProjectHeader = ({
                             <div className="flex items-center flex-wrap justify-end gap-1 sm:gap-2">
                                 {renderActionButtons()}
                                 <div className="hidden sm:block h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
-                                {loggedInUser?.isAdmin && (
+                                {loggedInUser?.role === 'ADMIN' && (
                                     <>
                                         <button onClick={onEdit} className='flex items-center rounded-md bg-gray-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-gray-600'><Edit className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">Edit</span></button>
                                         <button onClick={onExportPDF} className='flex items-center rounded-md bg-purple-600 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-purple-700'><FileDown className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">Report</span></button>

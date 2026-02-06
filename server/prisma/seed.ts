@@ -55,6 +55,7 @@ async function main() {
     "project.json",        // References Users
     "projectTeam.json",
     "task.json",           // References Users and Projects
+    "timeLog.json",        // References Users and Tasks
     // "attachment.json",  // Removed: File missing in seedData
     "comment.json",        // References Users and Tasks
     "taskAssignment.json", // References Users and Tasks
@@ -85,7 +86,7 @@ async function main() {
            if (oldId) {
              const newId = uuidv4();
              userMap[oldId] = newId;
-             data.userId = newId; // Replace in data object
+             data.userId = newId; 
            }
         }
 

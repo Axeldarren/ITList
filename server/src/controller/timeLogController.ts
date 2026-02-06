@@ -221,9 +221,12 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
 
 export const getAllTimeLogs = async (req: Request, res: Response) => {
   try {
-    const { userId, month, page, limit } = req.query as { 
+    const { userId, month, startMonth, endMonth, projectId, page, limit } = req.query as { 
       userId?: string; 
       month?: string;
+      startMonth?: string;
+      endMonth?: string;
+      projectId?: string;
       page?: string;
       limit?: string;
     };
@@ -239,8 +242,18 @@ export const getAllTimeLogs = async (req: Request, res: Response) => {
     // Filter by user if userId is provided
     if (userId) whereClause.userId = userId;
     
-    // Filter by month if month is provided
-    if (month) {
+    // Filter by date range if startMonth and endMonth are provided
+    if (startMonth && endMonth) {
+      const startDate = new Date(`${startMonth}-01`);
+      const endDate = new Date(`${endMonth}-01`);
+      // Set to last day of endMonth
+      endDate.setMonth(endDate.getMonth() + 1);
+      endDate.setDate(0);
+      endDate.setHours(23, 59, 59, 999);
+      
+      whereClause.startTime = { gte: startDate, lte: endDate };
+    } else if (month) {
+      // Fallback to single month for backward compatibility
       const startDate = new Date(`${month}-01`);
       const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
       endDate.setHours(23, 59, 59, 999);
@@ -248,11 +261,16 @@ export const getAllTimeLogs = async (req: Request, res: Response) => {
       whereClause.startTime = { gte: startDate, lte: endDate };
     }
     
-    // Include both regular task logs (only for non-deleted tasks) and maintenance task logs
-    whereClause.OR = [
-      { task: { deletedAt: null } },
-      { maintenanceTaskId: { not: null } }
-    ];
+    // Filter by project if projectId is provided
+    if (projectId) {
+      whereClause.task = { ...whereClause.task, projectId: parseInt(projectId, 10), deletedAt: null };
+    } else {
+      // Include both regular task logs (only for non-deleted tasks) and maintenance task logs
+      whereClause.OR = [
+        { task: { deletedAt: null } },
+        { maintenanceTaskId: { not: null } }
+      ];
+    }
     
     // Get total count for pagination meta
     const total = await prisma.timeLog.count({ where: whereClause });
@@ -449,7 +467,7 @@ export const getAllRunningTimeLogs = async (req: Request, res: Response): Promis
         endTime: null,
       },
       include: {
-        user: { select: { userId: true, username: true, profilePictureUrl: true, isAdmin: true } },
+        user: { select: { userId: true, username: true, profilePictureUrl: true, role: true } },
         task: { select: { id: true, title: true, projectId: true, deletedAt: true, project: { select: { id: true, name: true } } } },
         maintenanceTask: { select: { id: true, title: true, productMaintenanceId: true, productMaintenance: { select: { id: true, name: true, status: true } } } },
       },

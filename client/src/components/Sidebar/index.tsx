@@ -178,7 +178,7 @@ const Sidebar = () => {
 
                     {/* Admin Navigation Links */}
 
-                    {currentUser?.isAdmin && (
+                    {currentUser?.role === 'ADMIN' && (
                         <>
                             <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
                             <SidebarLink icon={UserCheck} label='Assignments' href='/assignments' />

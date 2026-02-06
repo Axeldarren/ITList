@@ -90,16 +90,15 @@ const Users = () => {
         renderCell: (params) => <AvatarCell value={params.value} username={params.row.username} />,
         sortable: false, filterable: false,
     },
-    { field: "userId", headerName: "User ID", width: 100 },
     { field: "username", headerName: "Username", width: 200 },
-  { field: "email", headerName: "Email", width: 250 },
-  { field: "department", headerName: "Department", width: 180 },
+    { field: "email", headerName: "Email", width: 250 },
+    { field: "department", headerName: "Department", width: 180 },
     { field: "NIK", headerName: "NIK", width: 150 },
-    { field: "isAdmin", headerName: "Admin", width: 100, type: 'boolean' },
+    { field: "role", headerName: "Role", width: 150 },
   ];
 
   // Conditionally add the Actions column if the user is an admin
-  if (currentUser?.isAdmin) {
+  if (currentUser?.role === 'ADMIN') {
       columns.push({
         field: 'actions',
         type: 'actions',
@@ -169,7 +168,7 @@ const Users = () => {
       <Header 
         name="Users"
         buttonComponent={
-            currentUser?.isAdmin && (
+            currentUser?.role === 'ADMIN' && (
                 <button
                     onClick={() => setIsNewModalOpen(true)}
                     className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white"
