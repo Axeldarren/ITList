@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <main
         className={`flex w-full flex-col bg-gray-50 dark:bg-dark-bg transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? "pl-0 md:pl-[60px]" : "pl-64"
+          isSidebarCollapsed ? "pl-0 md:pl-[60px]" : "pl-0 md:pl-64"
         }`}
       >
         <Navbar />

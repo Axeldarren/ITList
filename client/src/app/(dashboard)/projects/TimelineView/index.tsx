@@ -6,7 +6,7 @@ import "gantt-task-react/dist/index.css";
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import ModalEditTask from '@/components/ModalEditTask';
-import { useGetTasksQuery, Task as TaskType } from '@/state/api';
+import { useGetTasksQuery } from '@/state/api';
 import ModalViewTask from '@/components/ModalViewTask';
 
 type Props = {
@@ -40,10 +40,10 @@ const TimelineView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, i
       search: searchTerm
   });
 
-  const tasks = (qData && 'data' in qData) ? qData.data : (Array.isArray(qData) ? qData : []);
   const meta = (qData && 'meta' in qData) ? qData.meta : null;
 
   const ganttTasks = useMemo(() => {
+    const tasks = (qData && 'data' in qData) ? qData.data : (Array.isArray(qData) ? qData : []);
     if (!tasks) return [];
     
     // Server-side filtering handles the search now, but we perform client-side mapping
@@ -69,7 +69,7 @@ const TimelineView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, i
             isDisabled: !isProjectActive, // Disable interactions if the project is finished/canceled
       }))
     )
-  }, [tasks, isProjectActive]); // Removed searchTerm from dependency as data is already filtered
+  }, [qData, isProjectActive]); // Use qData directly as dependency
 
   const handleTaskClick = (task: GanttTask) => {
     setSelectedTaskId(Number(task.id));

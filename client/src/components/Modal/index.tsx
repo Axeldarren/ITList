@@ -43,6 +43,7 @@ const Modal = ({
                     <button
                         className='flex h-7 w-7 items-center justify-center rounded-full bg-blue-primary text-white hover:bg-blue-600'
                         onClick={onClose}
+                        aria-label="Close modal"
                     >
                         <X size={18} />
                     </button>

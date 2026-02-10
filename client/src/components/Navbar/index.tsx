@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Search, Settings, Sun, Briefcase, CheckSquare, LogOut, User, Shield, Code } from "lucide-react";
+import { Moon, Search, Settings, Sun, Briefcase, CheckSquare, LogOut, User, Shield, Code, Menu } from "lucide-react";
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/app/redux';
-import { setIsDarkMode } from '@/state';
+import { setIsDarkMode, setIsSidebarCollapsed } from '@/state';
 import { useRouter } from 'next/navigation';
 import { useGetSearchSuggestionsQuery, Suggestion, useLogoutMutation, useGetUserByIdQuery } from '@/state/api';
 import { useDebounce } from 'use-debounce';
@@ -83,6 +83,7 @@ const Navbar = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const isDarkMode = useAppSelector(state => state.global.isDarkMode);
+  const isSidebarCollapsed = useAppSelector(state => state.global.isSidebarCollapsed);
   
   const currentUser = useAppSelector(selectCurrentUser);
   const UserID = currentUser?.userId;
@@ -133,6 +134,14 @@ const Navbar = () => {
   return (
     <div className='flex items-center justify-between bg-white/80 dark:bg-black/60 backdrop-blur-sm border-b border-gray-100 dark:border-dark-tertiary px-2 md:px-4 py-2.5 relative z-30'>
         <div className='flex items-center gap-2 md:gap-8 flex-1 md:flex-initial'>
+            {/* Mobile Sidebar Toggle */}
+            <button 
+                className="block md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={() => dispatch(setIsSidebarCollapsed(!isSidebarCollapsed))}
+                aria-label="Toggle sidebar"
+            >
+                <Menu className="h-6 w-6 text-gray-700 dark:text-gray-200" />
+            </button>
             <AutocompleteSearch onSearch={handleGlobalSearch} />
         </div>
 
@@ -159,6 +168,7 @@ const Navbar = () => {
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                   aria-haspopup="menu"
                   aria-expanded={isProfileMenuOpen}
+                  aria-label="Open profile menu"
                   className="flex items-center gap-2 p-0.5 rounded-full hover:ring-1 hover:ring-gray-200 transition dark:hover:ring-white/10"
                 >
                     {/* --- UPDATED: Profile Picture Logic --- */}

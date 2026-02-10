@@ -148,6 +148,7 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
                          <div className="relative flex-shrink-0">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onMenuToggle(task.id); }}
+                                aria-label="Task options"
                                 className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-neutral-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors"
                             >
                                 <MoreVertical size={20} />

@@ -122,9 +122,9 @@ const Sidebar = () => {
 
 
     const sidebarClassNames = `fixed flex flex-col h-full justify-between
-        transition-all duration-300 ease-in-out z-40 bg-white/80 dark:bg-black/60 backdrop-blur-sm
+        transition-all duration-300 ease-in-out z-40 bg-white dark:bg-black
         border-r border-gray-100 dark:border-dark-tertiary overflow-hidden whitespace-nowrap
-        ${isSidebarCollapsed ? 'w-0 md:w-[60px] overflow-y-hidden' : 'w-64 overflow-y-auto'}
+        ${isSidebarCollapsed ? 'w-0 md:w-[60px] overflow-y-hidden' : 'w-full md:w-64 overflow-y-auto'}
     `;
 
     return (
@@ -164,7 +164,7 @@ const Sidebar = () => {
                             </div>
                         </div>
                     )}
-                    <button className={`py-2 w-10 flex items-center justify-center flex-shrink-0 ${isSidebarCollapsed ? 'mx-auto' : 'ml-auto'}`} onClick={() => dispatch(setIsSidebarCollapsed(!isSidebarCollapsed))}>
+                    <button aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} className={`py-2 w-10 flex items-center justify-center flex-shrink-0 ${isSidebarCollapsed ? 'mx-auto' : 'ml-auto'}`} onClick={() => dispatch(setIsSidebarCollapsed(!isSidebarCollapsed))}>
                         {isSidebarCollapsed ? (
                             <ChevronsRight className='h-6 w-6 text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white transition-colors duration-150' />
                         ) : (
@@ -200,6 +200,7 @@ const Sidebar = () => {
                 {isSidebarCollapsed ? (
                     <div className="w-full">
                         <button 
+                            aria-label="Show projects"
                             onClick={() => dispatch(setIsSidebarCollapsed(false))} 
                             className={`relative flex w-full cursor-pointer items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 justify-center px-4 py-2.5 rounded-md ${
                                 isProjectActive ? 'bg-gray-50 dark:bg-white/5' : ''
@@ -213,7 +214,7 @@ const Sidebar = () => {
                 ) : (
                     <button 
                         onClick={() => setShowProjects((prev) => !prev)} 
-                        className='flex w-full items-center justify-between px-6 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors rounded-md'
+                        className='flex w-full items-center justify-between px-8 py-3 md:justify-between md:px-6 md:py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors rounded-md'
                     >
                         <div className='flex items-center gap-3'>
                             <FolderKanban className='h-5 w-5 flex-shrink-0 text-gray-700 dark:text-gray-200' />
@@ -228,8 +229,8 @@ const Sidebar = () => {
                         <div className="overflow-hidden">
                             <div className="space-y-1.5 pl-4">
                         {/* Active Projects */}
-                        <div className="flex items-center justify-between px-5 pt-2 pb-1">
-                            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Active</h4>
+                        <div className="flex items-center justify-between px-8 py-3 md:px-5 md:pt-2 md:pb-1">
+                            <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Active</h4>
                             <span className="text-xs text-gray-500 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
                                 {projects?.filter(p => p.status === "Start" || p.status === "OnProgress" || p.status === "Resolve").length || 0}
                             </span>
@@ -248,8 +249,8 @@ const Sidebar = () => {
                         {/* Completed Projects */}
                         {projects?.some(p => p.status === "Finish") && (
                             <>
-                                <div className="flex items-center justify-between px-5 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-dark-tertiary">
-                                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Completed</h4>
+                                <div className="flex items-center justify-between px-8 py-3 md:px-5 md:pt-3 md:pb-1 mt-2 border-t border-gray-100 dark:border-dark-tertiary">
+                                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Completed</h4>
                                     <span className="text-xs text-gray-500 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
                                         {projects?.filter(p => p.status === "Finish").length || 0}
                                     </span>
@@ -270,8 +271,8 @@ const Sidebar = () => {
                         {/* Cancelled Projects */}
                         {projects?.some(p => p.status === "Cancel") && (
                             <>
-                                <div className="flex items-center justify-between px-5 pt-3 pb-1 mt-2 border-t border-gray-100 dark:border-dark-tertiary">
-                                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Cancelled</h4>
+                                <div className="flex items-center justify-between px-8 py-3 md:px-5 md:pt-3 md:pb-1 mt-2 border-t border-gray-100 dark:border-dark-tertiary">
+                                    <h4 className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Cancelled</h4>
                                     <span className="text-xs text-gray-500 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5">
                                         {projects?.filter(p => p.status === "Cancel").length || 0}
                                     </span>
@@ -325,7 +326,7 @@ const SidebarLink = ({
             <div 
                 className={`relative flex cursor-pointer items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${
                     isActive ? "bg-gray-50 dark:bg-white/5" : ""
-                } ${isSidebarCollapsed ? 'justify-center px-4 py-2.5' : 'justify-start px-6 py-2.5'} rounded-md`}
+                } ${isSidebarCollapsed ? 'justify-center px-4 py-2.5' : 'justify-start px-8 py-4 md:px-6 md:py-2.5'} rounded-md`}
             >
                 {isActive && !isSidebarCollapsed && <div className='absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-blue-500/60' />}
 

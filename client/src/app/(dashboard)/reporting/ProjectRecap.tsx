@@ -121,52 +121,64 @@ const ProjectRecap = () => {
 
     return (
         <div className="p-6 bg-white rounded-lg shadow dark:bg-dark-secondary">
-            <h2 className="text-xl font-bold mb-4 dark:text-white">Project Recap Report</h2>
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h2 className="text-2xl font-bold dark:text-white">Project Recap Report</h2>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Generate comprehensive PDF reports of your projects</p>
+                </div>
+            </div>
             
-            <div className="p-4 border rounded-md mb-6 dark:border-dark-tertiary">
-                <h3 className="font-semibold mb-3 dark:text-gray-200">Filters</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Include Statuses</label>
-                        <div className="flex flex-wrap gap-x-4 gap-y-2">
-                            {projectStatuses.map(status => (
-                                <label key={status} className="flex items-center space-x-2 cursor-pointer">
-                                    <input type="checkbox" checked={selectedStatuses.includes(status)} onChange={() => handleStatusChange(status)} className="h-4 w-4 rounded"/>
-                                    <span className="dark:text-gray-300">{status}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="space-y-4">
+            {/* Filters Section */}
+            <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200 flex items-center gap-2">Filters</h3>
+                <div className="p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Date Range</label>
-                            <div className="flex items-center gap-2">
-                                <input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className={inputClass} />
-                                <span className="dark:text-gray-300">to</span>
-                                <input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className={inputClass} />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Include Statuses</label>
+                            <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                {projectStatuses.map(status => (
+                                    <label key={status} className="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" checked={selectedStatuses.includes(status)} onChange={() => handleStatusChange(status)} className="h-4 w-4 rounded text-blue-500 focus:ring-blue-500"/>
+                                        <span className="text-sm dark:text-gray-300">{status}</span>
+                                    </label>
+                                ))}
                             </div>
                         </div>
-                        <label className="flex items-center space-x-2 cursor-pointer pt-2">
-                            <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} className="h-4 w-4 rounded"/>
-                            <span className="dark:text-gray-300">Include Previous/Archived Versions</span>
-                        </label>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Date Range</label>
+                                <div className="flex items-center gap-2">
+                                    <input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className={inputClass} />
+                                    <span className="text-gray-500 dark:text-gray-300">to</span>
+                                    <input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className={inputClass} />
+                                </div>
+                            </div>
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} className="h-4 w-4 rounded text-blue-500 focus:ring-blue-500"/>
+                                <span className="text-sm dark:text-gray-300">Include Previous/Archived Versions</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="p-4 border rounded-md mb-8 dark:border-dark-tertiary">
-                <h3 className="font-semibold mb-3 dark:text-gray-200 flex items-center gap-2"><Settings size={18} /> Report Columns</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <OptionCheckbox id="includeId" label="Project ID" />
-                    <OptionCheckbox id="includeVersion" label="Version" />
-                    <OptionCheckbox id="includeStatus" label="Status" />
-                    <OptionCheckbox id="includeProgress" label="Progress" />
-                    <OptionCheckbox id="includeStoryPoints" label="Story Points" />
-                    <OptionCheckbox id="includeDates" label="Start/End Dates" />
-                    <OptionCheckbox id="includePO" label="Product Owner" />
-                    <OptionCheckbox id="includePM" label="Project Manager" />
-                    <OptionCheckbox id="includeMembers" label="Team Members" />
-                    <OptionCheckbox id="includeProducts" label="Include Products/Maintenance" />
+            {/* Report Columns Section */}
+            <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200 flex items-center gap-2"><Settings size={18} /> Report Columns</h3>
+                <div className="p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <OptionCheckbox id="includeId" label="Project ID" />
+                        <OptionCheckbox id="includeVersion" label="Version" />
+                        <OptionCheckbox id="includeStatus" label="Status" />
+                        <OptionCheckbox id="includeProgress" label="Progress" />
+                        <OptionCheckbox id="includeStoryPoints" label="Story Points" />
+                        <OptionCheckbox id="includeDates" label="Start/End Dates" />
+                        <OptionCheckbox id="includePO" label="Product Owner" />
+                        <OptionCheckbox id="includePM" label="Project Manager" />
+                        <OptionCheckbox id="includeMembers" label="Team Members" />
+                        <OptionCheckbox id="includeProducts" label="Products/Maintenance" />
+                    </div>
                 </div>
             </div>
 

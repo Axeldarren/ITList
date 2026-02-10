@@ -61,7 +61,7 @@ const LoginPage = () => {
     }
     
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
+        <main className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-dark-bg">
             <Toaster
                 position="top-right"
                 toastOptions={{
@@ -111,6 +111,7 @@ const LoginPage = () => {
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
                                 className="absolute inset-y-0 right-0 flex items-center pr-3 mt-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                             >
                                 {showPassword ? (
@@ -142,7 +143,7 @@ const LoginPage = () => {
                     </button>
                 </form>
             </div>
-        </div>
+        </main>
     );
 };
 
