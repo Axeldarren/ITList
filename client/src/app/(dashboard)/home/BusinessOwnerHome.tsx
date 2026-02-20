@@ -7,11 +7,8 @@ import {
     useGetAllTasksQuery,
     useGetMilestoneCommentsQuery,
     useGetProductMaintenancesQuery,
-    useGetUsersQuery,
-    Project,
     Task,
     ProductMaintenance,
-    ProductMaintenancesResponse,
 } from '@/state/api';
 import { useAppSelector } from '@/app/redux';
 import { selectCurrentUser } from '@/state/authSlice';
@@ -31,9 +28,8 @@ const BusinessOwnerHome = () => {
 
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
     const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();
-    const { data: users = [] } = useGetUsersQuery();
     const { data: maintenancesResponse, isLoading: maintenancesLoading } = useGetProductMaintenancesQuery({ page: 1, limit: 100 });
-    const maintenances = maintenancesResponse?.data || [];
+    const maintenances = useMemo(() => maintenancesResponse?.data || [], [maintenancesResponse]);
 
     // Get projects owned by this BO
     const myProjects = useMemo(() => {
@@ -95,9 +91,10 @@ const BusinessOwnerHome = () => {
 
     // Product Maintenances linked to BO's projects
     const myMaintenances = useMemo(() => {
+        const items = maintenancesResponse?.data || [];
         const myProjectIds = new Set(myProjects.map(p => p.id));
-        return maintenances.filter(m => m.projectId && myProjectIds.has(m.projectId));
-    }, [maintenances, myProjects]);
+        return items.filter((m: ProductMaintenance) => m.projectId && myProjectIds.has(m.projectId));
+    }, [maintenancesResponse, myProjects]);
 
     const isLoading = projectsLoading || allTasksLoading || maintenancesLoading;
 

@@ -282,11 +282,7 @@ const HomePage = () => {
   
   const loggedInUser = useAppSelector(selectCurrentUser);
   const UserID = loggedInUser?.userId;
-
-  // Business Owners get their own project-overview homepage
-  if (loggedInUser?.role === 'BUSINESS_OWNER') {
-    return <BusinessOwnerHome />;
-  }
+  const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER';
 
   // --- Data Fetching ---
   const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });
@@ -401,6 +397,11 @@ const assignedUserTasks = useMemo(() => {
         </div>
       </div>
     );
+  }
+
+  // Business Owners get their own project-overview homepage
+  if (isBusinessOwner) {
+    return <BusinessOwnerHome />;
   }
   
   return (

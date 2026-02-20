@@ -41,6 +41,10 @@ export interface Project {
     deletedById?: string;
     ticket_id?: string;
     productOwnerUserId?: string;
+    productOwner?: {
+        userId: string;
+        username: string;
+    };
     projectTicket?: {
         ticket_id: string;
     };
@@ -643,24 +647,33 @@ export const api = createApi({
                 method: 'PATCH',
                 body: { status },
             }),
-            // Immediate cache invalidation for real-time updates
-            async onQueryStarted({ projectId }, { dispatch, queryFulfilled }) {
+            // Optimistic update for instant UI feedback
+            async onQueryStarted({ projectId, status }, { dispatch, queryFulfilled }) {
+                // Optimistically update the project status in the cache
+                const patchResult = dispatch(
+                    api.util.updateQueryData('getProjects', undefined, (draft) => {
+                        const project = draft.find((p: { id: number }) => p.id === projectId);
+                        if (project) {
+                            project.status = status as ProjectStatus;
+                        }
+                    })
+                );
                 try {
                     await queryFulfilled;
-                    // Force immediate cache refresh
+                    // After server confirms, force full cache refresh for consistency
                     dispatch(api.util.invalidateTags([
                         { type: 'Projects', id: 'LIST' },
-                        { type: 'Projects', id: 'FINISHED' }, // Invalidate finished projects for maintenance creation
+                        { type: 'Projects', id: 'FINISHED' },
                         { type: 'Projects', id: projectId },
-                        { type: 'Users' as const, id: 'LIST' }, // For assignment-related queries
-                        { type: 'Tasks' as const, id: 'LIST' }, // For task-related queries
-                        { type: 'TimeLogs' as const, id: 'LIST' } // For reporting-related queries
+                        { type: 'Users' as const, id: 'LIST' },
+                        { type: 'Tasks' as const, id: 'LIST' },
+                        { type: 'TimeLogs' as const, id: 'LIST' }
                     ]));
                 } catch {
-                    // Error handling if needed - just ignore for now
+                    // Revert optimistic update on failure
+                    patchResult.undo();
                 }
             },
-            // Invalidate both the specific project and the main list to ensure UI consistency
             invalidatesTags: (result, error, { projectId }) => [
                 { type: 'Projects', id: 'LIST' },
                 { type: 'Projects', id: 'FINISHED' },
