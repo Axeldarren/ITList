@@ -47,6 +47,8 @@ model User {
   timeLogs                 TimeLog[]
   maintenanceStatusChanges ProductMaintenanceStatusHistory[]
   staffId                 Int?                   @unique // Optional staff ID for linking with external systems
+  ownedProjects           Project[]              @relation("OwnedProjects")
+  milestoneComments       MilestoneComment[]
 
   @@map("User")
 }
@@ -71,16 +73,33 @@ model Project {
   createdBy           User?                  @relation("CreatedProjects", fields: [createdById], references: [userId])
   deletedBy           User?                  @relation("DeletedProjects", fields: [deletedById], references: [userId])
   updatedBy           User?                  @relation("UpdatedProjects", fields: [updatedById], references: [userId])
+  productOwnerUserId  String?
+  productOwner        User?                  @relation("OwnedProjects", fields: [productOwnerUserId], references: [userId])
   statusHistory       ProjectStatusHistory[]
   projectTeams        ProjectTeam[]
   versions            ProjectVersion[]
   tasks               Task[]
   projectTicket       ProjectTicket?         @relation("ProjectToProjectTicket")
+  milestoneComments   MilestoneComment[]
 
   @@index([createdById])
   @@index([deletedById])
   @@index([updatedById])
   @@map("Project")
+}
+
+model MilestoneComment {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [userId])
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("MilestoneComment")
 }
 
 model ProjectStatusHistory {
@@ -167,7 +186,6 @@ model Comment {
 model Team {
   id                   Int              @id @default(autoincrement())
   teamName             String
-  productOwnerUserId   String?
   projectManagerUserId String?
   createdAt            DateTime         @default(now())
   createdById          String?

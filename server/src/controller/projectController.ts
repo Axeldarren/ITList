@@ -41,15 +41,33 @@ export const getProjects = async (
     // If user is not admin, limit to projects where the user's teams are attached
     const whereClause: any = { deletedAt: null };
     if (req.user?.role !== 'ADMIN' && req.user?.userId) {
-      whereClause.projectTeams = {
-        some: {
-          team: {
-            members: {
-              some: { userId: req.user.userId },
+      if (req.user.role === 'BUSINESS_OWNER') {
+        // Business Owners see projects they own OR projects whose team they belong to
+        whereClause.OR = [
+          { productOwnerUserId: req.user.userId },
+          {
+            projectTeams: {
+              some: {
+                team: {
+                  members: {
+                    some: { userId: req.user.userId },
+                  },
+                },
+              },
             },
           },
-        },
-      };
+        ];
+      } else {
+        whereClause.projectTeams = {
+          some: {
+            team: {
+              members: {
+                some: { userId: req.user.userId },
+              },
+            },
+          },
+        };
+      }
     }
 
     const projects = await Prisma.project.findMany({
@@ -57,6 +75,7 @@ export const getProjects = async (
       include: {
         projectTeams: { select: { teamId: true } },
         createdBy: { select: { username: true } }, // Include creator's name
+        productOwner: { select: { userId: true, username: true } }, // Include BO name
         projectTicket: true,
       },
     });
@@ -81,7 +100,7 @@ export const createProject = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name, description, startDate, endDate, teamId, docUrl, ticket_id } =
+  const { name, description, startDate, endDate, teamId, docUrl, ticket_id, productOwnerUserId } =
     req.body;
   const loggedInUser = req.user;
 
@@ -121,6 +140,7 @@ export const createProject = async (
         status: "Start", // Default status
         createdById: loggedInUser?.userId,
         updatedById: loggedInUser?.userId, // Creator is also the first updater
+        productOwnerUserId,
         projectTeams: {
           create: { teamId: Number(teamId) },
         },
@@ -318,7 +338,7 @@ export const updateProject = async (
   res: Response
 ): Promise<void> => {
   const { projectId } = req.params;
-  const { name, description, startDate, endDate, teamId, docUrl, ticket_id } =
+  const { name, description, startDate, endDate, teamId, docUrl, ticket_id, productOwnerUserId } =
     req.body;
   const loggedInUser = req.user;
   const numericProjectId = Number(projectId);
@@ -340,6 +360,7 @@ export const updateProject = async (
           endDate,
           ...({ docUrl } as any),
           updatedById: loggedInUser?.userId,
+          productOwnerUserId, // Update PO
         },
       });
 
@@ -770,21 +791,44 @@ export const getTimelineProjects = async (req: Request, res: Response): Promise<
 
         // Access control for non-admins
         if (req.user?.role !== 'ADMIN' && req.user?.userId) {
-            whereClause.projectTeams = {
-                some: {
-                    team: {
-                        members: {
-                            some: { userId: req.user.userId },
+            if (req.user.role === 'BUSINESS_OWNER') {
+                // Business Owners see projects they own OR projects whose team they belong to
+                whereClause.OR = [
+                    { productOwnerUserId: req.user.userId },
+                    {
+                        projectTeams: {
+                            some: {
+                                team: {
+                                    members: {
+                                        some: { userId: req.user.userId },
+                                    },
+                                },
+                            },
                         },
                     },
-                },
-            };
+                ];
+            } else {
+                whereClause.projectTeams = {
+                    some: {
+                        team: {
+                            members: {
+                                some: { userId: req.user.userId },
+                            },
+                        },
+                    },
+                };
+            }
         }
 
         if (searchQuery) {
-            whereClause.OR = [
-                { name: { contains: searchQuery, mode: 'insensitive' } },
-                { description: { contains: searchQuery, mode: 'insensitive' } }
+            // Use AND to combine search with existing OR (for BO access control)
+            whereClause.AND = [
+                {
+                    OR: [
+                        { name: { contains: searchQuery, mode: 'insensitive' } },
+                        { description: { contains: searchQuery, mode: 'insensitive' } }
+                    ]
+                }
             ];
         }
 
@@ -829,6 +873,11 @@ export const getTimelineProjects = async (req: Request, res: Response): Promise<
                         version: 'asc'
                     }
                 },
+                productOwner: {
+                    select: {
+                        username: true
+                    }
+                },
                 createdBy: {
                     select: {
                         username: true
@@ -855,5 +904,67 @@ export const getTimelineProjects = async (req: Request, res: Response): Promise<
     } catch (error) {
         console.error("Error fetching timeline projects:", error);
         res.status(500).json({ message: `Error fetching timeline projects: ${error}` });
+    }
+};
+
+// ===== Milestone Comments =====i
+
+export const getMilestoneComments = async (req: Request, res: Response): Promise<void> => {
+    const { projectId } = req.params;
+
+    try {
+        const comments = await Prisma.milestoneComment.findMany({
+            where: { projectId: Number(projectId) },
+            include: {
+                user: {
+                    select: {
+                        userId: true,
+                        username: true,
+                        profilePictureUrl: true,
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json(comments);
+    } catch (error) {
+        console.error("Error fetching milestone comments:", error);
+        res.status(500).json({ message: `Error fetching milestone comments: ${error}` });
+    }
+};
+
+export const createMilestoneComment = async (req: Request, res: Response): Promise<void> => {
+    const { projectId } = req.params;
+    const { content } = req.body;
+    const loggedInUser = req.user;
+
+    if (!content || !content.trim()) {
+        res.status(400).json({ message: "Comment content is required." });
+        return;
+    }
+
+    try {
+        const comment = await Prisma.milestoneComment.create({
+            data: {
+                content: content.trim(),
+                projectId: Number(projectId),
+                userId: loggedInUser!.userId,
+            },
+            include: {
+                user: {
+                    select: {
+                        userId: true,
+                        username: true,
+                        profilePictureUrl: true,
+                    }
+                }
+            }
+        });
+
+        res.status(201).json(comment);
+    } catch (error) {
+        console.error("Error creating milestone comment:", error);
+        res.status(500).json({ message: `Error creating milestone comment: ${error}` });
     }
 };

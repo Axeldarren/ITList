@@ -415,6 +415,7 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
         // Build where clause for users
         const whereClause: any = {
             deletedAt: null,
+            role: { in: ['ADMIN', 'DEVELOPER'] },
         };
 
         if (searchQuery) {

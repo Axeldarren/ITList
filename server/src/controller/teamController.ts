@@ -22,7 +22,6 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
         const teamsWithDetails = teams.map(team => ({
             ...team,
             users: team.members.map(m => m.user),
-            productOwnerUsername: team.productOwnerUserId ? userMap.get(team.productOwnerUserId) : null,
             projectManagerUsername: team.projectManagerUserId ? userMap.get(team.projectManagerUserId) : null,
             memberCount: team.members.length,
         }));
@@ -35,14 +34,13 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
 // Create a team and create entries in the join table
 export const createTeam = async (req: Request, res: Response): Promise<void> => {
-    const { teamName, productOwnerUserId, projectManagerUserId, memberIds = [] } = req.body;
+    const { teamName, projectManagerUserId, memberIds = [] } = req.body;
     const loggedInUser = req.user;
 
     try {
         const newTeam = await prisma.team.create({
             data: {
                 teamName,
-                productOwnerUserId: productOwnerUserId,
                 projectManagerUserId: projectManagerUserId,
                 createdById: loggedInUser?.userId,
                 updatedById: loggedInUser?.userId, // The creator is the first updater
@@ -66,7 +64,7 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
 // Update team details and manage members in the join table
 export const updateTeam = async (req: Request, res: Response): Promise<void> => {
     const { teamId } = req.params;
-    const { teamName, productOwnerUserId, projectManagerUserId, memberIds = [] } = req.body;
+    const { teamName, projectManagerUserId, memberIds = [] } = req.body;
     const loggedInUser = req.user;
     
     try {
@@ -77,7 +75,6 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
                 where: { id: teamIdNum },
                 data: {
                     teamName,
-                    productOwnerUserId: productOwnerUserId,
                     projectManagerUserId: projectManagerUserId,
                     updatedById: loggedInUser?.userId, // Stamp the updater
                 },
