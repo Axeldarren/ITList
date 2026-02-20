@@ -5,6 +5,7 @@ import {
   useUpdateProjectMutation,
   useGetTeamsQuery,
   useGetTicketsWithStatusCRQuery,
+  useGetUsersQuery,
 } from "@/state/api";
 import React, { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
@@ -21,6 +22,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
   // --- NEW: Fetch the list of all teams ---
   const { data: teams, isLoading: teamsLoading } = useGetTeamsQuery();
   const { data: ticketsCR } = useGetTicketsWithStatusCRQuery();
+  const { data: users } = useGetUsersQuery();
 
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
@@ -30,6 +32,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
   // --- NEW: Add state for the selected team ---
   const [teamId, setTeamId] = useState<string>("");
   const [ticketId, setTicketId] = useState<string>("");
+  const [productOwnerUserId, setProductOwnerUserId] = useState<string>("");
 
   useEffect(() => {
     if (project) {
@@ -42,6 +45,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
           ? String(project.projectTicket.ticket_id)
           : "",
       );
+      setProductOwnerUserId(project.productOwnerUserId || "");
       if (project.startDate) {
         setStartDate(format(parseISO(project.startDate), "yyyy-MM-dd"));
       }
@@ -63,6 +67,7 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
       teamId: Number(teamId),
         docUrl: docUrl || undefined,
       ticket_id: ticketId || undefined,
+      productOwnerUserId: productOwnerUserId || undefined,
     }).unwrap();
 
     toast.promise(
@@ -128,6 +133,19 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
           {teams?.map((team) => (
             <option key={team.id} value={team.id}>
               {team.teamName}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className={selectStyles}
+          value={productOwnerUserId}
+          onChange={(e) => setProductOwnerUserId(e.target.value)}
+        >
+          <option value="">Select Business Owner (Optional)</option>
+          {users?.filter(u => u.role === 'BUSINESS_OWNER').map((user) => (
+            <option key={user.userId} value={user.userId}>
+              {user.username}
             </option>
           ))}
         </select>

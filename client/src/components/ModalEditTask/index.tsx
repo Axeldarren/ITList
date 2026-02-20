@@ -383,7 +383,7 @@ const ModalEditTask = ({ taskId, onClose }: Props) => {
                 className="dark:border-dark-tertiary dark:bg-dark-bg w-full rounded border border-gray-300 p-2 dark:text-white"
               >
               <option value="">Unassigned</option>
-                {users?.map((user) => (
+                {users?.filter(u => u.role !== 'BUSINESS_OWNER').map((user) => (
                   <option key={user.userId} value={user.userId!}>
                   {user.username}
                   </option>

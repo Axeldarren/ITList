@@ -174,7 +174,7 @@ const ProjectRecap = () => {
                         <OptionCheckbox id="includeProgress" label="Progress" />
                         <OptionCheckbox id="includeStoryPoints" label="Story Points" />
                         <OptionCheckbox id="includeDates" label="Start/End Dates" />
-                        <OptionCheckbox id="includePO" label="Product Owner" />
+                        <OptionCheckbox id="includePO" label="Business Owner" />
                         <OptionCheckbox id="includePM" label="Project Manager" />
                         <OptionCheckbox id="includeMembers" label="Team Members" />
                         <OptionCheckbox id="includeProducts" label="Products/Maintenance" />

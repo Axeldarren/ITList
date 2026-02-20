@@ -135,7 +135,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
               disabled={projectUsersLoading}
             >
               <option value="">Assign to User (Optional)</option>
-              {projectUsers?.map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
+              {projectUsers?.filter(u => u.role !== 'BUSINESS_OWNER').map(user => <option key={user.userId} value={user.userId}>{user.username}</option>)}
             </select>
             <input
               type="number"

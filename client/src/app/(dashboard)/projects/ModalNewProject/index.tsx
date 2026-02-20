@@ -4,7 +4,7 @@ import { useAppSelector } from '@/app/redux';
 import { selectCurrentUser } from '@/state/authSlice';
 import { toast } from 'react-hot-toast';
 import Modal from '@/components/Modal';
-import { useCreateProjectMutation, useGetTeamsQuery, useGetTicketsWithStatusCRQuery } from '@/state/api';
+import { useCreateProjectMutation, useGetTeamsQuery, useGetTicketsWithStatusCRQuery, useGetUsersQuery } from '@/state/api';
 
 type Props = {
     isOpen: boolean;
@@ -15,6 +15,7 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
     const [createProject, { isLoading }] = useCreateProjectMutation();
     const { data: teams, isLoading: teamsLoading } = useGetTeamsQuery();
     const { data: ticketsCR } = useGetTicketsWithStatusCRQuery();
+    const { data: users } = useGetUsersQuery();
     const currentUser = useAppSelector(selectCurrentUser);
 
     const [projectName, setProjectName] = useState('');
@@ -24,6 +25,7 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
     const [docUrl, setDocUrl] = useState('');
     const [teamId, setTeamId] = useState('');
     const [ticketId, setTicketId] = useState('');
+    const [productOwnerUserId, setProductOwnerUserId] = useState('');
 
     const resetForm = () => {
         setProjectName('');
@@ -33,6 +35,7 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
         setDocUrl('');
         setTeamId('');
         setTicketId('');
+        setProductOwnerUserId('');
     };
 
     const handleSubmit = async () => {
@@ -52,6 +55,7 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
                 teamId: number;
                 ticket_id: string;
                 docUrl?: string;
+                productOwnerUserId?: string;
             } = {
             name: projectName,
             description,
@@ -61,6 +65,7 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
             ticket_id: ticketId,
         };
         if (docUrl) payload.docUrl = docUrl;
+        if (productOwnerUserId) payload.productOwnerUserId = productOwnerUserId;
 
         const promise = createProject(payload).unwrap();
 
@@ -125,6 +130,18 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
                     {teams?.map((team) => (
                         <option key={team.id} value={team.id}>
                             {team.teamName}
+                        </option>
+                    ))}
+                </select>
+                <select
+                    className={selectStyles}
+                    value={productOwnerUserId}
+                    onChange={(e) => setProductOwnerUserId(e.target.value)}
+                >
+                    <option value=''>Select Business Owner (Optional)</option>
+                    {users?.filter(u => u.role === 'BUSINESS_OWNER').map((user) => (
+                        <option key={user.userId} value={user.userId}>
+                            {user.username}
                         </option>
                     ))}
                 </select>

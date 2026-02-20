@@ -70,6 +70,15 @@ const ProjectLifecycleRow = ({ project, versions }: Props) => {
                         <span>{format(new Date(project.endDate), "MMM d, yyyy")}</span>
                     </div>
                 )}
+
+                {(project as any).productOwner?.username && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        <span className="font-medium text-gray-600 dark:text-gray-300">BO:</span>
+                        <span className="truncate max-w-[120px]" title={(project as any).productOwner.username}>
+                            {(project as any).productOwner.username}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* History Toggle & Section */}

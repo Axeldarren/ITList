@@ -10,6 +10,7 @@ import ListView from '../ListView';
 import TableView from '../TableView';
 import Timeline from '../TimelineView';
 import ArchiveView from '../ArchiveView';
+import OverviewView from '../OverviewView';
 import ModalNewTask from '@/components/ModalNewTask';
 import ModalEditProject from '../ModalEditProject';
 import ModalNewVersion from '../ModalNewVersion';
@@ -35,12 +36,17 @@ import {
     User
 } from '@/state/api';
 import ActivityView from '../ActivityView';
+import { useAppSelector } from '@/app/redux';
+import { selectCurrentUser } from '@/state/authSlice';
 
 const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const { id } = use(params);
 
+    const loggedInUser = useAppSelector(selectCurrentUser);
+    const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER';
+
     // --- State and Hooks ---
-    const [activeTab, setActiveTab] = useState("Board");
+    const [activeTab, setActiveTab] = useState(isBusinessOwner ? "Overview" : "Board");
     const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [isNewVersionModalOpen, setIsNewVersionModalOpen] = useState(false);
@@ -143,7 +149,7 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
         }
 
         const projectManager = users.find(u => u.userId === teamDetails.projectManagerUserId);
-        const productOwner = users.find(u => u.userId === teamDetails.productOwnerUserId);
+        const productOwner = users.find(u => u.userId === currentProject.productOwnerUserId);
         
         const developerIds = new Set(activeTasks.map(t => t.assignedUserId).filter(Boolean));
         const developers = users.filter(u => developerIds.has(u.userId));
@@ -206,9 +212,10 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
 
             { activeTab === "Activity" && <ActivityView projectId={Number(id)} searchTerm={localSearchTerm} /> }
             { activeTab === "History" && <ArchiveView projectId={Number(id)} /> }
+            { activeTab === "Overview" && currentProject && <OverviewView projectId={Number(id)} version={currentProject?.version || 1} project={currentProject} /> }
 
             {/* Existing views */}
-            { activeTab !== "History" && activeTab !== "Activity" && (
+            { activeTab !== "History" && activeTab !== "Activity" && activeTab !== "Overview" && (
                 <>
                     { activeTab === "Board" && <BoardView id={id} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }
                     { activeTab === "List" && <ListView projectId={Number(id)} version={currentProject?.version || 1} setIsModalNewTaskOpen={setIsModalNewTaskOpen} searchTerm={localSearchTerm} isProjectActive={isProjectActive}/> }

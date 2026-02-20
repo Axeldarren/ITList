@@ -40,6 +40,7 @@ export interface Project {
     updatedById?: string;
     deletedById?: string;
     ticket_id?: string;
+    productOwnerUserId?: string;
     projectTicket?: {
         ticket_id: string;
     };
@@ -160,10 +161,8 @@ export interface Comment {
 export interface Team {
     id: number;
     teamName: string;
-    productOwnerUserId?: string;
     projectManagerUserId?: string;
     users?: User[]; // Add the users array here
-    productOwnerUsername?: string;
     projectManagerUsername?: string;
 }
 
@@ -220,7 +219,6 @@ export interface SearchResults {
 export interface Team {
     id: number;
     teamName: string;
-    productOwnerUserId?: string;
     projectManagerUserId?: string;
 }
 
@@ -274,6 +272,19 @@ export interface DeveloperAssignmentsResponse {
         limit: number;
         totalPages: number;
     }
+}
+
+export interface MilestoneComment {
+    id: number;
+    content: string;
+    createdAt: string;
+    projectId: number;
+    userId: string;
+    user: {
+        userId: string;
+        username: string;
+        profilePictureUrl?: string;
+    };
 }
 
 export interface ProductMaintenance {
@@ -487,7 +498,7 @@ const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
 export const api = createApi({
     baseQuery,
     reducerPath: 'api',
-    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks", "Tickets"],
+    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks", "Tickets", "MilestoneComments"],
     endpoints: (build) => ({
         getAllRunningTimeLogs: build.query<TimeLog[], void>({
             query: () => 'timelogs/running/all',
@@ -541,6 +552,22 @@ export const api = createApi({
                         { type: 'ProjectVersions', id: 'LIST' }
                     ]
                     : [{ type: 'Projects', id: 'LIST' }, { type: 'ProjectVersions', id: 'LIST' }],
+        }),
+        getMilestoneComments: build.query<MilestoneComment[], number>({
+            query: (projectId) => `projects/${projectId}/milestone-comments`,
+            providesTags: (result, error, projectId) => [
+                { type: 'MilestoneComments', id: projectId },
+            ],
+        }),
+        createMilestoneComment: build.mutation<MilestoneComment, { projectId: number; content: string }>({
+            query: ({ projectId, content }) => ({
+                url: `projects/${projectId}/milestone-comments`,
+                method: 'POST',
+                body: { content },
+            }),
+            invalidatesTags: (result, error, { projectId }) => [
+                { type: 'MilestoneComments', id: projectId },
+            ],
         }),
         getProjectActivities: build.query<Activity[] | { data: Activity[]; meta: Meta }, { projectId: number; page?: number; limit?: number; search?: string; startDate?: string; endDate?: string }>({
             query: ({ projectId, page, limit, search, startDate, endDate }) => {
@@ -1434,5 +1461,7 @@ export const {
     useGetAllRunningTimeLogsQuery,
     useGetTicketsWithStatusCRQuery,
     useGetTicketsWithStatusOpenQuery,
-    useGetDeveloperAssignmentsQuery
+    useGetDeveloperAssignmentsQuery,
+    useGetMilestoneCommentsQuery,
+    useCreateMilestoneCommentMutation
 } = api;

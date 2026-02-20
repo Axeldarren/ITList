@@ -41,7 +41,7 @@ export const exportProjectDetailToPDF = (
             ['Start Date', project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'],
             ['End Date', project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'],
             ['Project Manager (PM)', projectManager?.username || 'N/A'],
-            ['Product Owner (PO)', productOwner?.username || 'N/A'],
+            ['Business Owner (BO)', productOwner?.username || 'N/A'],
         ],
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] },

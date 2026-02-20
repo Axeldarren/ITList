@@ -28,6 +28,7 @@ import { differenceInDays, differenceInSeconds } from "date-fns";
 import toast from "react-hot-toast";
 import { StatsSkeleton, CardSkeleton } from "@/components/Skeleton";
 import { InlineLoading } from "@/components/LoadingSpinner";
+import BusinessOwnerHome from './BusinessOwnerHome';
 
 // --- Expandable Stats Card Component ---
 interface ExpandableStatsCardProps<T> {
@@ -281,6 +282,11 @@ const HomePage = () => {
   
   const loggedInUser = useAppSelector(selectCurrentUser);
   const UserID = loggedInUser?.userId;
+
+  // Business Owners get their own project-overview homepage
+  if (loggedInUser?.role === 'BUSINESS_OWNER') {
+    return <BusinessOwnerHome />;
+  }
 
   // --- Data Fetching ---
   const { data: fullCurrentUser, isLoading: userLoading } = useGetUserByIdQuery(UserID!, { skip: !UserID });

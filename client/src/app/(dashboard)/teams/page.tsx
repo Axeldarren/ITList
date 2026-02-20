@@ -57,11 +57,10 @@ type MultiUserSelectorProps = {
     allUsers: User[];
     selectedIds: string[];
     onSelectionChange: (ids: string[]) => void;
-    poId: string;
     pmId: string;
 };
 
-const MultiUserSelector = ({ allUsers, selectedIds, onSelectionChange, poId, pmId }: MultiUserSelectorProps) => {
+const MultiUserSelector = ({ allUsers, selectedIds, onSelectionChange, pmId }: MultiUserSelectorProps) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const selectedUsers = useMemo(() => allUsers.filter(u => u.userId !== undefined && selectedIds.includes(u.userId)), [allUsers, selectedIds]);
@@ -76,7 +75,7 @@ const MultiUserSelector = ({ allUsers, selectedIds, onSelectionChange, poId, pmI
     };
     
     const isRemovable = (userId: string) => {
-        return userId !== poId && userId !== pmId;
+        return userId !== pmId;
     };
 
     return (
@@ -124,28 +123,18 @@ type TeamFormProps = {
 
 const TeamForm: React.FC<TeamFormProps> = ({ initialData, allUsers = [], onSubmit, isLoading }) => {
     const [teamName, setTeamName] = useState('');
-    const [poId, setPoId] = useState('');
     const [pmId, setPmId] = useState('');
     const [memberIds, setMemberIds] = useState<string[]>([]);
 
     useEffect(() => {
         setTeamName(initialData?.teamName || '');
-        const initialPoId = initialData?.productOwnerUserId || '';
         const initialPmId = initialData?.projectManagerUserId || '';
-        setPoId(String(initialPoId));
         setPmId(String(initialPmId));
 
         const initialMemberIds = new Set(initialData?.users?.map(u => u.userId!) || []);
-        if (initialPoId) initialMemberIds.add(initialPoId);
         if (initialPmId) initialMemberIds.add(initialPmId);
         setMemberIds(Array.from(initialMemberIds));
     }, [initialData]);
-
-    const handlePoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newPoId = e.target.value;
-        setPoId(e.target.value);
-        if (newPoId) setMemberIds(Array.from(new Set([...memberIds, newPoId])));
-    };
 
     const handlePmChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newPmId = e.target.value;
@@ -157,7 +146,6 @@ const TeamForm: React.FC<TeamFormProps> = ({ initialData, allUsers = [], onSubmi
         e.preventDefault();
         onSubmit({ 
             teamName, 
-            productOwnerUserId: poId, 
             projectManagerUserId: pmId,
             memberIds,
         });
@@ -168,10 +156,7 @@ const TeamForm: React.FC<TeamFormProps> = ({ initialData, allUsers = [], onSubmi
     return (
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <input id="teamName" name="teamName" type="text" placeholder="Team Name" value={teamName} onChange={(e) => setTeamName(e.target.value)} className={inputStyles} required />
-            <select id="productOwner" name="productOwner" value={poId} onChange={handlePoChange} className={inputStyles} required>
-                <option value="">Select Product Owner</option>
-                {allUsers.map((user: User) => <option key={user.userId} value={user.userId}>{user.username}</option>)}
-            </select>
+
             <select id="projectManager" name="projectManager" value={pmId} onChange={handlePmChange} className={inputStyles} required>
                 <option value="">Select Project Manager</option>
                 {allUsers.map((user: User) => <option key={user.userId} value={user.userId}>{user.username}</option>)}
@@ -181,7 +166,6 @@ const TeamForm: React.FC<TeamFormProps> = ({ initialData, allUsers = [], onSubmi
                 allUsers={allUsers}
                 selectedIds={memberIds}
                 onSelectionChange={setMemberIds}
-                poId={poId}
                 pmId={pmId}
             />
 
@@ -282,7 +266,6 @@ const Teams = () => {
             </div>
         )
     },
-    { field: "productOwnerUsername", headerName: "Product Owner", width: 180 },
     { field: "projectManagerUsername", headerName: "Project Manager", width: 180 },
   ];
 
@@ -309,11 +292,11 @@ const Teams = () => {
     <div className="flex w-full flex-col p-8">
       {/* Modals */}
     <Modal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} name="Create New Team" closeOnBackdropClick={false}>
-        <TeamForm allUsers={users} onSubmit={handleCreateSubmit} isLoading={isCreating} />
+        <TeamForm allUsers={users?.filter(u => u.role !== 'BUSINESS_OWNER')} onSubmit={handleCreateSubmit} isLoading={isCreating} />
       </Modal>
 
     <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} name="Edit Team" closeOnBackdropClick={false}>
-        <TeamForm initialData={selectedTeam ?? undefined} allUsers={users} onSubmit={handleUpdateSubmit} isLoading={isUpdating} />
+        <TeamForm initialData={selectedTeam ?? undefined} allUsers={users?.filter(u => u.role !== 'BUSINESS_OWNER')} onSubmit={handleUpdateSubmit} isLoading={isUpdating} />
       </Modal>
 
       <ModalConfirm 

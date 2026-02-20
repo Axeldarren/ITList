@@ -80,7 +80,7 @@ export const exportAllProjectsToPDF = (
     if (options.includeProgress) head.push('Progress');
     if (options.includeStoryPoints) head.push('Total Story Points');
     if (options.includeDates) { head.push('Start'); head.push('End'); }
-    if (options.includePO) head.push('PO');
+    if (options.includePO) head.push('BO');
     if (options.includePM) head.push('PM');
     if (options.includeMembers) head.push('Team Members');
 
@@ -127,7 +127,7 @@ export const exportAllProjectsToPDF = (
             row.push(item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A');
             row.push(item.endDate ? new Date(item.endDate).toLocaleDateString() : 'N/A');
         }
-        if (options.includePO) row.push(users.find(u => u.userId === team?.productOwnerUserId)?.username || 'N/A');
+        if (options.includePO) row.push(users.find(u => u.userId === (item as Project).productOwnerUserId)?.username || 'N/A');
         if (options.includePM) row.push(users.find(u => u.userId === team?.projectManagerUserId)?.username || 'N/A');
     if (options.includeMembers) row.push(team?.users?.map(user => user.username).join(', ') || 'N/A');
 

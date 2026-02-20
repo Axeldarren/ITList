@@ -7,7 +7,7 @@ import { selectCurrentUser } from '@/state/authSlice';
 import { 
     Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, 
     FileDown, Play, Check, XCircle, Zap, Power, CheckCircle, 
-    ActivityIcon
+    ActivityIcon, Eye
 } from 'lucide-react';
 import React from 'react';
 
@@ -144,8 +144,12 @@ const ProjectHeader = ({
                 <Header name={projectName}
                     buttonComponent={
                             <div className="flex items-center flex-wrap justify-end gap-1 sm:gap-2">
-                                {renderActionButtons()}
-                                <div className="hidden sm:block h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
+                                {loggedInUser?.role !== 'BUSINESS_OWNER' && (
+                                    <>
+                                        {renderActionButtons()}
+                                        <div className="hidden sm:block h-6 border-l border-gray-300 dark:border-gray-600 mx-2"></div>
+                                    </>
+                                )}
                                 {loggedInUser?.role === 'ADMIN' && (
                                     <>
                                         <button onClick={onEdit} className='flex items-center rounded-md bg-gray-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-gray-600'><Edit className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">Edit</span></button>
@@ -193,15 +197,22 @@ const ProjectHeader = ({
 
             <div className='flex flex-wrap-reverse gap-2 border-y border-gray-200 pb-[8px] pt-2 dark:border-stroke-dark md:items-center'>
                 <div className='flex flex-1 items-center gap-1 sm:gap-2 md:gap-4 overflow-x-auto'>
-                    <TabButton name="Board" icon={<Grid3X3 className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
-                    <TabButton name="List" icon={<List className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
-                    <TabButton name="Timeline" icon={<Clock className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
-                    <TabButton name="Table" icon={<Table className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                    {loggedInUser?.role !== 'DEVELOPER' && (
+                        <TabButton name="Overview" icon={<Eye className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                    )}
+                    {loggedInUser?.role !== 'BUSINESS_OWNER' && (
+                        <>
+                            <TabButton name="Board" icon={<Grid3X3 className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                            <TabButton name="List" icon={<List className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                            <TabButton name="Timeline" icon={<Clock className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                            <TabButton name="Table" icon={<Table className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                        </>
+                    )}
                     <TabButton name="Activity" icon={<ActivityIcon className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                     <TabButton name="History" icon={<History className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                 </div>
                 <div className='flex items-center gap-2'>
-                    {activeTab !== 'History' && (
+                    {activeTab !== 'History' && activeTab !== 'Overview' && (
                         <div className='relative'>
                             <input 
                                 type='text' 
