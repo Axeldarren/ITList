@@ -28,6 +28,8 @@ import productivityRoutes from './routes/productivityRoutes';
 import productMaintenanceRoutes from './routes/productMaintenanceRoutes';
 import maintenanceTaskRoutes from './routes/maintenanceTaskRoutes';
 import osticketRoutes from './routes/osticketRoutes';
+import notificationRoutes from './routes/notificationRoutes';
+import { startNotificationScheduler } from './scripts/notificationScheduler';
 
 // Configurations
 dotenv.config();
@@ -103,6 +105,7 @@ app.use('/productivity', productivityRoutes);
 app.use('/product-maintenance', productMaintenanceRoutes);
 app.use('/maintenance-tasks', maintenanceTaskRoutes);
 app.use('/osticket', osticketRoutes);
+app.use('/notifications', notificationRoutes);
 
 // Server
 const port = process.env.PORT || 8008;
@@ -123,6 +126,9 @@ async function startServer() {
         server.listen(port, () => {
             console.log(`🚀 Server is running on port ${port}`);
         });
+
+        // Start the notification scheduler after server is running
+        startNotificationScheduler();
     } catch (error) {
         console.error('❌ Database connection failed:', error);
         process.exit(1);

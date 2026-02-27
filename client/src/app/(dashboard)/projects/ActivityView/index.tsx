@@ -5,6 +5,7 @@ import { useGetProjectActivitiesQuery, Activity } from '@/state/api';
 import { formatDistanceToNow, format } from 'date-fns';
 import { MessageSquare, Plus, CheckCircle, Minus, Edit, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import Image from 'next/image';
+import MentionHighlighter from '@/components/MentionHighlighter';
 
 type Props = {
     projectId: number;
@@ -158,7 +159,7 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
                                         </div>
                                         <div className="min-w-0 flex-1 pt-3">
                                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                <span className="font-semibold text-gray-900 dark:text-white">{activity.user.username}</span> {activity.description}
+                                                <span className="font-semibold text-gray-900 dark:text-white">{activity.user.username}</span> <MentionHighlighter text={activity.description} />
                                             </p>
                                             {activity.task && (
                                                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">

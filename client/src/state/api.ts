@@ -156,7 +156,9 @@ export interface Comment {
     taskId?: number; // Optional - either task or maintenance task
     maintenanceTaskId?: number; // Optional - either task or maintenance task  
     userId: string;
+    parentId?: number; // For reply threading
     user?: User;
+    replies?: Comment[];
     createdAt: string;
     updatedAt: string;
 }
@@ -411,6 +413,33 @@ export interface Tickets {
     created: string;
 }
 
+export enum NotificationType {
+    TASK_DEADLINE_APPROACHING = 'TASK_DEADLINE_APPROACHING',
+    TASK_OVERDUE = 'TASK_OVERDUE',
+    PROJECT_AT_RISK = 'PROJECT_AT_RISK',
+    COMMENT_ADDED = 'COMMENT_ADDED',
+    MILESTONE_COMMENT_ADDED = 'MILESTONE_COMMENT_ADDED',
+    MENTIONED = 'MENTIONED',
+}
+
+export interface Notification {
+    id: number;
+    type: NotificationType;
+    title: string;
+    message: string;
+    isRead: boolean;
+    userId: string;
+    taskId?: number;
+    projectId?: number;
+    commentId?: number;
+    createdAt: string;
+}
+
+export interface NotificationsResponse {
+    data: Notification[];
+    meta: Meta;
+}
+
 const rawBaseQuery = fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
@@ -502,7 +531,7 @@ const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
 export const api = createApi({
     baseQuery,
     reducerPath: 'api',
-    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks", "Tickets", "MilestoneComments"],
+    tagTypes: ["Projects", "Tasks", "Users", "Teams", "Comments", "Attachments", "ProjectVersions", "SearchResults", "TimeLogs", "Activities", "RunningTimeLog", "ProductMaintenances", "MaintenanceTasks", "Tickets", "MilestoneComments", "Notifications"],
     endpoints: (build) => ({
         getAllRunningTimeLogs: build.query<TimeLog[], void>({
             query: () => 'timelogs/running/all',
@@ -947,6 +976,24 @@ export const api = createApi({
             }),
             invalidatesTags: [{ type: 'Tasks' }],
         }),
+        createStandaloneComment: build.mutation<Comment, { taskId: number; text: string; parentId?: number }>({
+            query: (body) => ({
+                url: 'comments/standalone',
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: (result, error, { taskId }) => [
+                { type: 'Tasks', id: taskId },
+                { type: 'Activities' },
+                { type: 'Comments', id: `task-${taskId}` },
+            ],
+        }),
+        getTaskComments: build.query<Comment[], number>({
+            query: (taskId) => `comments/task/${taskId}`,
+            providesTags: (result, error, taskId) => [
+                { type: 'Comments', id: `task-${taskId}` },
+            ],
+        }),
         addAttachment: build.mutation<Attachment, FormData>({
             query: (formData) => ({
                 url: `attachments`,
@@ -1374,6 +1421,15 @@ export const api = createApi({
                                 
                                 dispatch(api.util.invalidateTags(tags));
                             }
+
+                            // Handle notification updates
+                            if (data.type === 'NOTIFICATION') {
+                                console.log('Received NOTIFICATION signal, invalidating tags...');
+                                dispatch(api.util.invalidateTags([
+                                    { type: 'Notifications' as const, id: 'LIST' },
+                                    'Notifications',
+                                ]));
+                            }
                         } catch (error) {
                             console.error('Error parsing WebSocket message:', error);
                         }
@@ -1400,6 +1456,37 @@ export const api = createApi({
         getTicketsWithStatusOpen: build.query<Array<{ ticket_id: string; description_ticket: string }>, void>({
             query: () => 'osticket/tickets/status-open',
             providesTags: ['Tickets'],
+        }),
+
+        // --- Notification Endpoints ---
+        getNotifications: build.query<NotificationsResponse, { page?: number; limit?: number; category?: string }>({
+            query: ({ page = 1, limit = 20, category = 'all' }) => `notifications?page=${page}&limit=${limit}&category=${category}`,
+            providesTags: [{ type: 'Notifications', id: 'LIST' }],
+        }),
+        getUnreadNotificationCount: build.query<{ count: number }, void>({
+            query: () => 'notifications/unread-count',
+            providesTags: [{ type: 'Notifications', id: 'LIST' }],
+        }),
+        markNotificationAsRead: build.mutation<{ message: string }, number>({
+            query: (id) => ({
+                url: `notifications/${id}/read`,
+                method: 'PATCH',
+            }),
+            invalidatesTags: [{ type: 'Notifications', id: 'LIST' }],
+        }),
+        markAllNotificationsAsRead: build.mutation<{ message: string }, void>({
+            query: () => ({
+                url: 'notifications/read-all',
+                method: 'PATCH',
+            }),
+            invalidatesTags: [{ type: 'Notifications', id: 'LIST' }],
+        }),
+        deleteNotification: build.mutation<{ message: string }, number>({
+            query: (id) => ({
+                url: `notifications/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: [{ type: 'Notifications', id: 'LIST' }],
         }),
     }),
 });
@@ -1476,5 +1563,12 @@ export const {
     useGetTicketsWithStatusOpenQuery,
     useGetDeveloperAssignmentsQuery,
     useGetMilestoneCommentsQuery,
-    useCreateMilestoneCommentMutation
+    useCreateMilestoneCommentMutation,
+    useGetNotificationsQuery,
+    useGetUnreadNotificationCountQuery,
+    useMarkNotificationAsReadMutation,
+    useMarkAllNotificationsAsReadMutation,
+    useDeleteNotificationMutation,
+    useCreateStandaloneCommentMutation,
+    useGetTaskCommentsQuery
 } = api;

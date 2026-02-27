@@ -206,10 +206,10 @@ const ProjectHeader = ({
                             <TabButton name="List" icon={<List className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                             <TabButton name="Timeline" icon={<Clock className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                             <TabButton name="Table" icon={<Table className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                            <TabButton name="Activity" icon={<ActivityIcon className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
+                            <TabButton name="History" icon={<History className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                         </>
                     )}
-                    <TabButton name="Activity" icon={<ActivityIcon className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
-                    <TabButton name="History" icon={<History className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                 </div>
                 <div className='flex items-center gap-2'>
                     {activeTab !== 'History' && activeTab !== 'Overview' && (

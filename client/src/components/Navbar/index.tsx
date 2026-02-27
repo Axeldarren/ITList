@@ -11,6 +11,7 @@ import { useDebounce } from 'use-debounce';
 import { logOut, selectCurrentUser } from '@/state/authSlice';
 import toast from 'react-hot-toast';
 import Image from 'next/image'; // Import the Next.js Image component
+import NotificationBell from '@/components/NotificationBell';
 
 // --- Autocomplete Component (No changes needed here) ---
 const AutocompleteSearch = ({ onSearch }: { onSearch: (query: string) => void }) => {
@@ -162,6 +163,9 @@ const Navbar = () => {
             >
                 {isDarkMode ? <Sun className="h-5 w-5 md:h-6 md:w-6" /> : <Moon className="h-5 w-5 md:h-6 md:w-6" />}
             </button>
+
+            {/* Notification Bell */}
+            <NotificationBell />
             
             <div className='relative' ref={profileMenuRef}>
                 <button

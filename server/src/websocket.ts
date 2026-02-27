@@ -47,6 +47,7 @@ export const broadcast = (message: object) => {
     let sentCount = 0;
     let failedCount = 0;
 
+    console.log(`Broadcasting message: ${data}`);
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             try {

@@ -12,6 +12,7 @@ import Timeline from '../TimelineView';
 import ArchiveView from '../ArchiveView';
 import OverviewView from '../OverviewView';
 import ModalNewTask from '@/components/ModalNewTask';
+import ModalEditTask from '@/components/ModalEditTask';
 import ModalEditProject from '../ModalEditProject';
 import ModalNewVersion from '../ModalNewVersion';
 import ModalSignatureSelect from '@/components/ModalSignatureSelect';
@@ -38,6 +39,7 @@ import {
 import ActivityView from '../ActivityView';
 import { useAppSelector } from '@/app/redux';
 import { selectCurrentUser } from '@/state/authSlice';
+import { useSearchParams, useRouter } from "next/navigation";
 
 const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const { id } = use(params);
@@ -52,6 +54,13 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const [isNewVersionModalOpen, setIsNewVersionModalOpen] = useState(false);
     const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
     const [localSearchTerm, setLocalSearchTerm] = useState('');
+    
+    // Deep linking state
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const deepLinkedTaskId = searchParams.get("taskId");
+    const deepLinkedTab = searchParams.get("tab") as "discussion" | "worklog" | null;
+    const [selectedDeepLinkedTaskId, setSelectedDeepLinkedTaskId] = useState<number | null>(null);
 
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
     const { data: teams = [], isLoading: teamsLoading } = useGetTeamsQuery();
@@ -102,6 +111,26 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
             updateProjectStatus({ projectId: Number(id), status: ProjectStatus.OnProgress });
         }
     }, [allActiveTasksCompleted, currentProject, id, updateProjectStatus]);
+
+    // Handle Deep Linking for Task Modal
+    useEffect(() => {
+        if (deepLinkedTaskId) {
+            setSelectedDeepLinkedTaskId(Number(deepLinkedTaskId));
+            
+            // If tab=overview, switch to Overview tab
+            const tabParam = searchParams.get("tab");
+            if (tabParam === "overview") {
+                setActiveTab("Overview");
+            }
+        }
+    }, [deepLinkedTaskId, searchParams]);
+
+    const handleCloseTaskModal = () => {
+        setSelectedDeepLinkedTaskId(null);
+        // Clear taskId/tab from URL without full reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
+    };
 
     const isProjectActive = useMemo(() => {
         if (!currentProject) return false;
@@ -190,6 +219,14 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
                 onConfirm={handleExportWithSignatures}
                 users={users}
             />
+
+            {selectedDeepLinkedTaskId && (
+                <ModalEditTask 
+                    taskId={selectedDeepLinkedTaskId} 
+                    onClose={handleCloseTaskModal}
+                    initialTab={deepLinkedTab || "worklog"}
+                />
+            )}
             
             <ProjectHeader 
                 activeTab={activeTab} 

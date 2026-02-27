@@ -8,6 +8,7 @@ import {
 import { format } from "date-fns";
 import Image from "next/image";
 import AttachmentViewer from "../AttachmentViewer"; // We'll reuse this component
+import MentionHighlighter from "../MentionHighlighter";
 
 // Comment Avatar Component
 const CommentAvatar = ({ user }: { user?: { username?: string; profilePictureUrl?: string } }) => {
@@ -80,7 +81,7 @@ const ModalViewTask = ({ taskId, onClose }: Props) => {
                 <div>
                     <h3 className="text-lg font-semibold dark:text-white">Description</h3>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
-                        {task.description || "No description provided."}
+                        <MentionHighlighter text={task.description || "No description provided."} />
                     </p>
                 </div>
                 {/* Attachments */}
@@ -104,7 +105,9 @@ const ModalViewTask = ({ taskId, onClose }: Props) => {
                                 <CommentAvatar user={comment.user} />
                                 <div className="flex-1">
                                     <p className="text-sm font-semibold dark:text-white">{comment.user?.username}</p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{comment.text}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                                      <MentionHighlighter text={comment.text} />
+                                    </p>
                                 </div>
                             </div>
                         ))}

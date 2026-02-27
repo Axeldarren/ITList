@@ -8,7 +8,9 @@ import {
   createDevlogComment,
   stopDevlogTimer,
   getActiveDevlogs,
-  getMaintenanceTaskComments
+  getMaintenanceTaskComments,
+  createStandaloneComment,
+  getTaskComments
 } from "../controller/commentController";
 import { protect } from "../middleware/authMiddleware";
 
@@ -27,6 +29,16 @@ router.delete("/:commentId", (req, res, next) => {
     Promise.resolve(deleteComment(req, res)).catch(next);
 });
 
+// Standalone comment (no timer required)
+router.post("/standalone", (req, res, next) => {
+    Promise.resolve(createStandaloneComment(req, res)).catch(next);
+});
+
+// Get task discussion comments (excludes devlogs)
+router.get("/task/:taskId", (req, res, next) => {
+    Promise.resolve(getTaskComments(req, res)).catch(next);
+});
+
 // Devlog routes
 router.post("/devlog", (req, res, next) => {
     Promise.resolve(createDevlogComment(req, res)).catch(next);
@@ -36,11 +48,6 @@ router.patch("/:commentId/stop-devlog", (req, res, next) => {
 });
 router.get("/active-devlogs", (req, res, next) => {
     Promise.resolve(getActiveDevlogs(req, res)).catch(next);
-});
-
-// Maintenance task comments
-router.get("/maintenance-task/:maintenanceTaskId", (req, res, next) => {
-    Promise.resolve(getMaintenanceTaskComments(req, res)).catch(next);
 });
 
 // Maintenance task comments

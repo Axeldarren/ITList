@@ -58,6 +58,7 @@ async function main() {
     "timeLog.json",        // References Users and Tasks
     // "attachment.json",  // Removed: File missing in seedData
     "comment.json",        // References Users and Tasks
+    "notification.json",   // References Users, Tasks, Projects, Comments
     "taskAssignment.json", // References Users and Tasks
     "teamMembership.json"  // References Users and Teams
   ];

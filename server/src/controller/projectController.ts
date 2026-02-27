@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, NotificationType } from "@prisma/client";
 import { broadcast } from "../websocket";
+import {
+    createMentionNotifications,
+    createNotification,
+    broadcastNotificationUpdate,
+} from "../utils/notificationHelper";
 import mysql from "mysql2/promise";
 
 // Define ProjectStatus type based on allowed values
@@ -961,6 +966,49 @@ export const createMilestoneComment = async (req: Request, res: Response): Promi
                 }
             }
         });
+
+        // --- Notification: @mentions in milestone comment ---
+        const project = await Prisma.project.findUnique({
+            where: { id: Number(projectId) },
+            select: { name: true, productOwnerUserId: true },
+        });
+
+        const mentionedIds = await createMentionNotifications({
+            text: content,
+            authorUserId: loggedInUser!.userId,
+            authorUsername: loggedInUser!.username,
+            projectId: Number(projectId),
+            commentId: comment.id,
+            contextLabel: `project "${project?.name || 'Unknown'}"`,
+        });
+
+        // --- Notification: MILESTONE_COMMENT_ADDED to admins + product owner ---
+        const admins = await Prisma.user.findMany({
+            where: { role: 'ADMIN', deletedAt: null },
+            select: { userId: true },
+        });
+
+        const recipientIds = new Set(admins.map(a => a.userId));
+        if (project?.productOwnerUserId) {
+            recipientIds.add(project.productOwnerUserId);
+        }
+
+        for (const recipientId of recipientIds) {
+            // Skip the commenter and already-mentioned users
+            if (recipientId === loggedInUser!.userId) continue;
+            if (mentionedIds.has(recipientId)) continue;
+
+            await createNotification({
+                type: NotificationType.MILESTONE_COMMENT_ADDED,
+                title: "New milestone comment",
+                message: `${loggedInUser!.username} commented on project "${project?.name || 'Unknown'}".`,
+                userId: recipientId,
+                projectId: Number(projectId),
+                commentId: comment.id,
+            });
+        }
+
+        broadcastNotificationUpdate();
 
         res.status(201).json(comment);
     } catch (error) {

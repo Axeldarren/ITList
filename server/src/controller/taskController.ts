@@ -322,9 +322,10 @@ export const getTaskById = async (req: Request, res: Response): Promise<void> =>
                 attachments: {
                     where: { deletedAt: null },
                 },
-                timeLogs: { // <-- This was the missing piece
+                timeLogs: {
                     include: {
-                        user: { select: { username: true } }
+                        user: { select: { username: true } },
+                        comment: { select: { text: true } }
                     }
                 },
                 project: {
@@ -436,6 +437,11 @@ export const getTaskTimeLogs = async (req: Request, res: Response): Promise<void
                 user: { // Include the user's name with each log
                     select: {
                         username: true
+                    }
+                },
+                comment: {
+                    select: {
+                        text: true
                     }
                 }
             },

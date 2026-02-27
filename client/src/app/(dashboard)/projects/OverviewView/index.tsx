@@ -15,6 +15,8 @@ import { selectCurrentUser } from '@/state/authSlice';
 import { format } from 'date-fns';
 import { MessageSquare, Send, BarChart3, User as UserIcon, Clock, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import MentionInput from '@/components/MentionInput';
+import MentionHighlighter from '@/components/MentionHighlighter';
 
 type Props = {
     projectId: number;
@@ -217,29 +219,28 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                                 </div>
                             )}
                         </div>
-                        <div className="flex-1">
-                            <textarea
-                                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-dark-tertiary bg-gray-50 dark:bg-dark-tertiary text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-shadow"
-                                placeholder="Add a milestone comment or progress note..."
-                                rows={2}
-                                value={commentText}
-                                onChange={(e) => setCommentText(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                            />
-                            <div className="flex justify-end mt-2">
-                                <button
-                                    onClick={handleSubmitComment}
-                                    disabled={!commentText.trim() || isCreating}
-                                    className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    {isCreating ? (
-                                        <Loader2 size={14} className="animate-spin" />
-                                    ) : (
-                                        <Send size={14} />
-                                    )}
-                                    Post
-                                </button>
+                        <div className="flex-1 flex gap-2 items-start">
+                            <div className="flex-1">
+                                <MentionInput
+                                    placeholder="Add a milestone comment or progress note... Use @ to mention users"
+                                    rows={1}
+                                    value={commentText}
+                                    onChange={setCommentText}
+                                    onKeyDown={handleKeyDown}
+                                />
                             </div>
+                            <button
+                                onClick={handleSubmitComment}
+                                disabled={!commentText.trim() || isCreating}
+                                className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {isCreating ? (
+                                    <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                    <Send size={14} />
+                                )}
+                                <span className="hidden sm:inline">Post</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -286,7 +287,7 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
-                                            {comment.content}
+                                            <MentionHighlighter text={comment.content} />
                                         </p>
                                     </div>
                                 </div>

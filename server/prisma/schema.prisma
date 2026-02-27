@@ -49,6 +49,7 @@ model User {
   staffId                 Int?                   @unique // Optional staff ID for linking with external systems
   ownedProjects           Project[]              @relation("OwnedProjects")
   milestoneComments       MilestoneComment[]
+  notifications            Notification[]
 
   @@map("User")
 }
@@ -159,6 +160,7 @@ model Comment {
   text        String    @db.Text
   taskId      Int?      // Make optional to support maintenance tasks
   userId      String
+  parentId    Int?      // For reply threading
   createdAt   DateTime  @default(now())
   deletedAt   DateTime?
   deletedById String?
@@ -169,6 +171,10 @@ model Comment {
   maintenanceTaskId   Int?
   maintenanceTask     MaintenanceTask?   @relation(fields: [maintenanceTaskId], references: [id], onDelete: Cascade)
   
+  // Reply threading
+  parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("CommentReplies")
+
   deletedBy   User?     @relation("DeletedComments", fields: [deletedById], references: [userId])
   task        Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   updatedBy   User?     @relation("UpdatedComments", fields: [updatedById], references: [userId])
@@ -180,6 +186,7 @@ model Comment {
   @@index([updatedById])
   @@index([userId])
   @@index([maintenanceTaskId])
+  @@index([parentId])
   @@map("Comment")
 }
 
@@ -458,4 +465,33 @@ model MaintenanceTaskTicket {
     maintenanceTask      MaintenanceTask @relation("MaintenanceTaskToMaintenanceTaskTicket", fields: [maintenanceTaskId], references: [id], onDelete: Cascade)
 
     @@map("MaintenanceTaskTicket")
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  isRead    Boolean          @default(false)
+  userId    String
+  user      User             @relation(fields: [userId], references: [userId])
+  taskId    Int?
+  projectId Int?
+  commentId Int?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([type, taskId, userId])
+  @@index([type, projectId, userId])
+  @@map("Notification")
+}
+
+enum NotificationType {
+  TASK_DEADLINE_APPROACHING
+  TASK_OVERDUE
+  PROJECT_AT_RISK
+  COMMENT_ADDED
+  MILESTONE_COMMENT_ADDED
+  MENTIONED
 }
