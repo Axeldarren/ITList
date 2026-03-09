@@ -27,8 +27,15 @@ body,
   --color-dark-bg: #101214;
   --color-dark-secondary: #1d1f21;
   --color-dark-tertiary: #3b3d40;
-  --color-blue-primary: #0260D1;
+  --color-blue-primary: #7c5cfc;
   --color-stroke-dark: #2d3135;
+  --color-accent-50: #f5f3ff;
+  --color-accent-100: #ede9fe;
+  --color-accent-200: #ddd6fe;
+  --color-accent-300: #c4b5fd;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #7c5cfc;
+  --color-accent-600: #6d28d9;
 }
 
 /* TIMELINE STYLING */
