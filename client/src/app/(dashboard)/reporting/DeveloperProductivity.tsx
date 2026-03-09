@@ -6,6 +6,7 @@ import { useGetDeveloperStatsPaginatedQuery, useGetDeveloperStatsQuery, useGetUs
 import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User, ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react';
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
+import { getProfilePictureSrc } from '@/lib/profilePicture';
 import Image from 'next/image';
 import ModalViewTimeLogs from '@/components/ModalViewTimeLogs';
 import ModalViewCompletedTasks from '@/components/ModalViewCompletedTasks';
@@ -269,11 +270,9 @@ const DeveloperProductivity = () => {
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
                                             {userProfile?.profilePictureUrl ? (
-                                            <Image
-                                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${userProfile.profilePictureUrl}`}
+                                            <img
+                                                src={getProfilePictureSrc(userProfile.profilePictureUrl)!}
                                                 alt={dev.username}
-                                                width={48}
-                                                height={48}
                                                 className="h-12 w-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
                                             />
                                         ) : (

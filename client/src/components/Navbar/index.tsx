@@ -177,11 +177,13 @@ const Navbar = () => {
                 >
                     {/* --- UPDATED: Profile Picture Logic --- */}
                     {userData && userData.profilePictureUrl && !imageError ? (
-                        <Image
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${userData.profilePictureUrl}`}
+                        <img
+                            src={
+                                userData.profilePictureUrl.startsWith('http')
+                                    ? userData.profilePictureUrl
+                                    : `${process.env.NEXT_PUBLIC_API_BASE_URL}${userData.profilePictureUrl}`
+                            }
                             alt="Profile"
-                            width={32}
-                            height={32}
                             className="h-7 w-7 md:h-8 md:w-8 rounded-full object-cover"
                             onError={() => setImageError(true)}
                         />

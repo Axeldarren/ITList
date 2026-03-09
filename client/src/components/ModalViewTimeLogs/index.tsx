@@ -4,6 +4,7 @@ import Calendar from "@/components/Calendar";
 import { useGetTimeLogsQuery } from "@/state/api";
 import { format, parseISO } from "date-fns";
 import { Clock, Calendar as CalendarIcon, Play, Square, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { getProfilePictureSrc } from "@/lib/profilePicture";
 import Image from "next/image";
 
 interface ModalViewTimeLogsProps {
@@ -127,11 +128,9 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
         <div className="border-b border-gray-200 dark:border-gray-600 pb-4 mb-6">
           <div className="flex items-center gap-3 mb-4">
             {developer.profilePictureUrl ? (
-              <Image
-                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${developer.profilePictureUrl}`}
+              <img
+                src={getProfilePictureSrc(developer.profilePictureUrl)!}
                 alt={developer.username}
-                width={48}
-                height={48}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
               />
             ) : (

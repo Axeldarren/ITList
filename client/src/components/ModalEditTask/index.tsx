@@ -40,6 +40,7 @@ import { differenceInSeconds, format, formatDistanceToNow } from "date-fns";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
 import Image from "next/image";
+import { getProfilePictureSrc } from "@/lib/profilePicture";
 import MentionInput from "@/components/MentionInput";
 import MentionHighlighter from "@/components/MentionHighlighter";
 
@@ -51,10 +52,12 @@ const formatDuration = (seconds: number): string => {
 const formatLogDuration = (startTime: string, endTime?: string | null): string => {
     if (!endTime) return "In progress...";
     const seconds = differenceInSeconds(new Date(endTime), new Date(startTime));
+    if (seconds < 60) return `${seconds}s`;
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0 && m > 0) return `${h}h ${m}m`;
-    if (h > 0) return `${h}h`;
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0 && s > 0) return `${m}m ${s}s`;
     return `${m}m`;
 };
 
@@ -65,13 +68,10 @@ const CommentAvatar = ({ user }: { user?: { username?: string; profilePictureUrl
 
   if (hasProfilePicture) {
     return (
-      <Image
-        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
+      <img
+        src={getProfilePictureSrc(user.profilePictureUrl)!}
         alt={user.username || "User"}
-        width={32}
-        height={32}
         className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
-        onError={() => setImageError(true)}
       />
     );
   }
@@ -388,11 +388,16 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
                 >
                   <MessageSquare size={16} />
                   Discussion
-                  {discussionComments.length > 0 && (
-                    <span className="ml-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-[11px] font-semibold">
-                      {discussionComments.length}
-                    </span>
-                  )}
+                  {discussionComments.length > 0 && (() => {
+                    const totalCount = discussionComments.reduce(
+                      (sum, c) => sum + 1 + (c.replies?.length ?? 0), 0
+                    );
+                    return (
+                      <span className="ml-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-[11px] font-semibold">
+                        {totalCount}
+                      </span>
+                    );
+                  })()}
                 </button>
                 <button
                   onClick={() => setActiveTab("worklog")}
@@ -416,108 +421,119 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
               {activeTab === "discussion" && (
                 <div className="mt-4">
                   {/* Comment list */}
-                  <div className="space-y-4 mb-4 max-h-80 overflow-y-auto">
+                  <div className="space-y-3 mb-4 max-h-80 overflow-y-auto px-1">
                     {discussionComments.length === 0 ? (
                       <p className="text-sm text-gray-400 italic">No comments yet. Start the discussion!</p>
                     ) : (
-                      discussionComments.map((comment: CommentType) => (
-                        <div key={comment.id}>
-                          {/* Top-level comment */}
-                          <div className="flex gap-3">
-                            <CommentAvatar user={comment.user} />
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold dark:text-gray-200">
-                                  {comment.user?.username || "User"}
+                      discussionComments.map((comment: CommentType) => {
+                        const isOwn = comment.userId === loggedInUser?.userId;
+                        return (
+                          <div key={comment.id}>
+                            {/* Top-level comment — chat bubble */}
+                            <div className={`flex gap-2 items-end ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                              <CommentAvatar user={comment.user} />
+                              <div className={`max-w-[75%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
+                                <span className={`text-xs text-gray-400 mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+                                  {isOwn ? 'You' : (comment.user?.username || 'User')} · {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ''}
                                 </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">
-                                  {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ''}
-                                </span>
-                              </div>
-                              <div className="dark:bg-dark-bg mt-1 rounded bg-white p-2.5 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                                <MentionHighlighter text={comment.text} />
-                              </div>
-                              <div className="mt-1 flex items-center gap-3">
-                                <button
-                                  onClick={() => { setReplyingTo(replyingTo === comment.id ? null : comment.id); setReplyText(""); }}
-                                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors"
-                                >
-                                  <Reply size={12} /> Reply
-                                  {comment.replies && comment.replies.length > 0 && (
-                                    <span className="ml-1">({comment.replies.length})</span>
-                                  )}
-                                </button>
-                                {(loggedInUser?.userId === comment.userId || loggedInUser?.role === 'ADMIN') && (
+                                <div className={`rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${
+                                  isOwn
+                                    ? 'bg-blue-500 text-white rounded-br-sm'
+                                    : 'bg-white dark:bg-dark-bg text-gray-800 dark:text-gray-200 rounded-bl-sm'
+                                }`}>
+                                  <MentionHighlighter text={comment.text} isOnDark={isOwn} />
+                                </div>
+                                <div className={`mt-1 flex items-center gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}>
                                   <button
-                                    onClick={() => handleDeleteComment(comment.id)}
-                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                    onClick={() => { setReplyingTo(replyingTo === comment.id ? null : comment.id); setReplyText(""); }}
+                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors"
                                   >
-                                    <Trash2 size={12} /> Delete
+                                    <Reply size={12} /> Reply
+                                    {comment.replies && comment.replies.length > 0 && (
+                                      <span className="ml-1">({comment.replies.length})</span>
+                                    )}
                                   </button>
-                                )}
+                                  {(loggedInUser?.userId === comment.userId || loggedInUser?.role === 'ADMIN') && (
+                                    <button
+                                      onClick={() => handleDeleteComment(comment.id)}
+                                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <Trash2 size={12} /> Delete
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Replies */}
-                          {comment.replies && comment.replies.length > 0 && (
-                            <div className="ml-11 mt-2 space-y-3 border-l-2 border-gray-200 dark:border-dark-tertiary pl-4">
-                              {comment.replies.map((reply: CommentType) => (
-                                <div key={reply.id} className="flex gap-3">
-                                  <CommentAvatar user={reply.user} />
+                            {/* Replies (flattened WhatsApp style) */}
+                            {comment.replies && comment.replies.length > 0 && (
+                              <div className="mt-3 space-y-3">
+                                {comment.replies.map((reply: CommentType) => {
+                                  const isOwnReply = reply.userId === loggedInUser?.userId;
+                                  return (
+                                    <div key={reply.id} className={`flex gap-2 items-end ${isOwnReply ? 'flex-row-reverse' : 'flex-row'}`}>
+                                      <CommentAvatar user={reply.user} />
+                                      <div className={`max-w-[75%] ${isOwnReply ? 'items-end' : 'items-start'} flex flex-col`}>
+                                        <span className={`text-[10px] text-gray-400 mb-0.5 ${isOwnReply ? 'text-right' : 'text-left'}`}>
+                                          {isOwnReply ? 'You' : (reply.user?.username || 'User')} · {reply.createdAt ? formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true }) : ''}
+                                        </span>
+                                        <div className={`rounded-2xl px-3 py-2 text-[13px] whitespace-pre-wrap break-words ${
+                                          isOwnReply
+                                            ? 'bg-blue-500 text-white rounded-br-sm'
+                                            : 'bg-white dark:bg-dark-bg text-gray-800 dark:text-gray-200 rounded-bl-sm'
+                                        }`}>
+                                          {/* Quoted parent comment snippet */}
+                                          <div className={`mb-1.5 px-2 py-1 text-[11px] rounded border-l-2 ${
+                                            isOwnReply 
+                                              ? 'bg-blue-600/30 border-blue-200 text-blue-100' 
+                                              : 'bg-gray-100 dark:bg-dark-secondary border-gray-300 dark:border-gray-500 text-gray-500 dark:text-gray-400'
+                                          }`}>
+                                            <span className="font-semibold">{comment.user?.username || 'User'}:</span>{" "}
+                                            <span className="truncate block max-w-[200px]">{comment.text}</span>
+                                          </div>
+                                          <MentionHighlighter text={reply.text} isOnDark={isOwnReply} />
+                                        </div>
+                                        {(loggedInUser?.userId === reply.userId || loggedInUser?.role === 'ADMIN') && (
+                                          <button
+                                            onClick={() => handleDeleteComment(reply.id)}
+                                            className="mt-1 flex items-center gap-1 text-[10px] text-gray-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <Trash2 size={10} /> Delete
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Inline reply input */}
+                            {replyingTo === comment.id && (
+                              <div className="mt-2 pl-10 pr-2">
+                                <div className="flex gap-2 items-center bg-gray-50 dark:bg-dark-bg/50 p-2 rounded-lg border border-gray-200 dark:border-dark-tertiary">
                                   <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm font-bold dark:text-gray-200">
-                                        {reply.user?.username || "User"}
-                                      </span>
-                                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                                        {reply.createdAt ? formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true }) : ''}
-                                      </span>
-                                    </div>
-                                    <div className="dark:bg-dark-bg mt-1 rounded bg-white p-2 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                                      <MentionHighlighter text={reply.text} />
-                                    </div>
-                                    <div className="mt-1 flex items-center gap-3">
-                                      {(loggedInUser?.userId === reply.userId || loggedInUser?.role === 'ADMIN') && (
-                                        <button
-                                          onClick={() => handleDeleteComment(reply.id)}
-                                          className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-red-500 transition-colors"
-                                        >
-                                          <Trash2 size={10} /> Delete
-                                        </button>
-                                      )}
-                                    </div>
+                                    <MentionInput
+                                      placeholder={`Reply to ${comment.user?.username || "user"}... Use @ to mention`}
+                                      rows={1}
+                                      value={replyText}
+                                      onChange={setReplyText}
+                                      onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
+                                    />
                                   </div>
+                                  <button
+                                    onClick={() => handleReplySubmit(comment.id)}
+                                    disabled={!replyText.trim()}
+                                    className="rounded-lg bg-blue-500 p-2 text-white hover:bg-blue-600 disabled:opacity-40 transition-colors"
+                                  >
+                                    <Send size={14} />
+                                  </button>
                                 </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Inline reply input */}
-                          {replyingTo === comment.id && (
-                            <div className="ml-11 mt-2 pl-4">
-                              <div className="flex gap-2">
-                                <div className="flex-1">
-                                  <MentionInput
-                                    placeholder={`Reply to ${comment.user?.username || "user"}... Use @ to mention`}
-                                    rows={1}
-                                    value={replyText}
-                                    onChange={setReplyText}
-                                    onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
-                                  />
-                                </div>
-                                <button
-                                  onClick={() => handleReplySubmit(comment.id)}
-                                  disabled={!replyText.trim()}
-                                  className="self-end rounded-lg bg-blue-500 p-2 text-white hover:bg-blue-600 disabled:opacity-40 transition-colors"
-                                >
-                                  <Send size={14} />
-                                </button>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ))
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Task } from '@/state/api';
+import { getProfilePictureSrc } from '@/lib/profilePicture';
 import { format, isAfter } from 'date-fns';
 import React, { useState } from 'react';
 import {
@@ -21,12 +22,10 @@ const UserAvatar = ({ user, size = 20, iconSize = 12 }: { user?: { username?: st
 
   if (hasProfilePicture) {
     return (
-      <Image
-        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
+      <img
+        src={getProfilePictureSrc(user.profilePictureUrl)!}
         alt={user.username || "User"}
-        width={size}
-        height={size}
-        className={`h-${size/4} w-${size/4} rounded-full object-cover border-2 border-white dark:border-dark-secondary`}
+        className="rounded-full object-cover border-2 border-white dark:border-dark-secondary"
         style={{ width: `${size}px`, height: `${size}px` }}
         onError={() => setImageError(true)}
       />

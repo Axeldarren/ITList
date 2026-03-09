@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { DataGrid, GridColDef, GridActionsCellItem, GridToolbarContainer } from "@mui/x-data-grid";
 import { useAppSelector } from "@/app/redux";
 import { dataGridSxStyles } from "@/lib/utils";
+import { getProfilePictureSrc } from "@/lib/profilePicture";
 import Image from "next/image";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import ModalNewUser from "@/components/ModalNewUser";
@@ -26,11 +27,9 @@ const AvatarCell = ({ value, username }: { value: string | null; username: strin
     return (
         <div className="flex items-center justify-center h-full w-full">
             {hasImage ? (
-                <Image
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${value}`}
+                <img
+                    src={getProfilePictureSrc(value)!}
                     alt={username || 'User avatar'}
-                    width={40}
-                    height={40}
                     className="rounded-full object-cover h-10 w-10"
                     onError={() => setImageError(true)}
                 />

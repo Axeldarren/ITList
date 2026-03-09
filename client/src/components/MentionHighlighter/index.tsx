@@ -2,9 +2,10 @@ import React from "react";
 
 interface MentionHighlighterProps {
   text: string;
+  isOnDark?: boolean; // true when rendered inside a coloured bubble (e.g. own message)
 }
 
-const MentionHighlighter: React.FC<MentionHighlighterProps> = ({ text }) => {
+const MentionHighlighter: React.FC<MentionHighlighterProps> = ({ text, isOnDark = false }) => {
   if (!text) return null;
 
   // Split text by mentions (e.g., @username)
@@ -18,7 +19,11 @@ const MentionHighlighter: React.FC<MentionHighlighterProps> = ({ text }) => {
           return (
             <span
               key={index}
-              className="text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
+              className={
+                isOnDark
+                  ? "text-white/90 font-semibold underline underline-offset-2 cursor-pointer"
+                  : "text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
+              }
             >
               {part}
             </span>

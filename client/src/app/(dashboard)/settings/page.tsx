@@ -6,7 +6,7 @@ import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
 import { useGetUserByIdQuery, useUpdateUserMutation, useUploadProfilePictureMutation } from "@/state/api";
 import toast from "react-hot-toast";
-import { Save, Upload, Edit } from "lucide-react";
+import { Save, Upload, Edit, Mail, BellOff } from "lucide-react";
 import Image from "next/image";
 
 // Reusable component to display a single setting item
@@ -120,13 +120,14 @@ const Settings = () => {
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Picture</h2>
                     <div className="mt-4 flex flex-col items-center gap-4">
                         {currentUser?.profilePictureUrl ? (
-                            <Image
-                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${currentUser.profilePictureUrl}`}
+                            <img
+                                src={
+                                    currentUser.profilePictureUrl.startsWith('http')
+                                        ? currentUser.profilePictureUrl
+                                        : `${process.env.NEXT_PUBLIC_API_BASE_URL}${currentUser.profilePictureUrl}`
+                                }
                                 alt="Profile Picture"
-                                width={128}
-                                height={128}
                                 className="h-32 w-32 rounded-full object-cover ring-2 ring-offset-2 ring-blue-primary dark:ring-offset-dark-secondary"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                         ) : (
                             <div className="h-32 w-32 rounded-full bg-gray-200 dark:bg-dark-tertiary flex items-center justify-center ring-2 ring-offset-2 ring-blue-primary dark:ring-offset-dark-secondary">
@@ -185,6 +186,53 @@ const Settings = () => {
                             <SettingItem label="NIK" value={currentUser?.NIK} />
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* ─── Email Notifications ─── */}
+            <div className="mt-10">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Email Notifications</h2>
+                <div className="rounded-lg bg-white dark:bg-dark-secondary border border-gray-200 dark:border-dark-tertiary p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {currentUser?.emailNotifications !== false ? (
+                            <Mail size={20} className="text-blue-500" />
+                        ) : (
+                            <BellOff size={20} className="text-gray-400" />
+                        )}
+                        <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                Receive email notifications
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Get notified about mentions, task deadlines, and project updates via email.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={isUpdatingUser}
+                        onClick={() => {
+                            if (!currentUser?.userId) return;
+                            const newValue = currentUser.emailNotifications === false ? true : false;
+                            toast.promise(
+                                updateUser({ userId: currentUser.userId, emailNotifications: newValue }).unwrap(),
+                                {
+                                    loading: newValue ? 'Enabling...' : 'Disabling...',
+                                    success: newValue ? 'Email notifications enabled!' : 'Email notifications disabled.',
+                                    error: 'Failed to update preference.',
+                                }
+                            );
+                        }}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-secondary ${
+                            currentUser?.emailNotifications !== false ? 'bg-blue-500' : 'bg-gray-300 dark:bg-dark-tertiary'
+                        }`}
+                    >
+                        <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                currentUser?.emailNotifications !== false ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                        />
+                    </button>
                 </div>
             </div>
         </div>

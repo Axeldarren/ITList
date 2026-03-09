@@ -5,6 +5,7 @@ import { useGetDeveloperAssignmentsQuery, useGetProjectsQuery, Task, DeveloperAs
 import Header from '@/components/Header';
 import { AlertTriangle, Target, ArrowRight, User as UserIcon, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
+import { getProfilePictureSrc } from '@/lib/profilePicture';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ModalViewAllTasks from '@/components/ModalViewAllTasks';
@@ -192,11 +193,9 @@ const Assignments = () => {
                                 <div className="p-4 border-b border-gray-200 dark:border-gray-600">
                                     <div className="flex items-center gap-3 mb-3">
                                         {dev.profilePictureUrl ? (
-                                            <Image
-                                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${dev.profilePictureUrl}`}
+                                            <img
+                                                src={getProfilePictureSrc(dev.profilePictureUrl)!}
                                                 alt={dev.username || 'Developer'}
-                                                width={48}
-                                                height={48}
                                                 className="h-12 w-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
                                             />
                                         ) : (

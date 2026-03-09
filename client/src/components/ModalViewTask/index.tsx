@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useGetTaskByIdQuery } from "@/state/api";
+import { getProfilePictureSrc } from "@/lib/profilePicture";
 import {
   X, Paperclip, MessageSquare, User, Calendar, Hash, Flag, CircleDot, Tag,
 } from "lucide-react";
@@ -17,11 +18,9 @@ const CommentAvatar = ({ user }: { user?: { username?: string; profilePictureUrl
 
   if (hasProfilePicture) {
     return (
-      <Image
-        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
+      <img
+        src={getProfilePictureSrc(user.profilePictureUrl)!}
         alt={user.username || "User"}
-        width={32}
-        height={32}
         className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
         onError={() => setImageError(true)}
       />

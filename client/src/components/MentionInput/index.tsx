@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useGetUsersQuery, User } from "@/state/api";
+import { getProfilePictureSrc } from "@/lib/profilePicture";
 import Image from "next/image";
 
 type MentionInputProps = {
@@ -192,12 +193,10 @@ const MentionInput = ({
                             `}
                         >
                             {user.profilePictureUrl ? (
-                                <Image
-                                    src={`/${user.profilePictureUrl}`}
+                                <img
+                                    src={getProfilePictureSrc(user.profilePictureUrl)!}
                                     alt={user.username}
-                                    width={24}
-                                    height={24}
-                                    className="rounded-full object-cover flex-shrink-0"
+                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                                 />
                             ) : (
                                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">

@@ -7,6 +7,7 @@ import React, { useState, MouseEvent, useMemo } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Task as TaskType } from "@/state/api";
+import { getProfilePictureSrc } from "@/lib/profilePicture";
 import {
   MessageSquareMore,
   MoreVertical,
@@ -378,14 +379,11 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
               <div className="flex -space-x-[6px] overflow-hidden">
               {task.assignee && (
                 task.assignee.profilePictureUrl ? (
-                <Image
+                <img
                   key={`assignee-${task.assignee.userId}`}
-                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${task.assignee.profilePictureUrl}`}
+                  src={getProfilePictureSrc(task.assignee.profilePictureUrl)!}
                   alt={task.assignee.username}
-                  width={24}
-                  height={24}
                   className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
                 ) : (
                 <div 
@@ -398,14 +396,11 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
               )}
               {task.author && (
                 task.author.profilePictureUrl ? (
-                <Image
+                <img
                   key={`author-${task.author.userId}`}
-                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${task.author.profilePictureUrl}`}
+                  src={getProfilePictureSrc(task.author.profilePictureUrl)!}
                   alt={task.author.username}
-                  width={24}
-                  height={24}
                   className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
                 ) : (
                 <div

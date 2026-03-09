@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User } from '@/state/api';
 import Modal from '@/components/Modal';
 import { PenTool } from 'lucide-react';
+import { getProfilePictureSrc } from '@/lib/profilePicture';
 import Image from 'next/image';
 
 interface SignatureInfo {
@@ -63,11 +64,9 @@ const ModalRecapSignatureSelect: React.FC<ModalRecapSignatureSelectProps> = ({
             }`}
         >
             {user.profilePictureUrl ? (
-                <Image
-                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
+                <img
+                    src={getProfilePictureSrc(user.profilePictureUrl)!}
                     alt={user.username || 'User'}
-                    width={40}
-                    height={40}
                     className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
                 />
             ) : (

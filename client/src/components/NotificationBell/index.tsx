@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Clock, AlertTriangle, AlertCircle, MessageSquare, Milestone, AtSign, Check, CheckCheck, X } from "lucide-react";
+import { Bell, Clock, AlertTriangle, AlertCircle, MessageSquare, Milestone, AtSign, Check, CheckCheck, X, Trash2 } from "lucide-react";
 import {
     useGetNotificationsQuery,
     useGetUnreadNotificationCountQuery,
@@ -43,6 +43,9 @@ export function getNotificationIcon(type: NotificationType) {
             return <Milestone className="h-4 w-4 text-purple-500 flex-shrink-0" />;
         case NotificationType.MENTIONED:
             return <AtSign className="h-4 w-4 text-emerald-500 flex-shrink-0" />;
+        case NotificationType.TASK_DELETED:
+        case NotificationType.PROJECT_DELETED:
+            return <Trash2 className="h-4 w-4 text-red-400 flex-shrink-0" />;
         default:
             return <Bell className="h-4 w-4 text-gray-500 flex-shrink-0" />;
     }
@@ -62,6 +65,9 @@ export function getNotificationAccentColor(type: NotificationType): string {
             return "border-l-purple-500";
         case NotificationType.MENTIONED:
             return "border-l-emerald-500";
+        case NotificationType.TASK_DELETED:
+        case NotificationType.PROJECT_DELETED:
+            return "border-l-red-400";
         default:
             return "border-l-gray-400";
     }
@@ -105,8 +111,15 @@ const NotificationBell = () => {
             await markAsRead(notification.id);
         }
 
-        // Smart routing based on notification type
         const type = notification.type;
+
+        // Deletion notifications have no destination — just mark as read and close
+        if (type === NotificationType.TASK_DELETED || type === NotificationType.PROJECT_DELETED) {
+            setIsOpen(false);
+            return;
+        }
+
+        // Smart routing based on notification type
         const pid = notification.projectId;
         const tid = notification.taskId;
 

@@ -4,6 +4,7 @@ import { Task, Project, useGetTasksByUserQuery } from "@/state/api";
 import { format, isAfter } from "date-fns";
 import { Calendar, Flag, Folder, Clock, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getProfilePictureSrc } from "@/lib/profilePicture";
 import Image from "next/image";
 
 interface ModalViewAllTasksProps {
@@ -105,11 +106,9 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
         <div className="mb-6 p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
           <div className="flex items-center gap-3">
             {developer.profilePictureUrl ? (
-              <Image
-                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${developer.profilePictureUrl}`}
+              <img
+                src={getProfilePictureSrc(developer.profilePictureUrl)!}
                 alt={developer.username}
-                width={48}
-                height={48}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
               />
             ) : (

@@ -138,6 +138,7 @@ export interface User {
     profilePictureUrl?: string;
     department?: string;
     role?: string;
+    emailNotifications?: boolean;
     deletedAt?: string | null;
 }
 
@@ -283,6 +284,7 @@ export interface DeveloperAssignmentsResponse {
 export interface MilestoneComment {
     id: number;
     content: string;
+    imageUrl?: string;
     createdAt: string;
     projectId: number;
     userId: string;
@@ -420,6 +422,8 @@ export enum NotificationType {
     COMMENT_ADDED = 'COMMENT_ADDED',
     MILESTONE_COMMENT_ADDED = 'MILESTONE_COMMENT_ADDED',
     MENTIONED = 'MENTIONED',
+    TASK_DELETED = 'TASK_DELETED',
+    PROJECT_DELETED = 'PROJECT_DELETED',
 }
 
 export interface Notification {
@@ -592,12 +596,17 @@ export const api = createApi({
                 { type: 'MilestoneComments', id: projectId },
             ],
         }),
-        createMilestoneComment: build.mutation<MilestoneComment, { projectId: number; content: string }>({
-            query: ({ projectId, content }) => ({
-                url: `projects/${projectId}/milestone-comments`,
-                method: 'POST',
-                body: { content },
-            }),
+        createMilestoneComment: build.mutation<MilestoneComment, { projectId: number; content: string; image?: File }>({
+            query: ({ projectId, content, image }) => {
+                const formData = new FormData();
+                formData.append('content', content);
+                if (image) formData.append('image', image);
+                return {
+                    url: `projects/${projectId}/milestone-comments`,
+                    method: 'POST',
+                    body: formData,
+                };
+            },
             invalidatesTags: (result, error, { projectId }) => [
                 { type: 'MilestoneComments', id: projectId },
             ],
@@ -1429,6 +1438,17 @@ export const api = createApi({
                                     { type: 'Notifications' as const, id: 'LIST' },
                                     'Notifications',
                                 ]));
+                            }
+
+                            // Handle milestone comment updates (real-time)
+                            if (data.type === 'MILESTONE_COMMENT') {
+                                const tags: { type: 'MilestoneComments'; id: string | number }[] = [
+                                    { type: 'MilestoneComments', id: 'LIST' },
+                                ];
+                                if (data.projectId) {
+                                    tags.push({ type: 'MilestoneComments', id: data.projectId });
+                                }
+                                dispatch(api.util.invalidateTags(tags));
                             }
                         } catch (error) {
                             console.error('Error parsing WebSocket message:', error);

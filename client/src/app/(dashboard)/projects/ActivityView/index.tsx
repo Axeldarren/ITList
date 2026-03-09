@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useGetProjectActivitiesQuery, Activity } from '@/state/api';
 import { formatDistanceToNow, format } from 'date-fns';
 import { MessageSquare, Plus, CheckCircle, Minus, Edit, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { getProfilePictureSrc } from '@/lib/profilePicture';
 import Image from 'next/image';
 import MentionHighlighter from '@/components/MentionHighlighter';
 
@@ -139,11 +140,9 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
                                     <div className="relative flex items-start space-x-4">
                                         <div className="relative">
                                             {activity.user.profilePictureUrl ? (
-                                                <Image
-                                                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${activity.user.profilePictureUrl}`}
+                                                <img
+                                                    src={getProfilePictureSrc(activity.user.profilePictureUrl)!}
                                                     alt={activity.user.username}
-                                                    width={48}
-                                                    height={48}
                                                     className="h-12 w-12 rounded-full object-cover ring-4 ring-white dark:ring-dark-bg"
                                                 />
                                             ) : (

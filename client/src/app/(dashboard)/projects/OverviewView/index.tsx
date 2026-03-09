@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
     useGetTasksQuery,
     useGetMilestoneCommentsQuery,
@@ -12,8 +12,9 @@ import {
 } from '@/state/api';
 import { useAppSelector } from '@/app/redux';
 import { selectCurrentUser } from '@/state/authSlice';
+import { getProfilePictureSrc } from '@/lib/profilePicture';
 import { format } from 'date-fns';
-import { MessageSquare, Send, BarChart3, User as UserIcon, Clock, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, BarChart3, User as UserIcon, Clock, CheckCircle, AlertTriangle, Loader2, ImagePlus, X } from 'lucide-react';
 import Image from 'next/image';
 import MentionInput from '@/components/MentionInput';
 import MentionHighlighter from '@/components/MentionHighlighter';
@@ -27,6 +28,9 @@ type Props = {
 const OverviewView = ({ projectId, version, project }: Props) => {
     const loggedInUser = useAppSelector(selectCurrentUser);
     const [commentText, setCommentText] = useState('');
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { data: tasks = [] } = useGetTasksQuery({ projectId });
     const { data: milestoneComments = [], isLoading: commentsLoading } = useGetMilestoneCommentsQuery(projectId);
@@ -65,11 +69,35 @@ const OverviewView = ({ projectId, version, project }: Props) => {
     const handleSubmitComment = async () => {
         if (!commentText.trim() || isCreating) return;
         try {
-            await createComment({ projectId, content: commentText.trim() }).unwrap();
+            await createComment({ 
+                projectId, 
+                content: commentText.trim(),
+                ...(selectedImage ? { image: selectedImage } : {}),
+            }).unwrap();
             setCommentText('');
+            setSelectedImage(null);
+            setImagePreview(null);
         } catch {
             // Error handling silently
         }
+    };
+
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+            alert('Only JPG/JPEG images are allowed.');
+            e.target.value = '';
+            return;
+        }
+        setSelectedImage(file);
+        setImagePreview(URL.createObjectURL(file));
+    };
+
+    const handleRemoveImage = () => {
+        setSelectedImage(null);
+        setImagePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -206,12 +234,10 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                     <div className="flex gap-3">
                         <div className="flex-shrink-0 mt-1">
                             {loggedInUser?.profilePictureUrl ? (
-                                <Image
-                                    src={`/${loggedInUser.profilePictureUrl}`}
+                                <img
+                                    src={getProfilePictureSrc(loggedInUser.profilePictureUrl)!}
                                     alt={loggedInUser.username}
-                                    width={32}
-                                    height={32}
-                                    className="rounded-full object-cover"
+                                    className="w-8 h-8 rounded-full object-cover"
                                 />
                             ) : (
                                 <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
@@ -228,7 +254,39 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                                     onChange={setCommentText}
                                     onKeyDown={handleKeyDown}
                                 />
+                                {/* Image Preview */}
+                                {imagePreview && (
+                                    <div className="mt-2 relative inline-block">
+                                        <img
+                                            src={imagePreview}
+                                            alt="preview"
+                                            className="h-20 rounded-lg object-cover border border-gray-200 dark:border-dark-tertiary"
+                                        />
+                                        <button
+                                            onClick={handleRemoveImage}
+                                            className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-colors"
+                                        >
+                                            <X size={11} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
+                            {/* Hidden file input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".jpg,.jpeg"
+                                className="hidden"
+                                onChange={handleImageSelect}
+                            />
+                            {/* Image attach button */}
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                title="Attach JPG image"
+                                className="flex-shrink-0 p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+                            >
+                                <ImagePlus size={18} />
+                            </button>
                             <button
                                 onClick={handleSubmitComment}
                                 disabled={!commentText.trim() || isCreating}
@@ -259,17 +317,17 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                             <p className="text-xs mt-1">Be the first to add a progress note!</p>
                         </div>
                     ) : (
-                        milestoneComments.map((comment: MilestoneComment) => (
-                            <div key={comment.id} className="p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                                <div className="flex gap-3">
+                        milestoneComments.map((comment: MilestoneComment) => {
+                            const isOwn = comment.userId === loggedInUser?.userId;
+                            const avatarSrc = getProfilePictureSrc(comment.user?.profilePictureUrl);
+                            return (
+                                <div key={comment.id} className={`p-4 flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                     <div className="flex-shrink-0">
-                                        {comment.user?.profilePictureUrl ? (
-                                            <Image
-                                                src={`/${comment.user.profilePictureUrl}`}
-                                                alt={comment.user.username}
-                                                width={32}
-                                                height={32}
-                                                className="rounded-full object-cover"
+                                        {avatarSrc ? (
+                                            <img
+                                                src={avatarSrc}
+                                                alt={comment.user?.username || ''}
+                                                className="w-8 h-8 rounded-full object-cover"
                                             />
                                         ) : (
                                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-medium">
@@ -277,23 +335,32 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-sm font-semibold text-gray-800 dark:text-white">
-                                                {comment.user?.username || 'Unknown'}
-                                            </span>
-                                            <span className="text-xs text-gray-400">
-                                                {format(new Date(comment.createdAt), 'MMM d, yyyy · h:mm a')}
-                                            </span>
+                                    <div className={`max-w-[75%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                                        <span className={`text-xs text-gray-400 mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+                                            {isOwn ? 'You' : (comment.user?.username || 'Unknown')} · {format(new Date(comment.createdAt), 'MMM d · h:mm a')}
+                                        </span>
+                                        <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap break-words ${
+                                            isOwn
+                                                ? 'bg-blue-500 text-white rounded-br-sm'
+                                                : 'bg-white dark:bg-dark-secondary text-gray-800 dark:text-gray-200 rounded-bl-sm border border-gray-100 dark:border-dark-tertiary'
+                                        }`}>
+                                            <MentionHighlighter text={comment.content} isOnDark={isOwn} />
                                         </div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
-                                            <MentionHighlighter text={comment.content} />
-                                        </p>
+                                        {/* Attached image */}
+                                        {comment.imageUrl && (
+                                            <img
+                                                src={comment.imageUrl}
+                                                alt="milestone attachment"
+                                                className="mt-2 rounded-xl max-h-64 max-w-full object-contain border border-gray-200 dark:border-dark-tertiary cursor-pointer hover:opacity-90 transition-opacity"
+                                                onClick={() => window.open(comment.imageUrl, '_blank')}
+                                            />
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
+
                 </div>
             </div>
         </div>
