@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Only needed if you have custom headers or redirects
+# [[headers]]
+#   for = "/*"
+#   [headers.values]
+#     X-Frame-Options = "DENY"
+#     X-XSS-Protection = "1; mode=block"
