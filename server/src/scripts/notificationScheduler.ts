@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { PrismaClient, NotificationType } from "@prisma/client";
 import { broadcast } from "../websocket";
+import { sendNotificationEmail } from "../utils/emailService";
 
 const prisma = new PrismaClient();
 
@@ -46,16 +47,28 @@ async function checkDeadlineApproaching(): Promise<void> {
 
         if (existing) continue;
 
+        const title = "Task Deadline Approaching";
+        const message = `Task "${task.title}" in project "${task.project.name}" is due within 24 hours.`;
+
         await prisma.notification.create({
             data: {
                 type: NotificationType.TASK_DEADLINE_APPROACHING,
-                title: "Task Deadline Approaching",
-                message: `Task "${task.title}" in project "${task.project.name}" is due within 24 hours.`,
+                title,
+                message,
                 userId: task.assignedUserId,
                 taskId: task.id,
                 projectId: task.projectId,
             },
         });
+
+        // Send email if user opted in
+        const user = await prisma.user.findUnique({
+            where: { userId: task.assignedUserId },
+            select: { email: true, emailNotifications: true },
+        });
+        if (user?.emailNotifications) {
+            sendNotificationEmail(user.email, title, message).catch(() => {});
+        }
 
         notifiedUserIds.add(task.assignedUserId);
     }
@@ -99,16 +112,28 @@ async function checkOverdueTasks(): Promise<void> {
 
         if (existing) continue;
 
+        const title = "Task Overdue";
+        const message = `Task "${task.title}" in project "${task.project.name}" is past its deadline.`;
+
         await prisma.notification.create({
             data: {
                 type: NotificationType.TASK_OVERDUE,
-                title: "Task Overdue",
-                message: `Task "${task.title}" in project "${task.project.name}" is past its deadline.`,
+                title,
+                message,
                 userId: task.assignedUserId,
                 taskId: task.id,
                 projectId: task.projectId,
             },
         });
+
+        // Send email if user opted in
+        const user = await prisma.user.findUnique({
+            where: { userId: task.assignedUserId },
+            select: { email: true, emailNotifications: true },
+        });
+        if (user?.emailNotifications) {
+            sendNotificationEmail(user.email, title, message).catch(() => {});
+        }
 
         notifiedUserIds.add(task.assignedUserId);
     }
@@ -179,15 +204,27 @@ async function checkProjectsAtRisk(): Promise<void> {
 
             if (existing) continue;
 
+            const title = "Project At Risk";
+            const message = `Project "${project.name}" has ${overdueCount} overdue task${overdueCount > 1 ? "s" : ""} that may delay completion.`;
+
             await prisma.notification.create({
                 data: {
                     type: NotificationType.PROJECT_AT_RISK,
-                    title: "Project At Risk",
-                    message: `Project "${project.name}" has ${overdueCount} overdue task${overdueCount > 1 ? "s" : ""} that may delay completion.`,
+                    title,
+                    message,
                     userId: recipientId,
                     projectId: project.id,
                 },
             });
+
+            // Send email if user opted in
+            const recipientUser = await prisma.user.findUnique({
+                where: { userId: recipientId },
+                select: { email: true, emailNotifications: true },
+            });
+            if (recipientUser?.emailNotifications) {
+                sendNotificationEmail(recipientUser.email, title, message).catch(() => {});
+            }
 
             notifiedUserIds.add(recipientId);
         }

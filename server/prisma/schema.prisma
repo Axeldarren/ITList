@@ -16,6 +16,7 @@ model User {
   profilePictureUrl        String?
   department               String?
   role                     String                 @default("DEVELOPER")
+  emailNotifications       Boolean                @default(true)
   deletedAt                DateTime?
   deletedById              String?
   activities               Activity[]
@@ -92,6 +93,7 @@ model Project {
 model MilestoneComment {
   id        Int      @id @default(autoincrement())
   content   String   @db.Text
+  imageUrl  String?  // ImageKit CDN URL (optional)
   createdAt DateTime @default(now())
   projectId Int
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -494,4 +496,6 @@ enum NotificationType {
   COMMENT_ADDED
   MILESTONE_COMMENT_ADDED
   MENTIONED
+  TASK_DELETED
+  PROJECT_DELETED
 }

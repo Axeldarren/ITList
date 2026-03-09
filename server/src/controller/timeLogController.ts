@@ -143,11 +143,9 @@ export const stopTimer = async (req: Request, res: Response): Promise<void> => {
       );
 
       const formattedDuration = formatDuration(durationInSeconds);
-      const finalCommentText = `[Time Logged: ${formattedDuration}]\n${commentText}`;
-
       const newComment = await tx.comment.create({
         data: {
-          text: finalCommentText,
+          text: commentText,
           taskId: log.taskId,
           userId: loggedInUser.userId,
           updatedById: loggedInUser.userId,
@@ -393,16 +391,13 @@ export const stopTimerById = async (req: Request, res: Response): Promise<void> 
                 }
             });
 
-            // Create a comment based on whether it's a task or maintenance task
-            let newComment;
-            const formattedDuration = formatDuration(durationInSeconds);
-            const finalCommentText = `[Time Logged: ${formattedDuration}]\n${description}`;
+            let newComment: { id: number } | undefined;
 
             if (log.taskId) {
                 // Regular task comment
                 newComment = await tx.comment.create({
                     data: {
-                        text: finalCommentText,
+                        text: description,
                         taskId: log.taskId,
                         userId: loggedInUser!.userId,
                     }
@@ -411,7 +406,7 @@ export const stopTimerById = async (req: Request, res: Response): Promise<void> 
                 // Maintenance task comment  
                 newComment = await tx.comment.create({
                     data: {
-                        text: finalCommentText,
+                        text: description,
                         maintenanceTaskId: log.maintenanceTaskId,
                         userId: loggedInUser!.userId,
                     }

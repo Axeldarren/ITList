@@ -8,7 +8,8 @@ const prisma = new PrismaClient();
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
     try {
         const teams = await prisma.team.findMany({
-            where: { deletedAt: null }, // Only find teams that have not been deleted
+            where: { deletedAt: null },
+            orderBy: { teamName: 'asc' },
             include: {
                 members: { include: { user: true } },
                 createdBy: { select: { username: true } },

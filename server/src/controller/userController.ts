@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
 import bcrypt from 'bcryptjs';
 import { broadcast } from '../websocket';
 import validator from 'validator';
+import { imagekit } from '../utils/imagekitHelper';
 
 const prisma = new PrismaClient();
 
@@ -12,6 +11,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const users = await prisma.user.findMany({
             where: { deletedAt: null },
+            orderBy: { username: 'asc' },
         });
         const sanitized = users.map((u: any) => ({
             userId: u.userId,
@@ -58,7 +58,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const { userId } = req.params;
     const loggedInUser = req.user;
     
-    const { username, email, NIK, role, department } = req.body;
+    const { username, email, NIK, role, department, emailNotifications } = req.body;
 
     if (!loggedInUser) {
         res.status(401).json({ message: 'Not authorized' });
@@ -71,6 +71,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
             email,
             NIK: NIK ? Number(NIK) : undefined,
             ...( department ? { department } : {} ),
+            ...( typeof emailNotifications === 'boolean' ? { emailNotifications } : {} ),
         };
 
         // --- THIS IS THE FIX ---
@@ -109,7 +110,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
-// --- NEW: Function to handle profile picture upload ---
+// --- Function to handle profile picture upload ---
 export const uploadProfilePicture = async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
 
@@ -119,38 +120,27 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
     }
 
     try {
-        // Find the user to get the old profile picture URL
-        const user = await prisma.user.findUnique({
-            where: { userId: userId },
+        // Upload to ImageKit (in-memory buffer → CDN)
+        const base64 = req.file.buffer.toString('base64');
+        const uploadResult = await imagekit.upload({
+            file: base64,
+            fileName: `profile-${userId}-${Date.now()}.jpg`,
+            folder: '/ITList/profile-pictures',
         });
+        const profilePictureUrl = uploadResult.url;
 
-        // The URL path where the new file is accessible
-        const profilePictureUrl = `/uploads/${req.file.filename}`;
-
-        // Update the user with the new profile picture URL
+        // Update the user record with the new ImageKit CDN URL
         const updatedUser = await prisma.user.update({
-            where: { userId: userId },
+            where: { userId },
             data: { profilePictureUrl },
         });
 
-        // Delete the old profile picture file if it exists and is not null
-        if (user?.profilePictureUrl) {
-            const oldFilePath = path.join(
-                __dirname,
-                '..',
-                '..',
-                'public',
-                user.profilePictureUrl
-            );
-            fs.unlink(oldFilePath, (err) => {
-                // Ignore error if file does not exist
-            });
-        }
-
         broadcast({ type: 'USER_UPDATE' });
 
-        res.status(200).json(updatedUser);
+        const { password, ...userWithoutPassword } = updatedUser as any;
+        res.status(200).json(userWithoutPassword);
     } catch (error) {
+        console.error('Error uploading profile picture:', error);
         res.status(500).json({ message: 'Error uploading profile picture.' });
     }
 };

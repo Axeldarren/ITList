@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, NotificationType } from "@prisma/client";
 import { broadcast } from "../websocket";
+import { createNotification, broadcastNotificationUpdate } from "../utils/notificationHelper";
 
 const Prisma = new PrismaClient();
 
@@ -274,7 +275,13 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
                 },
             });
 
-            // 3. Finally, soft delete the task itself
+            // 3. Auto-dismiss stale notifications for this task
+            await tx.notification.updateMany({
+                where: { taskId: numericTaskId },
+                data: { isRead: true },
+            });
+
+            // 4. Soft delete the task itself
             await tx.task.update({
                 where: { id: numericTaskId },
                 data: {
@@ -283,7 +290,7 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
                 },
             });
 
-            // Log the deletion activity
+            // 5. Log the deletion activity
             await tx.activity.create({
                 data: {
                     projectId: taskToDelete.projectId,
@@ -294,6 +301,33 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
                 }
             });
         });
+
+        // 6. Notify affected users (assignee + unique commenters) outside the transaction
+        const usersToNotify = new Set<string>();
+        if (taskToDelete.assignedUserId && taskToDelete.assignedUserId !== loggedInUser.userId) {
+            usersToNotify.add(taskToDelete.assignedUserId);
+        }
+        // Also notify whoever commented on the task (excluding the deleter)
+        const commenters = await Prisma.comment.findMany({
+            where: { taskId: numericTaskId, userId: { not: loggedInUser.userId } },
+            select: { userId: true },
+            distinct: ['userId'],
+        });
+        for (const c of commenters) usersToNotify.add(c.userId);
+
+        await Promise.all(
+            Array.from(usersToNotify).map((userId) =>
+                createNotification({
+                    type: NotificationType.TASK_DELETED,
+                    title: 'Task deleted',
+                    message: `${loggedInUser.username} deleted the task "${taskToDelete.title}" from the project.`,
+                    userId,
+                    projectId: taskToDelete.projectId,
+                })
+            )
+        );
+
+        if (usersToNotify.size > 0) broadcastNotificationUpdate();
 
         broadcast({ type: 'UPDATE', projectId: taskToDelete.projectId });
 

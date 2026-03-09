@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { archiveAndIncrementVersion, createProject, deleteProject, getAllProjectVersions, getProjectActivities, getProjects, getProjectUsers, getProjectVersionHistory, incrementProjectVersion, updateProject, updateProjectStatus, getTimelineProjects, getMilestoneComments, createMilestoneComment } from "../controller/projectController";
 import { protect, restrictToAdmin } from "../middleware/authMiddleware";
+import uploadImageMemory from "../middleware/uploadImageMemory";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get("/:projectId/milestone-comments", getMilestoneComments);
 // Create Project
 router.post("/", restrictToAdmin, createProject);
 router.post("/:projectId/archive", restrictToAdmin, archiveAndIncrementVersion);
-router.post("/:projectId/milestone-comments", createMilestoneComment);
+router.post("/:projectId/milestone-comments", uploadImageMemory.single("image"), createMilestoneComment);
 
 // Delete Project
 router.delete("/:projectId", restrictToAdmin, deleteProject);

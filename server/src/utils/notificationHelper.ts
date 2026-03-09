@@ -1,5 +1,6 @@
 import { PrismaClient, NotificationType } from "@prisma/client";
 import { broadcast } from "../websocket";
+import { sendNotificationEmail } from "./emailService";
 
 const prisma = new PrismaClient();
 
@@ -52,13 +53,13 @@ interface CreateNotificationParams {
 }
 
 /**
- * Create a single notification and return it.
+ * Create a single notification and optionally send an email.
  */
 export async function createNotification(
     params: CreateNotificationParams
 ) {
     console.log(`Creating notification [${params.type}] for user ${params.userId}: ${params.title}`);
-    return prisma.notification.create({
+    const notification = await prisma.notification.create({
         data: {
             type: params.type,
             title: params.title,
@@ -69,6 +70,18 @@ export async function createNotification(
             commentId: params.commentId ?? null,
         },
     });
+
+    // Fire-and-forget email (non-blocking)
+    const user = await prisma.user.findUnique({
+        where: { userId: params.userId },
+        select: { email: true, emailNotifications: true },
+    });
+
+    if (user?.emailNotifications) {
+        sendNotificationEmail(user.email, params.title, params.message).catch(() => {});
+    }
+
+    return notification;
 }
 
 /**

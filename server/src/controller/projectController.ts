@@ -6,6 +6,7 @@ import {
     createNotification,
     broadcastNotificationUpdate,
 } from "../utils/notificationHelper";
+import { imagekit } from "../utils/imagekitHelper";
 import mysql from "mysql2/promise";
 
 // Define ProjectStatus type based on allowed values
@@ -266,6 +267,36 @@ export const deleteProject = async (
   }
 
   try {
+    // Collect project details and team members BEFORE the transaction (projectTeams gets hard-deleted)
+    const projectToDelete = await Prisma.project.findUnique({
+      where: { id: numericProjectId },
+      select: {
+        name: true,
+        projectTeams: {
+          include: {
+            team: {
+              include: {
+                members: { select: { userId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!projectToDelete) {
+      res.status(404).json({ message: "Project not found." });
+      return;
+    }
+
+    // Collect all unique team member IDs (excluding the deleter)
+    const memberIds = new Set<string>();
+    for (const pt of projectToDelete.projectTeams) {
+      for (const m of pt.team.members) {
+        if (m.userId !== loggedInUser.userId) memberIds.add(m.userId);
+      }
+    }
+
     await Prisma.$transaction(async (tx) => {
       const deletionDate = new Date();
       const deleterId = loggedInUser.userId;
@@ -283,7 +314,6 @@ export const deleteProject = async (
           data: { deletedAt: deletionDate, deletedById: deleterId },
         });
 
-        // --- NEW: Soft delete attachments ---
         await tx.attachment.updateMany({
           where: { taskId: { in: taskIdsToDelete } },
           data: { deletedAt: deletionDate, deletedById: deleterId },
@@ -300,6 +330,17 @@ export const deleteProject = async (
           data: { deletedAt: deletionDate, deletedById: deleterId },
         });
       }
+
+      // Auto-dismiss stale notifications for this project and its tasks
+      await tx.notification.updateMany({
+        where: {
+          OR: [
+            { projectId: numericProjectId },
+            ...(taskIdsToDelete.length > 0 ? [{ taskId: { in: taskIdsToDelete } }] : []),
+          ],
+        },
+        data: { isRead: true },
+      });
 
       // Hard delete project-specific join/history tables
       await tx.projectTeam.deleteMany({
@@ -323,6 +364,21 @@ export const deleteProject = async (
         data: { deletedAt: deletionDate, deletedById: deleterId },
       });
     });
+
+    // Send PROJECT_DELETED notifications to all team members
+    if (memberIds.size > 0) {
+      await Promise.all(
+        Array.from(memberIds).map((userId) =>
+          createNotification({
+            type: NotificationType.PROJECT_DELETED,
+            title: 'Project deleted',
+            message: `${loggedInUser.username} has deleted the project "${projectToDelete.name}".`,
+            userId,
+          })
+        )
+      );
+      broadcastNotificationUpdate();
+    }
 
     broadcast({ type: "PROJECT_UPDATE" });
 
@@ -950,11 +1006,24 @@ export const createMilestoneComment = async (req: Request, res: Response): Promi
     }
 
     try {
+        // Upload image to ImageKit if provided
+        let imageUrl: string | undefined;
+        if (req.file) {
+            const base64 = req.file.buffer.toString('base64');
+            const uploadResult = await imagekit.upload({
+                file: base64,
+                fileName: `milestone-${Date.now()}.jpg`,
+                folder: '/ITList/milestone-comments',
+            });
+            imageUrl = uploadResult.url;
+        }
+
         const comment = await Prisma.milestoneComment.create({
             data: {
                 content: content.trim(),
                 projectId: Number(projectId),
                 userId: loggedInUser!.userId,
+                ...(imageUrl ? { imageUrl } : {}),
             },
             include: {
                 user: {
@@ -1009,6 +1078,9 @@ export const createMilestoneComment = async (req: Request, res: Response): Promi
         }
 
         broadcastNotificationUpdate();
+
+        // Broadcast milestone comment update so all clients refresh in real-time
+        broadcast({ type: 'MILESTONE_COMMENT', projectId: Number(projectId) });
 
         res.status(201).json(comment);
     } catch (error) {
