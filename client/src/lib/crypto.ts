@@ -20,8 +20,8 @@ export function isWebCryptoAvailable(): boolean {
 
 async function getKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey;
-  const secret = process.env.NEXT_PUBLIC_ENCRYPTION_SECRET || '';
-  if (!secret) throw new Error('NEXT_PUBLIC_ENCRYPTION_SECRET not configured');
+  const secret = process.env.ENCRYPTION_SECRET || '';
+  if (!secret) throw new Error('ENCRYPTION_SECRET not configured');
   if (!isWebCryptoAvailable()) {
     throw new Error('WebCrypto SubtleCrypto not available');
   }
@@ -67,8 +67,8 @@ export async function encryptJson(data: unknown): Promise<{ iv: string; data: st
   // Fallback: node-forge AES-GCM with separate auth tag
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const forge: any = await import('node-forge');
-  const secret = process.env.NEXT_PUBLIC_ENCRYPTION_SECRET || '';
-  if (!secret) throw new Error('NEXT_PUBLIC_ENCRYPTION_SECRET not configured');
+  const secret = process.env.ENCRYPTION_SECRET || '';
+  if (!secret) throw new Error('ENCRYPTION_SECRET not configured');
   const md = forge.md.sha256.create();
   md.update(secret, 'utf8');
   const keyBytes: string = md.digest().getBytes(); // 32-byte binary string
@@ -129,8 +129,8 @@ export async function decryptJson<T = unknown>(envelope: { iv: string; data: str
   // Fallback: node-forge AES-GCM decryption
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const forge: any = await import('node-forge');
-  const secret = process.env.NEXT_PUBLIC_ENCRYPTION_SECRET || '';
-  if (!secret) throw new Error('NEXT_PUBLIC_ENCRYPTION_SECRET not configured');
+  const secret = process.env.ENCRYPTION_SECRET || '';
+  if (!secret) throw new Error('ENCRYPTION_SECRET not configured');
   const md = forge.md.sha256.create();
   md.update(secret, 'utf8');
   const keyBytes: string = md.digest().getBytes();

@@ -457,7 +457,7 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Intercept 401/403 globally: clear auth so layout redirects to /login
 const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
-    const useEncryption = !!process.env.NEXT_PUBLIC_ENCRYPTION_SECRET;
+    const useEncryption = !!process.env.ENCRYPTION_SECRET;
 
     let finalArgs: string | FetchArgs = args as string | FetchArgs;
     if (useEncryption) {
