@@ -234,11 +234,9 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                     <div className="flex gap-3">
                         <div className="flex-shrink-0 mt-1">
                             {loggedInUser?.profilePictureUrl ? (
-                                <Image
+                                <img
                                     src={getProfilePictureSrc(loggedInUser.profilePictureUrl)!}
                                     alt={loggedInUser.username}
-                                    width={32}
-                                    height={32}
                                     className="w-8 h-8 rounded-full object-cover"
                                 />
                             ) : (
@@ -326,11 +324,9 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                                 <div key={comment.id} className={`p-4 flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                     <div className="flex-shrink-0">
                                         {avatarSrc ? (
-                                            <Image
+                                            <img
                                                 src={avatarSrc}
                                                 alt={comment.user?.username || ''}
-                                                width={32}
-                                                height={32}
                                                 className="w-8 h-8 rounded-full object-cover"
                                             />
                                         ) : (

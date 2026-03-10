@@ -448,11 +448,9 @@ const TeamMembersSection = ({ allTasks }: { allTasks: Task[] }) => {
                     return (
                         <div key={user.userId} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                             {user.profilePictureUrl ? (
-                                <Image
+                                <img
                                     src={user.profilePictureUrl.startsWith('http') ? user.profilePictureUrl : `${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profilePictureUrl}`}
-                                    alt={user.username || 'User'}
-                                    width={40}
-                                    height={40}
+                                    alt={user.username}
                                     className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-dark-secondary flex-shrink-0"
                                 />
                             ) : (
@@ -665,11 +663,9 @@ const HomePage = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
         <div className="flex items-center gap-4">
           {fullCurrentUser?.profilePictureUrl ? (
-            <Image
+            <img
               src={fullCurrentUser.profilePictureUrl.startsWith('http') ? fullCurrentUser.profilePictureUrl : `${process.env.NEXT_PUBLIC_API_BASE_URL}${fullCurrentUser.profilePictureUrl}`}
               alt="Profile"
-              width={56}
-              height={56}
               className="h-14 w-14 rounded-full object-cover ring-2 ring-accent-200 dark:ring-accent-500/30 hidden md:block"
             />
           ) : (

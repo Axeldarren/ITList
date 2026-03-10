@@ -64,11 +64,9 @@ const ModalSignatureSelect: React.FC<ModalSignatureSelectProps> = ({
             }`}
         >
             {user.profilePictureUrl ? (
-                <Image
+                <img
                     src={getProfilePictureSrc(user.profilePictureUrl)!}
                     alt={user.username || 'User'}
-                    width={40}
-                    height={40}
                     className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
                 />
             ) : (

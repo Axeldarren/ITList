@@ -18,11 +18,9 @@ const CommentAvatar = ({ user }: { user?: { username?: string; profilePictureUrl
 
   if (hasProfilePicture) {
     return (
-      <Image
+      <img
         src={getProfilePictureSrc(user.profilePictureUrl)!}
         alt={user.username || "User"}
-        width={32}
-        height={32}
         className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
         onError={() => setImageError(true)}
       />

@@ -193,11 +193,9 @@ const MentionInput = ({
                             `}
                         >
                             {user.profilePictureUrl ? (
-                                <Image
+                                <img
                                     src={getProfilePictureSrc(user.profilePictureUrl)!}
                                     alt={user.username}
-                                    width={24}
-                                    height={24}
                                     className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                                 />
                             ) : (

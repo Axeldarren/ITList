@@ -140,11 +140,9 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
                                     <div className="relative flex items-start space-x-4">
                                         <div className="relative">
                                             {activity.user.profilePictureUrl ? (
-                                                <Image
+                                                <img
                                                     src={getProfilePictureSrc(activity.user.profilePictureUrl)!}
                                                     alt={activity.user.username}
-                                                    width={48}
-                                                    height={48}
                                                     className="h-12 w-12 rounded-full object-cover ring-4 ring-white dark:ring-dark-bg"
                                                 />
                                             ) : (

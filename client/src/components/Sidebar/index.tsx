@@ -314,15 +314,13 @@ const Sidebar = () => {
                 <div className={`flex items-center mt-2 rounded-lg ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'}`}>
                     {/* Avatar */}
                     {userData && userData.profilePictureUrl && !imageError ? (
-                        <Image
+                        <img
                             src={
                                 userData.profilePictureUrl.startsWith('http')
                                     ? userData.profilePictureUrl
                                     : `${process.env.NEXT_PUBLIC_API_BASE_URL}${userData.profilePictureUrl}`
                             }
                             alt="Profile"
-                            width={32}
-                            height={32}
                             className="h-8 w-8 rounded-full object-cover flex-shrink-0 ring-2 ring-accent-200 dark:ring-accent-500/30"
                             onError={() => setImageError(true)}
                         />
