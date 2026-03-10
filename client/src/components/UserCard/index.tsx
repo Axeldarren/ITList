@@ -13,9 +13,11 @@ const UserCard = ({ user }: Props) => {
         className='flex items-center rounded border p-4 shadow'
     >
         {user.profilePictureUrl && (
-            <img
+            <Image
                 src={getProfilePictureSrc(user.profilePictureUrl)!}
                 alt={`${user.username}'s profile picture`}
+                width={50}
+                height={50}
                 className='rounded-full mr-4 w-[50px] h-[50px] object-cover'
             />
         )}

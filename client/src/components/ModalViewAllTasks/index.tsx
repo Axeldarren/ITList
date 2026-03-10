@@ -106,9 +106,11 @@ const ModalViewAllTasks: React.FC<ModalViewAllTasksProps> = ({
         <div className="mb-6 p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
           <div className="flex items-center gap-3">
             {developer.profilePictureUrl ? (
-              <img
+              <Image
                 src={getProfilePictureSrc(developer.profilePictureUrl)!}
                 alt={developer.username}
+                width={48}
+                height={48}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
               />
             ) : (

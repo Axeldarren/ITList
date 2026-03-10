@@ -120,13 +120,15 @@ const Settings = () => {
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Picture</h2>
                     <div className="mt-4 flex flex-col items-center gap-4">
                         {currentUser?.profilePictureUrl ? (
-                            <img
+                            <Image
                                 src={
                                     currentUser.profilePictureUrl.startsWith('http')
                                         ? currentUser.profilePictureUrl
                                         : `${process.env.NEXT_PUBLIC_API_BASE_URL}${currentUser.profilePictureUrl}`
                                 }
                                 alt="Profile Picture"
+                                width={128}
+                                height={128}
                                 className="h-32 w-32 rounded-full object-cover ring-2 ring-offset-2 ring-blue-primary dark:ring-offset-dark-secondary"
                             />
                         ) : (

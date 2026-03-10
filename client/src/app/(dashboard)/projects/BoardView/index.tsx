@@ -379,10 +379,12 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
               <div className="flex -space-x-[6px] overflow-hidden">
               {task.assignee && (
                 task.assignee.profilePictureUrl ? (
-                <img
+                <Image
                   key={`assignee-${task.assignee.userId}`}
                   src={getProfilePictureSrc(task.assignee.profilePictureUrl)!}
                   alt={task.assignee.username}
+                  width={24}
+                  height={24}
                   className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
                 />
                 ) : (
@@ -396,10 +398,12 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
               )}
               {task.author && (
                 task.author.profilePictureUrl ? (
-                <img
+                <Image
                   key={`author-${task.author.userId}`}
                   src={getProfilePictureSrc(task.author.profilePictureUrl)!}
                   alt={task.author.username}
+                  width={24}
+                  height={24}
                   className="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
                 />
                 ) : (

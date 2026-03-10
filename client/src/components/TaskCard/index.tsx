@@ -22,9 +22,11 @@ const UserAvatar = ({ user, size = 20, iconSize = 12 }: { user?: { username?: st
 
   if (hasProfilePicture) {
     return (
-      <img
+      <Image
         src={getProfilePictureSrc(user.profilePictureUrl)!}
         alt={user.username || "User"}
+        width={size}
+        height={size}
         className="rounded-full object-cover border-2 border-white dark:border-dark-secondary"
         style={{ width: `${size}px`, height: `${size}px` }}
         onError={() => setImageError(true)}

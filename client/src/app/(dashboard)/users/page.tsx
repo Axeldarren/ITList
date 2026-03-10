@@ -27,9 +27,11 @@ const AvatarCell = ({ value, username }: { value: string | null; username: strin
     return (
         <div className="flex items-center justify-center h-full w-full">
             {hasImage ? (
-                <img
+                <Image
                     src={getProfilePictureSrc(value)!}
                     alt={username || 'User avatar'}
+                    width={40}
+                    height={40}
                     className="rounded-full object-cover h-10 w-10"
                     onError={() => setImageError(true)}
                 />

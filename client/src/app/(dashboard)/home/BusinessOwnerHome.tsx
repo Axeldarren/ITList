@@ -28,8 +28,7 @@ const BusinessOwnerHome = () => {
 
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
     const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();
-    const { data: maintenancesResponse, isLoading: maintenancesLoading } = useGetProductMaintenancesQuery({ page: 1, limit: 100 });
-    const maintenances = useMemo(() => maintenancesResponse?.data || [], [maintenancesResponse]);
+    const { isLoading: maintenancesLoading } = useGetProductMaintenancesQuery({ page: 1, limit: 100 });
 
     // Get projects owned by this BO
     const myProjects = useMemo(() => {
@@ -89,14 +88,7 @@ const BusinessOwnerHome = () => {
             });
     }, [processedProjects]);
 
-    // Product Maintenances linked to BO's projects
-    const myMaintenances = useMemo(() => {
-        const items = maintenancesResponse?.data || [];
-        const myProjectIds = new Set(myProjects.map(p => p.id));
-        return items.filter((m: ProductMaintenance) => m.projectId && myProjectIds.has(m.projectId));
-    }, [maintenancesResponse, myProjects]);
-
-    const isLoading = projectsLoading || allTasksLoading || maintenancesLoading;
+    const isLoading = projectsLoading || allTasksLoading;
 
     if (isLoading) {
         return (
@@ -296,86 +288,6 @@ const BusinessOwnerHome = () => {
                                 </span>
                             </div>
                         </div>
-                    )}
-
-                    {/* Product Maintenance Overview */}
-                    {myMaintenances.length > 0 && (
-                        <>
-                            <div className="flex items-center justify-between mt-6 mb-2">
-                                <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                                    <Wrench size={20} />
-                                    Product Maintenance
-                                </h2>
-                                <span className="text-sm text-gray-500 dark:text-gray-400">
-                                    {myMaintenances.length} item{myMaintenances.length > 1 ? 's' : ''}
-                                </span>
-                            </div>
-
-                            {myMaintenances.map((m: ProductMaintenance) => (
-                                <div
-                                    key={m.id}
-                                    className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm"
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Shield size={16} className="text-indigo-500 flex-shrink-0" />
-                                                <h3 className="font-semibold text-gray-800 dark:text-white truncate">
-                                                    {m.name}
-                                                </h3>
-                                            </div>
-                                            {m.project && (
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 ml-6">
-                                                    Project: {m.project.name}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                                                m.lifecycle === 'Maintaining' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                                                m.lifecycle === 'Finished' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                                                'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                                            }`}>
-                                                {m.lifecycle || 'Planned'}
-                                            </span>
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                                m.status === 'Active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' :
-                                                'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                                            }`}>
-                                                {m.status}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Stats */}
-                                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                                        {m.priority && (
-                                            <div className="flex items-center gap-1">
-                                                <AlertTriangle size={13} className={
-                                                    m.priority === 'Critical' ? 'text-red-500' :
-                                                    m.priority === 'High' ? 'text-orange-500' :
-                                                    m.priority === 'Medium' ? 'text-yellow-500' : 'text-gray-400'
-                                                } />
-                                                <span>{m.priority} priority</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-1">
-                                            <CheckCircle size={13} className="text-blue-500" />
-                                            <span>{m._count?.maintenanceTasks || m.maintenanceTasks?.length || 0} tasks</span>
-                                        </div>
-                                        {m.maintainers && m.maintainers.length > 0 && (
-                                            <div className="flex items-center gap-1">
-                                                <span>{m.maintainers.length} maintainer{m.maintainers.length > 1 ? 's' : ''}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-1 ml-auto">
-                                            <Clock size={13} />
-                                            <span>Updated {format(new Date(m.updatedAt), 'MMM d')}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </>
                     )}
                 </div>
 

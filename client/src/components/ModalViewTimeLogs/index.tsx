@@ -128,9 +128,11 @@ const ModalViewTimeLogs: React.FC<ModalViewTimeLogsProps> = ({
         <div className="border-b border-gray-200 dark:border-gray-600 pb-4 mb-6">
           <div className="flex items-center gap-3 mb-4">
             {developer.profilePictureUrl ? (
-              <img
+              <Image
                 src={getProfilePictureSrc(developer.profilePictureUrl)!}
                 alt={developer.username}
+                width={48}
+                height={48}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-white dark:ring-dark-bg"
               />
             ) : (
