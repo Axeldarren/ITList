@@ -5,7 +5,6 @@ import { useGetTimeLogsQuery } from "@/state/api";
 import { format, parseISO } from "date-fns";
 import { Clock, Calendar as CalendarIcon, Play, Square, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
-import Image from "next/image";
 
 interface ModalViewTimeLogsProps {
   isOpen: boolean;

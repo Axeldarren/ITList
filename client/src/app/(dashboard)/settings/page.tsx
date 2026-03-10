@@ -7,7 +7,6 @@ import { selectCurrentUser } from "@/state/authSlice";
 import { useGetUserByIdQuery, useUpdateUserMutation, useUploadProfilePictureMutation } from "@/state/api";
 import toast from "react-hot-toast";
 import { Save, Upload, Edit, Mail, BellOff } from "lucide-react";
-import Image from "next/image";
 
 // Reusable component to display a single setting item
 const SettingItem = ({ label, value }: { label: string; value: string | number | undefined }) => (

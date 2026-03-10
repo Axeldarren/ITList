@@ -6,7 +6,6 @@ import Header from '@/components/Header';
 import { AlertTriangle, Target, ArrowRight, User as UserIcon, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ModalViewAllTasks from '@/components/ModalViewAllTasks';
 

@@ -1,6 +1,5 @@
 import { User } from '@/state/api'
 import { getProfilePictureSrc } from '@/lib/profilePicture'
-import Image from 'next/image'
 import React from 'react'
 
 type Props = {

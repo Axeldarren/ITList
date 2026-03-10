@@ -7,7 +7,6 @@ import {
   X, Paperclip, MessageSquare, User, Calendar, Hash, Flag, CircleDot, Tag,
 } from "lucide-react";
 import { format } from "date-fns";
-import Image from "next/image";
 import AttachmentViewer from "../AttachmentViewer"; // We'll reuse this component
 import MentionHighlighter from "../MentionHighlighter";
 

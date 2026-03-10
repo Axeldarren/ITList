@@ -5,7 +5,6 @@ import { format, isAfter } from "date-fns";
 import { Calendar, Flag, Folder, Clock, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
-import Image from "next/image";
 
 interface ModalViewAllTasksProps {
   isOpen: boolean;

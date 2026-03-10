@@ -39,7 +39,7 @@ import {
 import ActivityView from '../ActivityView';
 import { useAppSelector } from '@/app/redux';
 import { selectCurrentUser } from '@/state/authSlice';
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     const { id } = use(params);
@@ -57,7 +57,6 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
     
     // Deep linking state
     const searchParams = useSearchParams();
-    const router = useRouter();
     const deepLinkedTaskId = searchParams.get("taskId");
     const deepLinkedTab = searchParams.get("tab") as "discussion" | "worklog" | null;
     const [selectedDeepLinkedTaskId, setSelectedDeepLinkedTaskId] = useState<number | null>(null);

@@ -17,7 +17,6 @@ import {
   Paperclip,
 } from "lucide-react"; 
 import { format, isAfter } from "date-fns";
-import Image from "next/image";
 import BoardViewSkeleton from "./BoardViewSkeleton";
 import toast from "react-hot-toast";
 import ModalConfirm from "@/components/ModalConfirm";

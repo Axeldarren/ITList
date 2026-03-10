@@ -7,7 +7,6 @@ import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User, ChevronLeft,
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
-import Image from 'next/image';
 import ModalViewTimeLogs from '@/components/ModalViewTimeLogs';
 import ModalViewCompletedTasks from '@/components/ModalViewCompletedTasks';
 import MonthPicker from '@/components/MonthPicker';

@@ -5,7 +5,6 @@ import { useGetProjectActivitiesQuery, Activity } from '@/state/api';
 import { formatDistanceToNow, format } from 'date-fns';
 import { MessageSquare, Plus, CheckCircle, Minus, Edit, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
-import Image from 'next/image';
 import MentionHighlighter from '@/components/MentionHighlighter';
 
 type Props = {

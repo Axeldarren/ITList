@@ -3,7 +3,6 @@ import { User } from '@/state/api';
 import Modal from '@/components/Modal';
 import { PenTool } from 'lucide-react';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
-import Image from 'next/image';
 
 interface SignatureInfo {
     user: User;

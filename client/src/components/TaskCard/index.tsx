@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { useDeleteTaskMutation } from '@/state/api';
 import toast from 'react-hot-toast';
-import Image from 'next/image';
 import ModalConfirm from '../ModalConfirm';
 import ModalEditTask from '../ModalEditTask';
 import ModalViewTask from '../ModalViewTask'; // <-- Import the new view-only modal

@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useGetUsersQuery, User } from "@/state/api";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
-import Image from "next/image";
 
 type MentionInputProps = {
     value: string;

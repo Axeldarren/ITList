@@ -6,7 +6,6 @@ import { format, parseISO } from "date-fns";
 import { CheckCircle, Calendar as CalendarIcon, Flag, Folder, Filter, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
-import Image from "next/image";
 
 interface ModalViewCompletedTasksProps {
   isOpen: boolean;

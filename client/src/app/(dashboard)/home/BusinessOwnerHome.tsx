@@ -29,7 +29,7 @@ const BusinessOwnerHome = () => {
     const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
     const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();
     const { data: maintenancesResponse, isLoading: maintenancesLoading } = useGetProductMaintenancesQuery({ page: 1, limit: 100 });
-    const maintenances = useMemo(() => maintenancesResponse?.data || [], [maintenancesResponse]);
+    // const _maintenances = useMemo(() => maintenancesResponse?.data || [], [maintenancesResponse]);
 
     // Get projects owned by this BO
     const myProjects = useMemo(() => {

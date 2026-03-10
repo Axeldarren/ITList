@@ -7,7 +7,6 @@ import { DataGrid, GridColDef, GridActionsCellItem, GridToolbarContainer } from 
 import { useAppSelector } from "@/app/redux";
 import { dataGridSxStyles } from "@/lib/utils";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
-import Image from "next/image";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import ModalNewUser from "@/components/ModalNewUser";
 import ModalEditUser from "@/components/ModalEditUser";

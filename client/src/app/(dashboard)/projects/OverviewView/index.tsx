@@ -15,7 +15,6 @@ import { selectCurrentUser } from '@/state/authSlice';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
 import { format } from 'date-fns';
 import { MessageSquare, Send, BarChart3, User as UserIcon, Clock, CheckCircle, AlertTriangle, Loader2, ImagePlus, X } from 'lucide-react';
-import Image from 'next/image';
 import MentionInput from '@/components/MentionInput';
 import MentionHighlighter from '@/components/MentionHighlighter';
 

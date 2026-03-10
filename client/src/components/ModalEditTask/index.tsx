@@ -13,7 +13,6 @@ import {
   Status,
   useStartTimerMutation,
   useStopTimerMutation,
-  useUpdateCommentMutation,
   useDeleteCommentMutation,
 } from "@/state/api";
 import {
@@ -33,13 +32,11 @@ import {
   Clock,
   Reply,
   Send,
-  List, // Added
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { differenceInSeconds, format, formatDistanceToNow } from "date-fns";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
-import Image from "next/image";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
 import MentionInput from "@/components/MentionInput";
 import MentionHighlighter from "@/components/MentionHighlighter";
@@ -63,7 +60,7 @@ const formatLogDuration = (startTime: string, endTime?: string | null): string =
 
 // Comment Avatar Component
 const CommentAvatar = ({ user }: { user?: { username?: string; profilePictureUrl?: string } }) => {
-  const [imageError, setImageError] = useState(false);
+  const [imageError] = useState(false);
   const hasProfilePicture = user?.profilePictureUrl && !imageError;
 
   if (hasProfilePicture) {
