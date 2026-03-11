@@ -188,7 +188,61 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
 
     const isLoading = projectsLoading || tasksLoading || teamsLoading || usersLoading;
     if (isLoading) {
-        return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Loading project details...</div>;
+        return (
+            <div className="animate-pulse">
+                {/* ProjectHeader skeleton */}
+                <div className="dark:bg-dark-secondary border-b border-gray-200 dark:border-dark-tertiary bg-white px-4 py-3">
+                    {/* Top row: project name + buttons */}
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                            <div className="h-7 w-48 rounded bg-gray-200 dark:bg-gray-700" />
+                            <div className="h-5 w-20 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="h-8 w-24 rounded-md bg-gray-200 dark:bg-gray-700" />
+                            <div className="h-8 w-24 rounded-md bg-gray-200 dark:bg-gray-700" />
+                            <div className="h-8 w-20 rounded-md bg-gray-200 dark:bg-gray-700" />
+                        </div>
+                    </div>
+                    {/* Tab row */}
+                    <div className="flex items-center gap-1">
+                        {Array.from({ length: 7 }).map((_, i) => (
+                            <div key={i} className="h-9 w-20 rounded-md bg-gray-200 dark:bg-gray-700" />
+                        ))}
+                    </div>
+                </div>
+                {/* Board-like content skeleton */}
+                <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, col) => (
+                        <div key={col} className="space-y-3">
+                            {/* Column header */}
+                            <div className="flex items-center justify-between rounded-lg bg-white dark:bg-dark-secondary px-4 py-3">
+                                <div className="h-5 w-28 rounded bg-gray-200 dark:bg-gray-700" />
+                                <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            </div>
+                            {/* Task cards */}
+                            {Array.from({ length: 3 }).map((_, card) => (
+                                <div key={card} className="rounded-md bg-white dark:bg-dark-secondary p-4 shadow space-y-3">
+                                    <div className="flex gap-2">
+                                        <div className="h-5 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                        <div className="h-5 w-12 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                    </div>
+                                    <div className="h-5 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                                    <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                                    <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex items-center justify-between">
+                                        <div className="flex -space-x-1">
+                                            <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                            <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                        </div>
+                                        <div className="h-4 w-8 rounded bg-gray-200 dark:bg-gray-700" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     }
 
     // Show 404 if project is not found (either not in list or access denied)
