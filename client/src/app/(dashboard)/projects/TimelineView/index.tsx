@@ -114,7 +114,18 @@ const TimelineView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, i
     }
   };
 
-  if (isLoading) return <div className="p-4">Loading timeline...</div>;
+  if (isLoading) return (
+    <div className="px-4 xl:px-6 py-6">
+      <div className="overflow-hidden rounded-md bg-white shadow dark:bg-dark-secondary p-4 space-y-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4">
+            <div className="animate-pulse h-5 w-32 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="animate-pulse h-5 rounded bg-blue-100 dark:bg-blue-900/30" style={{ width: `${30 + (i * 7) % 50}%`, marginLeft: `${(i * 11) % 20}%` }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className='px-4 xl:px-6 py-6'>

@@ -121,7 +121,33 @@ const Users = () => {
       });
   }
 
-  if (isLoading) return <div className="p-8">Loading users...</div>;
+  if (isLoading) return (
+    <div className="flex w-full flex-col p-8">
+      {/* Header skeleton */}
+      <div className="animate-pulse h-8 w-24 rounded bg-gray-200 dark:bg-gray-700 mb-6" />
+      {/* Table skeleton */}
+      <div className="mt-6 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+        {/* Header row */}
+        <div className="flex gap-4 bg-gray-100 dark:bg-dark-tertiary px-4 py-3">
+          {[60, 100, 200, 250, 180, 150, 100].map((w, i) => (
+            <div key={i} className="animate-pulse h-4 rounded bg-gray-300 dark:bg-gray-600 flex-shrink-0" style={{ width: w }} />
+          ))}
+        </div>
+        {/* Data rows */}
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 border-t border-gray-100 dark:border-gray-700 px-4 py-3">
+            <div className="animate-pulse h-4 w-8 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="animate-pulse h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="animate-pulse h-4 w-48 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="animate-pulse h-4 w-60 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="animate-pulse h-4 w-44 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="animate-pulse h-4 w-36 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="animate-pulse h-4 w-24 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   if (isError || !users) return <div className="p-8">Error fetching users.</div>;
 
   const filteredRows = deptFilter

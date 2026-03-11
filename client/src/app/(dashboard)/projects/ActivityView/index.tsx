@@ -77,7 +77,23 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
         setPage(1);
     };
 
-    if (isLoading) return <div className="p-6 text-center">Loading activity...</div>;
+    if (isLoading) return (
+        <div className="p-4 md:p-6">
+            <div className="flow-root">
+                <ul className="-mb-8 space-y-6">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <li key={i} className="relative flex items-start space-x-4 pb-8">
+                            <div className="animate-pulse h-12 w-12 flex-shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            <div className="flex-1 space-y-2 pt-3">
+                                <div className="animate-pulse h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                                <div className="animate-pulse h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-700" />
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
     if (isError) return <div className="p-6 text-center text-red-500">Failed to load activity.</div>;
 
     return (

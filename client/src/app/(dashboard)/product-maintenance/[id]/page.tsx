@@ -101,7 +101,63 @@ const ProductMaintenanceDetailPage = () => {
     }
   };
 
-  if (isLoading) return <div className="py-4">Loading...</div>;
+  if (isLoading) return (
+    <div className="mx-auto flex w-full flex-col p-4 lg:p-8">
+      {/* Header skeleton */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="animate-pulse h-5 w-40 rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="flex gap-2">
+          <div className="animate-pulse h-9 w-28 rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="animate-pulse h-9 w-20 rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="animate-pulse h-9 w-20 rounded-lg bg-gray-200 dark:bg-gray-700" />
+        </div>
+      </div>
+      {/* Main info card skeleton */}
+      <div className="mb-6 rounded-lg bg-white p-6 shadow-sm dark:bg-dark-secondary space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <div className="animate-pulse h-7 w-56 rounded bg-gray-200 dark:bg-gray-700" />
+            <div className="animate-pulse h-4 w-36 rounded bg-gray-200 dark:bg-gray-700" />
+          </div>
+          <div className="flex gap-2">
+            <div className="animate-pulse h-6 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+            <div className="animate-pulse h-6 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+          </div>
+        </div>
+        <div className="animate-pulse h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="animate-pulse h-4 w-4/5 rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="animate-pulse h-5 rounded bg-gray-200 dark:bg-gray-700" />
+          ))}
+        </div>
+      </div>
+      {/* Maintainers skeleton */}
+      <div className="mb-6 rounded-lg bg-white p-6 shadow-sm dark:bg-dark-secondary">
+        <div className="animate-pulse h-5 w-24 rounded bg-gray-200 dark:bg-gray-700 mb-4" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-lg border p-3 dark:border-gray-600">
+              <div className="animate-pulse h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+              <div className="space-y-1">
+                <div className="animate-pulse h-4 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="animate-pulse h-3 w-16 rounded bg-gray-200 dark:bg-gray-700" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Tasks skeleton */}
+      <div className="rounded-lg bg-white p-4 shadow-sm dark:bg-dark-secondary">
+        <div className="animate-pulse h-5 w-44 rounded bg-gray-200 dark:bg-gray-700 mb-4" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="animate-pulse h-16 rounded-lg bg-gray-200 dark:bg-gray-700" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
   if (isError || !productMaintenance) return <div className="py-4 text-red-500">Product maintenance not found</div>;
 
   const allTasks = productMaintenance.maintenanceTasks || [];

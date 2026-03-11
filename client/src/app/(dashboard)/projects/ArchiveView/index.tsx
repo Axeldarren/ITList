@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Task, ProjectVersion, useGetProjectVersionHistoryQuery, useGetTasksQuery } from '@/state/api';
 import TaskCard from '@/components/TaskCard';
+import TaskCardSkeleton from '@/components/TaskCardSkeleton';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -33,7 +34,9 @@ const VersionSection = ({ projectId, version }: { projectId: number, version: Pr
                 </div>
             </div>
             {isLoading ? (
-                <div className="text-gray-400 italic">Loading tasks...</div>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+                    {Array.from({ length: 4 }).map((_, i) => <TaskCardSkeleton key={i} />)}
+                </div>
             ) : tasks.length > 0 ? (
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
                     {tasks.map(task => (
@@ -72,7 +75,21 @@ const ArchiveView = ({ projectId }: Props) => {
         }
     };
 
-    if (isLoading) return <div className="p-6">Loading history...</div>;
+    if (isLoading) return (
+        <div className='px-4 py-6 xl:px-6 space-y-8'>
+            {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i}>
+                    <div className="border-b-2 border-blue-primary/30 pb-2 mb-4">
+                        <div className="animate-pulse h-7 w-32 rounded bg-gray-200 dark:bg-gray-700 mb-2" />
+                        <div className="animate-pulse h-4 w-48 rounded bg-gray-200 dark:bg-gray-700" />
+                    </div>
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+                        {Array.from({ length: 4 }).map((_, j) => <TaskCardSkeleton key={j} />)}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
     if (isError) return <div className="p-6 text-red-500">Failed to load history.</div>;
 
     return (

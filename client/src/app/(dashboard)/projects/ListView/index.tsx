@@ -2,6 +2,7 @@
 
 import Header from '@/components/Header';
 import TaskCard from '@/components/TaskCard';
+import TaskCardSkeleton from '@/components/TaskCardSkeleton';
 import { Task, useGetTasksQuery } from '@/state/api';
 import React, { useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'; 
@@ -47,7 +48,13 @@ const ListView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, isPro
     }
   };
 
-  if (isLoading) return <div className="p-4">Loading tasks...</div>;
+  if (isLoading) return (
+    <div className='px-4 pb-8 xl:px-6'>
+      <div className='mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6'>
+        {Array.from({ length: 8 }).map((_, i) => <TaskCardSkeleton key={i} />)}
+      </div>
+    </div>
+  );
 
   return (
       <div className='px-4 pb-8 xl:px-6'>
