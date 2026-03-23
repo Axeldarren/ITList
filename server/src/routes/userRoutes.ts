@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createUser, deleteUser, getUserById, getUsers, updateUser, uploadProfilePicture, getUserWeeklyStats, getDeveloperAssignments } from "../controller/userController";
+import { createUser, deleteUser, getUserById, getUsers, updateUser, uploadProfilePicture, getUserWeeklyStats, getDeveloperAssignments, changePassword } from "../controller/userController";
 import uploadImageMemory from "../middleware/uploadImageMemory";
 import { protect, restrictToAdmin } from "../middleware/authMiddleware";
 
@@ -14,6 +14,7 @@ router.get("/assignments", getDeveloperAssignments);
 router.get("/:userId", getUserById);
 router.get("/:userId/weekly-stats", getUserWeeklyStats);
 
+router.patch("/:userId/password", changePassword);
 router.patch("/:userId", updateUser);
 router.post("/:userId/picture", uploadImageMemory.single('profilePicture'), uploadProfilePicture);
 

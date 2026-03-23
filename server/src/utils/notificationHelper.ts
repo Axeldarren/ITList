@@ -96,11 +96,20 @@ export async function createMentionNotifications(opts: {
     projectId?: number;
     commentId?: number;
     contextLabel: string; // e.g., "task \"Fix bug\"" or "project \"Alpha\""
+    oldText?: string;
 }): Promise<Set<string>> {
     const mentionedUsernames = parseMentions(opts.text);
     if (mentionedUsernames.length === 0) return new Set();
 
-    const usernameToId = await resolveUsernames(mentionedUsernames);
+    let filteredUsernames = mentionedUsernames;
+    if (opts.oldText) {
+        const oldMentions = new Set(parseMentions(opts.oldText));
+        filteredUsernames = mentionedUsernames.filter(m => !oldMentions.has(m));
+    }
+
+    if (filteredUsernames.length === 0) return new Set();
+
+    const usernameToId = await resolveUsernames(filteredUsernames);
     const notifiedIds = new Set<string>();
 
     for (const [, userId] of usernameToId) {

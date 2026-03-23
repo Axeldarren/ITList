@@ -117,14 +117,63 @@ export const updateComment = async (req: Request, res: Response) => {
     }
 
     try {
+        const existingComment = await prisma.comment.findUnique({
+            where: { id: Number(commentId) },
+        });
+
+        if (!existingComment) {
+            return res.status(404).json({ message: "Comment not found." });
+        }
+
+        if (existingComment.userId !== loggedInUser?.userId) {
+            return res.status(403).json({ message: "You are not authorized to edit this comment." });
+        }
+
         const updatedComment = await prisma.comment.update({
             where: { id: Number(commentId) },
             data: { 
                 text,
                 updatedById: loggedInUser?.userId, // Stamp the updater
+                isEdited: true,
             },
             include: { user: true },
         });
+
+        // --- Notification: @mentions on edit ---
+        if (updatedComment.taskId) {
+            const task = await prisma.task.findUnique({ where: { id: updatedComment.taskId } });
+            if (task) {
+                await createMentionNotifications({
+                    text,
+                    authorUserId: loggedInUser!.userId,
+                    authorUsername: loggedInUser!.username,
+                    taskId: task.id,
+                    projectId: task.projectId,
+                    commentId: updatedComment.id,
+                    contextLabel: `task "${task.title}"`,
+                    oldText: existingComment.text,
+                });
+                broadcastNotificationUpdate();
+            }
+        } else if (updatedComment.maintenanceTaskId) {
+            const maintenanceTask = await prisma.maintenanceTask.findUnique({ 
+                where: { id: updatedComment.maintenanceTaskId },
+                include: { productMaintenance: true }
+            });
+            if (maintenanceTask) {
+                await createMentionNotifications({
+                    text,
+                    authorUserId: loggedInUser!.userId,
+                    authorUsername: loggedInUser!.username,
+                    projectId: maintenanceTask.productMaintenance.projectId || undefined,
+                    commentId: updatedComment.id,
+                    contextLabel: `maintenance task "${maintenanceTask.title}"`,
+                    oldText: existingComment.text,
+                });
+                broadcastNotificationUpdate();
+            }
+        }
+
         res.status(200).json(updatedComment);
     } catch (error: any) {
         res.status(500).json({ message: `Error updating comment: ${error.message}` });
@@ -136,6 +185,18 @@ export const deleteComment = async (req: Request, res: Response) => {
     const loggedInUser = req.user;
 
     try {
+        const existingComment = await prisma.comment.findUnique({
+            where: { id: Number(commentId) },
+        });
+
+        if (!existingComment) {
+            return res.status(404).json({ message: "Comment not found." });
+        }
+
+        if (existingComment.userId !== loggedInUser?.userId && loggedInUser?.role !== "ADMIN") {
+            return res.status(403).json({ message: "You are not authorized to delete this comment." });
+        }
+
         await prisma.comment.update({
             where: { id: Number(commentId) },
             data: {

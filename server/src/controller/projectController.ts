@@ -559,6 +559,9 @@ export const updateProjectStatus = async (
     }
     // --- End of Fix ---
 
+    let createdMaintenanceId: number | null = null;
+    let createdMaintenanceData: any = null;
+
     await Prisma.$transaction(async (tx) => {
       await tx.project.update({
         where: { id: numericProjectId },
@@ -574,9 +577,37 @@ export const updateProjectStatus = async (
           changedById: loggedInUser.userId,
         },
       });
+
+      if (status === "Finish") {
+        const existingPM = await tx.productMaintenance.findFirst({
+          where: { projectId: numericProjectId, deletedAt: null },
+        });
+
+        if (!existingPM) {
+          createdMaintenanceData = await tx.productMaintenance.create({
+            data: {
+              name: project.name,
+              description: `Auto-created from finished project: ${project.name}`,
+              priority: "Medium",
+              projectId: numericProjectId,
+              createdById: loggedInUser.userId,
+            },
+          });
+          createdMaintenanceId = createdMaintenanceData.id;
+        }
+      }
     });
 
     broadcast({ type: "PROJECT_UPDATE", projectId: numericProjectId });
+
+    if (createdMaintenanceId && createdMaintenanceData) {
+      broadcast({
+        type: "PRODUCT_MAINTENANCE_UPDATE",
+        action: "created",
+        productMaintenanceId: createdMaintenanceId,
+        data: createdMaintenanceData,
+      });
+    }
 
     res.status(200).json({ message: `Project status updated to ${status}` });
   } catch (error) {
@@ -1086,5 +1117,107 @@ export const createMilestoneComment = async (req: Request, res: Response): Promi
     } catch (error) {
         console.error("Error creating milestone comment:", error);
         res.status(500).json({ message: `Error creating milestone comment: ${error}` });
+    }
+};
+
+export const updateMilestoneComment = async (req: Request, res: Response): Promise<void> => {
+    const { commentId } = req.params;
+    const { content } = req.body;
+    const loggedInUser = req.user;
+
+    if (!content || !content.trim()) {
+        res.status(400).json({ message: "Comment content is required." });
+        return;
+    }
+
+    try {
+        const existing = await Prisma.milestoneComment.findUnique({
+            where: { id: Number(commentId) },
+        });
+
+        if (!existing) {
+            res.status(404).json({ message: "Comment not found." });
+            return;
+        }
+
+        if (existing.userId !== loggedInUser!.userId) {
+            res.status(403).json({ message: "You can only edit your own comments." });
+            return;
+        }
+
+        const updated = await Prisma.milestoneComment.update({
+            where: { id: Number(commentId) },
+            data: {
+                content: content.trim(),
+                isEdited: true,
+            },
+            include: {
+                user: {
+                    select: {
+                        userId: true,
+                        username: true,
+                        profilePictureUrl: true,
+                    }
+                }
+            }
+        });
+
+        // --- Notification: @mentions on milestone comment edit ---
+        const project = await Prisma.project.findUnique({
+            where: { id: existing.projectId },
+            select: { name: true },
+        });
+
+        await createMentionNotifications({
+            text: content,
+            authorUserId: loggedInUser!.userId,
+            authorUsername: loggedInUser!.username,
+            projectId: existing.projectId,
+            commentId: updated.id,
+            contextLabel: `project "${project?.name || 'Unknown'}"`,
+            oldText: existing.content,
+        });
+
+        broadcastNotificationUpdate();
+
+        broadcast({ type: 'MILESTONE_COMMENT', projectId: existing.projectId });
+        res.status(200).json(updated);
+    } catch (error) {
+        console.error("Error updating milestone comment:", error);
+        res.status(500).json({ message: `Error updating milestone comment: ${error}` });
+    }
+};
+
+export const deleteMilestoneComment = async (req: Request, res: Response): Promise<void> => {
+    const { commentId } = req.params;
+    const loggedInUser = req.user;
+
+    try {
+        const existing = await Prisma.milestoneComment.findUnique({
+            where: { id: Number(commentId) },
+        });
+
+        if (!existing) {
+            res.status(404).json({ message: "Comment not found." });
+            return;
+        }
+
+        const isOwner = existing.userId === loggedInUser!.userId;
+        const isAdmin = loggedInUser!.role === 'ADMIN';
+
+        if (!isOwner && !isAdmin) {
+            res.status(403).json({ message: "You can only delete your own comments." });
+            return;
+        }
+
+        await Prisma.milestoneComment.delete({
+            where: { id: Number(commentId) },
+        });
+
+        broadcast({ type: 'MILESTONE_COMMENT', projectId: existing.projectId });
+        res.status(200).json({ message: "Comment deleted successfully." });
+    } catch (error) {
+        console.error("Error deleting milestone comment:", error);
+        res.status(500).json({ message: `Error deleting milestone comment: ${error}` });
     }
 };

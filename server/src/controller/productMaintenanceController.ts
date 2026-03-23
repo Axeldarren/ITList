@@ -336,47 +336,66 @@ export const createProductMaintenance = async (req: Request, res: Response): Pro
   }
 
   try {
-    const productMaintenance = await prisma.productMaintenance.create({
-      data: {
-        name,
-        description,
-        priority: priority || "Medium",
-        projectId: projectId ? Number(projectId) : null,
-        createdById: userId,
-        maintainers: {
-          create: maintainerIds.map((maintainerId: string) => ({
-            userId: maintainerId,
-          })),
-        },
-      },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            status: true,
+    const productMaintenance = await prisma.$transaction(async (tx) => {
+      let resolvedProjectId = projectId ? Number(projectId) : null;
+
+      // Auto-create a linked project if none was provided
+      if (!resolvedProjectId) {
+        const autoProject = await tx.project.create({
+          data: {
+            name,
+            description: `Auto-generated project for maintenance: ${name}`,
+            version: 1,
+            status: "Start",
+            createdById: userId,
+            updatedById: userId,
+          },
+        });
+        resolvedProjectId = autoProject.id;
+      }
+
+      return await tx.productMaintenance.create({
+        data: {
+          name,
+          description,
+          priority: priority || "Medium",
+          projectId: resolvedProjectId,
+          createdById: userId,
+          maintainers: {
+            create: maintainerIds.map((maintainerId: string) => ({
+              userId: maintainerId,
+            })),
           },
         },
-        createdBy: {
-          select: {
-            userId: true,
-            username: true,
-            profilePictureUrl: true,
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+            },
           },
-        },
-        maintainers: {
-          include: {
-            user: {
-              select: {
-                userId: true,
-                username: true,
-                profilePictureUrl: true,
-                email: true,
+          createdBy: {
+            select: {
+              userId: true,
+              username: true,
+              profilePictureUrl: true,
+            },
+          },
+          maintainers: {
+            include: {
+              user: {
+                select: {
+                  userId: true,
+                  username: true,
+                  profilePictureUrl: true,
+                  email: true,
+                },
               },
             },
           },
         },
-      },
+      });
     });
 
     // Broadcast product maintenance creation

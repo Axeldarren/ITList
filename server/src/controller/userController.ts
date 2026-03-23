@@ -567,3 +567,53 @@ export const getDeveloperAssignments = async (req: Request, res: Response): Prom
         res.status(500).json({ error: "Internal server error" });
     }
 };
+
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
+    const { userId } = req.params;
+    const loggedInUser = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!loggedInUser || loggedInUser.userId !== userId) {
+        res.status(403).json({ message: 'You can only change your own password.' });
+        return;
+    }
+
+    if (!currentPassword || !newPassword) {
+        res.status(400).json({ message: 'Current password and new password are required.' });
+        return;
+    }
+
+    if (newPassword.length < 8) {
+        res.status(400).json({ message: 'New password must be at least 8 characters long.' });
+        return;
+    }
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { userId },
+            select: { password: true },
+        });
+
+        if (!user || !user.password) {
+            res.status(404).json({ message: 'User not found.' });
+            return;
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            res.status(401).json({ message: 'Current password is incorrect.' });
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        await prisma.user.update({
+            where: { userId },
+            data: { password: hashedPassword },
+        });
+
+        res.status(200).json({ message: 'Password changed successfully.' });
+    } catch (error: any) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ message: 'Error changing password.' });
+    }
+};

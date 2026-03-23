@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { archiveAndIncrementVersion, createProject, deleteProject, getAllProjectVersions, getProjectActivities, getProjects, getProjectUsers, getProjectVersionHistory, incrementProjectVersion, updateProject, updateProjectStatus, getTimelineProjects, getMilestoneComments, createMilestoneComment } from "../controller/projectController";
+import { archiveAndIncrementVersion, createProject, deleteProject, getAllProjectVersions, getProjectActivities, getProjects, getProjectUsers, getProjectVersionHistory, incrementProjectVersion, updateProject, updateProjectStatus, getTimelineProjects, getMilestoneComments, createMilestoneComment, updateMilestoneComment, deleteMilestoneComment } from "../controller/projectController";
 import { protect, restrictToAdmin } from "../middleware/authMiddleware";
 import uploadImageMemory from "../middleware/uploadImageMemory";
 
@@ -24,10 +24,12 @@ router.post("/:projectId/milestone-comments", uploadImageMemory.single("image"),
 
 // Delete Project
 router.delete("/:projectId", restrictToAdmin, deleteProject);
+router.delete("/:projectId/milestone-comments/:commentId", deleteMilestoneComment);
 
 // Update Project Version and Project
 router.patch("/:projectId/version", incrementProjectVersion);
 router.patch("/:projectId", restrictToAdmin, updateProject);
 router.patch("/:projectId/status", updateProjectStatus);
+router.patch("/:projectId/milestone-comments/:commentId", updateMilestoneComment);
 
 export default router;

@@ -95,6 +95,8 @@ model MilestoneComment {
   content   String   @db.Text
   imageUrl  String?  // ImageKit CDN URL (optional)
   createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+  isEdited  Boolean  @default(false)
   projectId Int
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String
@@ -168,6 +170,7 @@ model Comment {
   deletedById String?
   updatedAt   DateTime  @default(now()) @updatedAt
   updatedById String?
+  isEdited    Boolean   @default(false)
   
   // Add maintenance task support
   maintenanceTaskId   Int?
