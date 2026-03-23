@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
   useGetTaskByIdQuery,
   useUpdateTaskMutation,
@@ -93,6 +93,24 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
   const loggedInUser = useAppSelector(selectCurrentUser);
   const isAdmin = loggedInUser?.role === 'ADMIN';
   const isSidebarCollapsed = useAppSelector((state) => state.global.isSidebarCollapsed);
+  const [sidebarWidth, setSidebarWidth] = useState(isSidebarCollapsed ? 60 : 256);
+
+  // Measure the actual sidebar width so the modal abuts it precisely (no sub-pixel gap)
+  useLayoutEffect(() => {
+    const measure = () => {
+      const sidebar = document.querySelector('[class*="fixed"][class*="flex-col"][class*="h-full"]') as HTMLElement | null;
+      if (sidebar) {
+        setSidebarWidth(sidebar.getBoundingClientRect().width);
+      } else {
+        setSidebarWidth(isSidebarCollapsed ? 60 : 256);
+      }
+    };
+    measure();
+    // Re-measure during the sidebar transition
+    const interval = setInterval(measure, 16);
+    const timeout = setTimeout(() => clearInterval(interval), 350);
+    return () => { clearInterval(interval); clearTimeout(timeout); };
+  }, [isSidebarCollapsed]);
 
   // Queries and Mutations
   const { data: task, isLoading, isError } = useGetTaskByIdQuery(taskId);
@@ -303,9 +321,8 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
 
   return ReactDOM.createPortal(
     <div
-      className={`fixed top-[56px] bottom-0 right-0 z-[35] flex flex-col overflow-hidden bg-gray-50 dark:bg-dark-bg transition-all duration-300 ease-in-out ${
-        isSidebarCollapsed ? "left-0 md:left-[60px]" : "left-0 md:left-[256px]"
-      }`}
+      className="fixed top-[56px] bottom-0 right-0 z-[45] flex flex-col overflow-hidden bg-gray-50 dark:bg-dark-bg"
+      style={{ left: `${sidebarWidth}px`, transition: 'left 300ms ease-in-out' }}
     >
       {/* ── Top Bar ── */}
       <div className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3 dark:border-dark-tertiary dark:bg-dark-secondary">
@@ -372,10 +389,10 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
 
       {/* ── Content ── */}
       {task && (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden bg-gray-50 dark:bg-dark-bg">
 
           {/* ─── Left Column ─── */}
-          <div className="flex flex-1 flex-col overflow-y-auto p-6 md:p-8 space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex flex-1 flex-col overflow-y-auto bg-gray-50 dark:bg-dark-bg p-6 md:p-8 space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
             {/* Title + badges */}
             <div>
