@@ -41,6 +41,7 @@ import { selectCurrentUser } from "@/state/authSlice";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
 import MentionInput from "@/components/MentionInput";
 import MentionHighlighter from "@/components/MentionHighlighter";
+import ReactDOM from "react-dom";
 
 const formatDuration = (seconds: number): string => {
     if (isNaN(seconds) || seconds < 0) return "00:00:00";
@@ -111,6 +112,8 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
   const [deleteComment] = useDeleteCommentMutation();
   const [updateComment, { isLoading: isUpdatingComment }] = useUpdateCommentMutation();
 
+  const [isMounted, setIsMounted] = useState(false);
+
   // Component State
   const [formData, setFormData] = useState<Partial<TaskType>>({});
   const [newComment, setNewComment] = useState("");
@@ -127,6 +130,10 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
   const workLogEntries = task?.timeLogs?.filter(log => log.endTime).sort(
     (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
   ) || [];
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (task) {
@@ -292,8 +299,9 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
     Low:     "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400",
     Backlog: "bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400",
   };
+  if (!isMounted) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className={`fixed top-[56px] bottom-0 right-0 z-[35] flex flex-col overflow-hidden bg-gray-50 dark:bg-dark-bg transition-all duration-300 ease-in-out ${
         isSidebarCollapsed ? "left-0 md:left-[60px]" : "left-0 md:left-[256px]"
@@ -680,7 +688,8 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 
