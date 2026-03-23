@@ -6,7 +6,7 @@ import { format, isAfter } from 'date-fns';
 import React, { useState } from 'react';
 import {
     Paperclip, MessageSquare, Flag, CircleDot, Calendar as CalendarIcon, User,
-    MoreVertical, GitBranch, Trash2, Edit, Hash,
+    MoreVertical, GitBranch, Trash2, Edit, Hash, AlertTriangle
 } from 'lucide-react';
 import { useDeleteTaskMutation } from '@/state/api';
 import toast from 'react-hot-toast';
@@ -127,19 +127,18 @@ const TaskCard = ({ task, isProjectActive, openMenuId, onMenuToggle = () => {} }
                     isProjectActive 
                         ? 'cursor-pointer transition-shadow duration-200 hover:shadow-xl'
                         : 'cursor-pointer' // Still clickable to view, but no hover effect
-                } ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : ''}`}
+                } ${isOverdue ? 'ring-1 ring-red-500/50 shadow-[0_4px_12px_rgba(239,68,68,0.15)] dark:shadow-[0_4px_12px_rgba(239,68,68,0.25)] border-l-[3px] border-l-red-500 bg-gradient-to-r from-red-50/50 to-white dark:from-red-900/10 dark:to-[#1d1f21]' : ''}`}
             >
-                {/* Overdue Stamp */}
-                {isOverdue && (
-                    <div className="absolute top-2 right-2 z-[1]">
-                        <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg transform rotate-12">
-                            OVERDUE
-                        </div>
-                    </div>
-                )}
 
                 <div className="mb-2 flex items-start justify-between">
-                    <h3 className='pr-2 text-lg font-bold text-gray-900 dark:text-gray-100'>{task.title}</h3>
+                    <div className="flex items-center gap-2 flex-wrap max-w-[85%]">
+                        <h3 className='pr-2 text-lg font-bold text-gray-900 dark:text-gray-100'>{task.title}</h3>
+                        {isOverdue && (
+                            <span className="flex-shrink-0 inline-flex items-center gap-1 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-red-200 dark:border-red-500/20 tracking-wider">
+                                <AlertTriangle size={10} /> OVERDUE
+                            </span>
+                        )}
+                    </div>
                     
                     {/* --- THIS IS THE FIX: Only show menu if project is active --- */}
                     {isProjectActive && (

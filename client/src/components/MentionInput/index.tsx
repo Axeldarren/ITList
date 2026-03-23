@@ -12,6 +12,8 @@ type MentionInputProps = {
     rows?: number;
     className?: string;
     disabled?: boolean;
+    dropdownPosition?: "above" | "below";
+    allowedUsers?: User[];
 };
 
 const MentionInput = ({
@@ -22,6 +24,8 @@ const MentionInput = ({
     rows = 2,
     className = "",
     disabled = false,
+    dropdownPosition = "above",
+    allowedUsers,
 }: MentionInputProps) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [mentionQuery, setMentionQuery] = useState("");
@@ -32,8 +36,10 @@ const MentionInput = ({
 
     const { data: allUsers = [] } = useGetUsersQuery();
 
+    const usersToFilter = allowedUsers || allUsers;
+
     // Filter users based on mention query
-    const filteredUsers = allUsers
+    const filteredUsers = usersToFilter
         .filter(
             (u: User) =>
                 u.userId && u.username?.toLowerCase().includes(mentionQuery.toLowerCase())
@@ -174,7 +180,9 @@ const MentionInput = ({
             {showDropdown && filteredUsers.length > 0 && (
                 <div
                     ref={dropdownRef}
-                    className="absolute left-0 bottom-full mb-1 w-64 max-h-48 overflow-y-auto rounded-lg shadow-xl ring-1 ring-black/5 dark:ring-white/10 bg-white dark:bg-dark-secondary z-50"
+                    className={`absolute left-0 w-64 max-h-48 overflow-y-auto rounded-lg shadow-xl ring-1 ring-black/5 dark:ring-white/10 bg-white dark:bg-dark-secondary z-50 ${
+                        dropdownPosition === "above" ? "bottom-full mb-1" : "top-full mt-1"
+                    }`}
                 >
                     {filteredUsers.map((user, index) => (
                         <button

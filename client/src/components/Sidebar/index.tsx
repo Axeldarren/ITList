@@ -197,7 +197,9 @@ const Sidebar = () => {
                         </>
                     )}
                     <SidebarLink icon={Calendar} label='Timeline' href='/timeline' />
-                    <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
+                    {currentUser?.role !== 'BUSINESS_OWNER' && (
+                        <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
+                    )}
                 </nav>
 
                 {/* SETTINGS Section */}

@@ -162,6 +162,7 @@ export interface Comment {
     replies?: Comment[];
     createdAt: string;
     updatedAt: string;
+    isEdited?: boolean;
 }
 
 // --- NEW: Define the Team interface ---
@@ -286,6 +287,8 @@ export interface MilestoneComment {
     content: string;
     imageUrl?: string;
     createdAt: string;
+    updatedAt?: string;
+    isEdited?: boolean;
     projectId: number;
     userId: string;
     user: {
@@ -611,6 +614,25 @@ export const api = createApi({
                 { type: 'MilestoneComments', id: projectId },
             ],
         }),
+        updateMilestoneComment: build.mutation<MilestoneComment, { projectId: number; commentId: number; content: string }>({
+            query: ({ projectId, commentId, content }) => ({
+                url: `projects/${projectId}/milestone-comments/${commentId}`,
+                method: 'PATCH',
+                body: { content },
+            }),
+            invalidatesTags: (result, error, { projectId }) => [
+                { type: 'MilestoneComments', id: projectId },
+            ],
+        }),
+        deleteMilestoneComment: build.mutation<{ message: string }, { projectId: number; commentId: number }>({
+            query: ({ projectId, commentId }) => ({
+                url: `projects/${projectId}/milestone-comments/${commentId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: (result, error, { projectId }) => [
+                { type: 'MilestoneComments', id: projectId },
+            ],
+        }),
         getProjectActivities: build.query<Activity[] | { data: Activity[]; meta: Meta }, { projectId: number; page?: number; limit?: number; search?: string; startDate?: string; endDate?: string }>({
             query: ({ projectId, page, limit, search, startDate, endDate }) => {
                 let url = `projects/${projectId}/activities`;
@@ -912,6 +934,13 @@ export const api = createApi({
             },
             invalidatesTags: (result, error, { userId }) => [{ type: 'Users', id: userId }],
         }),
+        changePassword: build.mutation<{ message: string }, { userId: string; currentPassword: string; newPassword: string }>({
+            query: ({ userId, ...body }) => ({
+                url: `users/${userId}/password`,
+                method: 'PATCH',
+                body,
+            }),
+        }),
         
 
         getTeams: build.query<Team[], void>({
@@ -962,28 +991,38 @@ export const api = createApi({
                 'TimeLogs' // For time tracking stats
             ],
         }),
-        createComment: build.mutation<Comment, { taskId: number; text: string; userId: string }>({
+        createComment: build.mutation<Comment, { taskId?: number; maintenanceTaskId?: number; text: string; userId: string }>({
             query: (body) => ({
                 url: 'comments',
                 method: 'POST',
                 body,
             }),
-            invalidatesTags: (result, error, { taskId }) => [{ type: 'Tasks', id: taskId }, { type: 'Activities' }],
+            invalidatesTags: (result, error, { taskId, maintenanceTaskId }) => [
+                ...(taskId ? [{ type: 'Tasks' as const, id: taskId }, { type: 'Comments' as const, id: `task-${taskId}` }] : []),
+                ...(maintenanceTaskId ? [{ type: 'Comments' as const, id: `maintenance-${maintenanceTaskId}` }] : []),
+                { type: 'Activities' as const }
+            ],
         }),
-        updateComment: build.mutation<Comment, { id: number; text: string }>({
-            query: ({ id, ...patch }) => ({
+        updateComment: build.mutation<Comment, { id: number; text: string; taskId?: number; maintenanceTaskId?: number }>({
+            query: ({ id, text }) => ({
                 url: `comments/${id}`,
                 method: 'PATCH',
-                body: patch,
+                body: { text },
             }),
-            invalidatesTags: [{ type: 'Tasks' }],
+            invalidatesTags: (result, error, { taskId, maintenanceTaskId }) => [
+                ...(taskId ? [{ type: 'Tasks' as const, id: taskId }, { type: 'Comments' as const, id: `task-${taskId}` }] : []),
+                ...(maintenanceTaskId ? [{ type: 'Comments' as const, id: `maintenance-${maintenanceTaskId}` }] : []),
+            ],
         }),
-        deleteComment: build.mutation<{ message: string }, number>({
-            query: (commentId) => ({
+        deleteComment: build.mutation<{ message: string }, { commentId: number; taskId?: number; maintenanceTaskId?: number }>({
+            query: ({ commentId }) => ({
                 url: `comments/${commentId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: [{ type: 'Tasks' }],
+            invalidatesTags: (result, error, { taskId, maintenanceTaskId }) => [
+                ...(taskId ? [{ type: 'Tasks' as const, id: taskId }, { type: 'Comments' as const, id: `task-${taskId}` }] : []),
+                ...(maintenanceTaskId ? [{ type: 'Comments' as const, id: `maintenance-${maintenanceTaskId}` }] : []),
+            ],
         }),
         createStandaloneComment: build.mutation<Comment, { taskId: number; text: string; parentId?: number }>({
             query: (body) => ({
@@ -1548,7 +1587,10 @@ export const {
     useUpdateTaskMutation,
     useCreateCommentMutation,
     useUpdateCommentMutation,
+    useUpdateMilestoneCommentMutation,
+    useDeleteMilestoneCommentMutation,
     useDeleteCommentMutation,
+    useChangePasswordMutation,
     useAddAttachmentMutation,
     useDeleteAttachmentMutation,
     useGetTaskTimeLogsQuery,

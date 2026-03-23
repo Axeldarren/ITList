@@ -132,10 +132,10 @@ const ProductMaintenancePage = () => {
             {/* Add Button */}
             {loggedInUser?.role === 'ADMIN' && (
               <button
-                className="flex items-center rounded-md bg-blue-primary px-3 py-2 text-white hover:bg-blue-600 shadow-md"
+                className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors shadow-sm"
                 onClick={() => setIsModalNewProductMaintenanceOpen(true)}
               >
-                <Plus className="mr-2 h-5 w-5" /> New Maintenance
+                <Plus className="h-4 w-4" /> New Maintenance
               </button>
             )}
           </div>

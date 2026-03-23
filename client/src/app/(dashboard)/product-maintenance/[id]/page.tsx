@@ -180,7 +180,7 @@ const ProductMaintenanceDetailPage = () => {
             <button
               onClick={() => updateLifecycle({ id, lifecycle: 'Maintaining' })}
               disabled={isUpdatingLifecycle}
-              className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
             >
               Start Maintenance
             </button>
@@ -189,21 +189,21 @@ const ProductMaintenanceDetailPage = () => {
             <button
               onClick={() => updateLifecycle({ id, lifecycle: 'Finished' })}
               disabled={isUpdatingLifecycle}
-              className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors disabled:opacity-50"
             >
               Finish
             </button>
           )}
           <button
             onClick={() => setIsEditModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-white hover:bg-blue-600"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-tertiary px-4 py-2 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <Edit className="h-4 w-4" />
             Edit
           </button>
           <button
             onClick={() => setIsDeleteModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+            className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors"
           >
             <Trash2 className="h-4 w-4" />
             Delete

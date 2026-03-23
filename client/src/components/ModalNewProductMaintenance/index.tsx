@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { X, Plus } from "lucide-react";
 import {
   useCreateProductMaintenanceMutation,
-  useGetFinishedProjectsQuery,
   useGetUsersQuery,
 } from "@/state/api";
 import toast from "react-hot-toast";
@@ -17,12 +16,10 @@ const ModalNewProductMaintenance = ({ isOpen, onClose }: Props) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Medium");
-  const [projectId, setProjectId] = useState<number | "">(""); 
   const [selectedMaintainers, setSelectedMaintainers] = useState<string[]>([]);
   const [showUserSelect, setShowUserSelect] = useState(false);
 
   const [createProductMaintenance, { isLoading: isCreating }] = useCreateProductMaintenanceMutation();
-  const { data: finishedProjects } = useGetFinishedProjectsQuery();
   const { data: users } = useGetUsersQuery();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +34,6 @@ const ModalNewProductMaintenance = ({ isOpen, onClose }: Props) => {
         name: name.trim(),
         description: description.trim() || undefined,
         priority,
-        projectId: projectId || undefined,
         maintainerIds: selectedMaintainers,
       }).unwrap();
 
@@ -57,7 +53,6 @@ const ModalNewProductMaintenance = ({ isOpen, onClose }: Props) => {
     setName("");
     setDescription("");
     setPriority("Medium");
-    setProjectId("");
     setSelectedMaintainers([]);
     setShowUserSelect(false);
   };
@@ -127,28 +122,6 @@ const ModalNewProductMaintenance = ({ isOpen, onClose }: Props) => {
           </select>
         </div>
 
-        {/* Related Project */}
-        <div>
-          <label htmlFor="project" className="mb-2 block text-sm font-medium dark:text-white">
-            Related Project (Optional)
-          </label>
-          <select
-            id="project"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-          >
-            <option value="">No related project</option>
-            {finishedProjects?.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            You can create maintenance for finished projects or start fresh
-          </p>
-        </div>
 
         {/* Maintainers */}
         <div>

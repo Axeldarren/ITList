@@ -110,23 +110,23 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div>
-          <label htmlFor="title" className="mb-2 block text-sm font-medium dark:text-white">
-            Title *
+          <label htmlFor="title" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+            Title <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-            placeholder="Enter task title..."
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:placeholder-gray-500 transition-colors"
+            placeholder="Enter task title…"
             required
           />
         </div>
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="mb-2 block text-sm font-medium dark:text-white">
+          <label htmlFor="description" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
             Description
           </label>
           <textarea
@@ -134,121 +134,76 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-            placeholder="Describe the task..."
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:placeholder-gray-500 transition-colors"
+            placeholder="Describe the task…"
           />
         </div>
 
-        {/* Type */}
-        <div>
-          <label htmlFor="type" className="mb-2 block text-sm font-medium dark:text-white">
-            Task Type
-          </label>
-          <select
-            id="type"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-          >
-            {taskTypes.map((taskType) => (
-              <option key={taskType} value={taskType}>
-                {taskType}
-              </option>
-            ))}
-          </select>
+        {/* Type + Priority */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="type" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Task Type</label>
+            <select id="type" value={type} onChange={(e) => setType(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors">
+              {taskTypes.map((taskType) => <option key={taskType} value={taskType}>{taskType}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="priority" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Priority</label>
+            <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
         </div>
 
-        {/* Priority */}
-        <div>
-          <label htmlFor="priority" className="mb-2 block text-sm font-medium dark:text-white">
-            Priority
-          </label>
-          <select
-            id="priority"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-          >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
-          </select>
-        </div>
-
-        {/* Estimated Hours */}
-        <div>
-          <label htmlFor="estimatedHours" className="mb-2 block text-sm font-medium dark:text-white">
-            Estimated Hours
-          </label>
-          <input
-            type="number"
-            id="estimatedHours"
-            value={estimatedHours}
-            onChange={(e) => setEstimatedHours(e.target.value ? Number(e.target.value) : "")}
-            min="0"
-            step="0.5"
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-            placeholder="e.g., 4.5"
-          />
-        </div>
-
-        {/* Assigned To */}
-        <div>
-          <label htmlFor="assignedTo" className="mb-2 block text-sm font-medium dark:text-white">
-            Assign To
-          </label>
-          <select
-            id="assignedTo"
-            value={assignedToId}
-            onChange={(e) => setAssignedToId(e.target.value ?? "")}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-          >
-            <option value="">Unassigned</option>
-            {availableAssignees?.map((user) => (
-              <option key={user.userId} value={user.userId}>
-                {user.username}
-              </option>
-            ))}
-          </select>
+        {/* Assignee + Estimated Hours */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="assignedTo" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Assign To</label>
+            <select id="assignedTo" value={assignedToId} onChange={(e) => setAssignedToId(e.target.value ?? "")}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors">
+              <option value="">Unassigned</option>
+              {availableAssignees?.map((user) => <option key={user.userId} value={user.userId}>{user.username}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="estimatedHours" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Estimated Hours</label>
+            <input type="number" id="estimatedHours" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value ? Number(e.target.value) : "")} min="0" step="0.5"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors"
+              placeholder="e.g., 4.5" />
+          </div>
         </div>
 
         {/* Ticket Dropdown */}
         <div>
-          <label htmlFor="ticketId" className="mb-2 block text-sm font-medium dark:text-white">
-            Ticket {!isAdmin && "*"}
+          <label htmlFor="ticketId" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+            Ticket {!isAdmin && <span className="text-red-400">*</span>}
           </label>
-          <select
-            id="ticketId"
-            value={ticketId}
-            onChange={(e) => setTicketId(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-dark-tertiary dark:text-white"
-            required={!isAdmin}
-          >
+          <select id="ticketId" value={ticketId} onChange={(e) => setTicketId(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors"
+            required={!isAdmin}>
             <option value="">Select a Ticket</option>
             {ticketsOpen?.map((ticket) => (
               <option key={ticket.ticket_id} value={String(ticket.ticket_id)}>
-                {ticket.ticket_id} - {ticket.description_ticket}
+                #{ticket.ticket_id} — {ticket.description_ticket}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Submit Button */}
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={handleClose}
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-dark-tertiary dark:bg-dark-bg dark:text-gray-300 dark:hover:bg-dark-tertiary transition-colors">
             Cancel
           </button>
-          <button
-            type="submit"
-            disabled={isCreating}
-            className="rounded-lg bg-blue-primary px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isCreating ? "Creating..." : "Create Task"}
+          <button type="submit" disabled={isCreating}
+            className="rounded-lg bg-blue-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50 transition-colors">
+            {isCreating ? "Creating…" : "Create Task"}
           </button>
         </div>
       </form>

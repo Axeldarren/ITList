@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
     useGetTasksQuery,
     useGetMilestoneCommentsQuery,
     useCreateMilestoneCommentMutation,
+    useUpdateMilestoneCommentMutation,
+    useDeleteMilestoneCommentMutation,
     useGetUsersQuery,
+    useGetProjectUsersQuery,
     Task,
     MilestoneComment,
     Project,
@@ -14,9 +17,10 @@ import { useAppSelector } from '@/app/redux';
 import { selectCurrentUser } from '@/state/authSlice';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
 import { format } from 'date-fns';
-import { MessageSquare, Send, BarChart3, User as UserIcon, Clock, CheckCircle, AlertTriangle, Loader2, ImagePlus, X } from 'lucide-react';
+import { MessageSquare, Send, BarChart3, User as UserIcon, Clock, CheckCircle, AlertTriangle, Loader2, ImagePlus, X, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import MentionInput from '@/components/MentionInput';
 import MentionHighlighter from '@/components/MentionHighlighter';
+import ModalConfirm from '@/components/ModalConfirm';
 
 type Props = {
     projectId: number;
@@ -34,7 +38,29 @@ const OverviewView = ({ projectId, version, project }: Props) => {
     const { data: tasks = [] } = useGetTasksQuery({ projectId });
     const { data: milestoneComments = [], isLoading: commentsLoading } = useGetMilestoneCommentsQuery(projectId);
     const { data: users = [] } = useGetUsersQuery();
+    const { data: projectUsers = [] } = useGetProjectUsersQuery(projectId);
     const [createComment, { isLoading: isCreating }] = useCreateMilestoneCommentMutation();
+    const [updateComment, { isLoading: isUpdating }] = useUpdateMilestoneCommentMutation();
+    const [deleteComment, { isLoading: isDeleting }] = useDeleteMilestoneCommentMutation();
+
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editText, setEditText] = useState('');
+    const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setActiveMenuId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // Use all tasks from query (already filtered server-side)
     const activeTasks = useMemo(() => {
@@ -112,6 +138,40 @@ const OverviewView = ({ projectId, version, project }: Props) => {
         { label: 'Under Review', count: stats.review, color: 'bg-yellow-500', pct: stats.total ? (stats.review / stats.total) * 100 : 0 },
         { label: 'Completed', count: stats.completed, color: 'bg-green-500', pct: stats.total ? (stats.completed / stats.total) * 100 : 0 },
     ];
+
+    const handleEditStart = (comment: MilestoneComment) => {
+        setEditingCommentId(comment.id);
+        setEditText(comment.content);
+        setActiveMenuId(null);
+    };
+
+    const handleEditSave = async (commentId: number) => {
+        if (!editText.trim() || isUpdating) return;
+        try {
+            await updateComment({ projectId, commentId, content: editText.trim() }).unwrap();
+            setEditingCommentId(null);
+            setEditText('');
+        } catch {
+            // Error handled by RTK
+        }
+    };
+
+    const handleDeleteClick = (commentId: number) => {
+        setDeletingCommentId(commentId);
+        setIsConfirmModalOpen(true);
+        setActiveMenuId(null);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingCommentId || isDeleting) return;
+        try {
+            await deleteComment({ projectId, commentId: deletingCommentId }).unwrap();
+            setIsConfirmModalOpen(false);
+            setDeletingCommentId(null);
+        } catch {
+            // Error handled by RTK
+        }
+    };
 
     return (
         <div className="p-4 sm:p-6 space-y-6">
@@ -252,6 +312,7 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                                     value={commentText}
                                     onChange={setCommentText}
                                     onKeyDown={handleKeyDown}
+                                    allowedUsers={projectUsers}
                                 />
                                 {/* Image Preview */}
                                 {imagePreview && (
@@ -319,6 +380,8 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                         milestoneComments.map((comment: MilestoneComment) => {
                             const isOwn = comment.userId === loggedInUser?.userId;
                             const avatarSrc = getProfilePictureSrc(comment.user?.profilePictureUrl);
+                            const isEditing = editingCommentId === comment.id;
+
                             return (
                                 <div key={comment.id} className={`p-4 flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                     <div className="flex-shrink-0">
@@ -334,23 +397,91 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                                             </div>
                                         )}
                                     </div>
-                                    <div className={`max-w-[75%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                                    <div className={`max-w-[85%] flex flex-col ${isOwn ? 'items-end' : 'items-start'} relative group`}>
                                         <span className={`text-xs text-gray-400 mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
                                             {isOwn ? 'You' : (comment.user?.username || 'Unknown')} · {format(new Date(comment.createdAt), 'MMM d · h:mm a')}
+                                            {comment.isEdited && <span className="ml-1 opacity-70">(edited)</span>}
                                         </span>
-                                        <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap break-words ${
-                                            isOwn
-                                                ? 'bg-blue-500 text-white rounded-br-sm'
-                                                : 'bg-white dark:bg-dark-secondary text-gray-800 dark:text-gray-200 rounded-bl-sm border border-gray-100 dark:border-dark-tertiary'
-                                        }`}>
-                                            <MentionHighlighter text={comment.content} isOnDark={isOwn} />
+
+                                        <div className="flex items-start gap-1 w-full flex-row-reverse">
+                                            {/* Menu button (only for owner or admin) */}
+                                            {(isOwn || loggedInUser?.role === 'ADMIN') && !isEditing && (
+                                                <div className="relative mt-1">
+                                                    <button
+                                                        onClick={() => setActiveMenuId(activeMenuId === comment.id ? null : comment.id)}
+                                                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-tertiary opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <MoreVertical size={14} />
+                                                    </button>
+                                                    {activeMenuId === comment.id && (
+                                                        <div 
+                                                            ref={menuRef}
+                                                            className="absolute right-0 mt-1 w-28 bg-white dark:bg-dark-tertiary rounded-md shadow-lg border border-gray-200 dark:border-dark-tertiary z-20 py-1"
+                                                        >
+                                                            {isOwn && (
+                                                                <button
+                                                                    onClick={() => handleEditStart(comment)}
+                                                                    className="w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-secondary flex items-center gap-2"
+                                                                >
+                                                                    <Edit2 size={12} /> Edit
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleDeleteClick(comment.id)}
+                                                                className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                            >
+                                                                <Trash2 size={12} /> Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 w-full">
+                                                {isEditing ? (
+                                                    <div className="w-full space-y-2">
+                                                        <MentionInput
+                                                            value={editText}
+                                                            onChange={setEditText}
+                                                            placeholder="Edit your comment..."
+                                                            rows={2}
+                                                            dropdownPosition="below"
+                                                            allowedUsers={projectUsers}
+                                                        />
+                                                        <div className="flex justify-end gap-2">
+                                                            <button 
+                                                                onClick={() => setEditingCommentId(null)}
+                                                                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleEditSave(comment.id)}
+                                                                disabled={isUpdating || !editText.trim()}
+                                                                className="text-xs font-semibold text-blue-500 hover:text-blue-600 disabled:opacity-50"
+                                                            >
+                                                                {isUpdating ? 'Saving...' : 'Save'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap break-words w-full ${
+                                                        isOwn
+                                                            ? 'bg-blue-500 text-white rounded-br-sm'
+                                                            : 'bg-white dark:bg-dark-secondary text-gray-800 dark:text-gray-200 rounded-bl-sm border border-gray-100 dark:border-dark-tertiary'
+                                                    }`}>
+                                                        <MentionHighlighter text={comment.content} isOnDark={isOwn} />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
+
                                         {/* Attached image */}
-                                        {comment.imageUrl && (
+                                        {comment.imageUrl && !isEditing && (
                                             <img
                                                 src={comment.imageUrl}
                                                 alt="milestone attachment"
-                                                className="mt-2 rounded-xl max-h-64 max-w-full object-contain border border-gray-200 dark:border-dark-tertiary cursor-pointer hover:opacity-90 transition-opacity"
+                                                className={`mt-2 rounded-xl max-h-64 max-w-full object-contain border border-gray-200 dark:border-dark-tertiary cursor-pointer hover:opacity-90 transition-opacity ${isOwn ? 'ml-auto' : 'mr-auto'}`}
                                                 onClick={() => window.open(comment.imageUrl, '_blank')}
                                             />
                                         )}
@@ -359,9 +490,18 @@ const OverviewView = ({ projectId, version, project }: Props) => {
                             );
                         })
                     )}
-
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            <ModalConfirm
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Comment"
+                message="Are you sure you want to delete this comment? This action cannot be undone."
+                isLoading={isDeleting}
+            />
         </div>
     );
 };

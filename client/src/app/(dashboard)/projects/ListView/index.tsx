@@ -65,10 +65,10 @@ const ListView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, isPro
                       isProjectActive && (
                                 <div className="px-4 pb-5 pt-3">
                                   <button
-                                    className="flex items-center gap-2 rounded-md bg-[#0275ff] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors"
                                     onClick={() => setIsModalNewTaskOpen(true)}
                                   >
-                                    <Plus size={18} />
+                                    <Plus size={16} />
                                     Add Task
                                   </button>
                                 </div>

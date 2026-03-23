@@ -1,5 +1,6 @@
 import React from 'react';
-import Modal from '@/components/Modal'; // We'll reuse your existing Modal wrapper
+import ReactDOM from 'react-dom';
+import { AlertTriangle, X } from 'lucide-react';
 
 type Props = {
     isOpen: boolean;
@@ -10,40 +11,56 @@ type Props = {
     isLoading?: boolean;
 };
 
-const ModalConfirm = ({
-    isOpen,
-    onClose,
-    onConfirm,
-    title,
-    message,
-    isLoading = false
-}: Props) => {
-  if (!isOpen) return null;
+const ModalConfirm = ({ isOpen, onClose, onConfirm, title, message, isLoading = false }: Props) => {
+    if (!isOpen) return null;
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} name={title} closeOnBackdropClick>
-        <div className="mt-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-                {message}
-            </p>
-            <div className="mt-6 flex justify-end space-x-4">
-                <button
-                    onClick={onClose}
-                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none dark:border-dark-tertiary dark:bg-dark-secondary dark:text-white dark:hover:bg-dark-tertiary"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={onConfirm}
-                    disabled={isLoading}
-                    className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    {isLoading ? 'Deleting...' : 'Delete'}
-                </button>
+    return ReactDOM.createPortal(
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl dark:bg-dark-secondary ring-1 ring-black/5 dark:ring-white/10">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-dark-tertiary">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
+                            <AlertTriangle size={16} className="text-red-600 dark:text-red-400" />
+                        </div>
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 transition-colors"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="px-5 py-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{message}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-100 dark:border-dark-tertiary">
+                    <button
+                        onClick={onClose}
+                        className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-dark-tertiary dark:bg-dark-bg dark:text-gray-300 dark:hover:bg-dark-tertiary transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isLoading}
+                        className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                    >
+                        {isLoading ? 'Deleting…' : 'Delete'}
+                    </button>
+                </div>
             </div>
-        </div>
-    </Modal>
-  );
+        </div>,
+        document.body
+    );
 };
 
 export default ModalConfirm;

@@ -195,7 +195,7 @@ const Users = () => {
             currentUser?.role === 'ADMIN' && (
                 <button
                     onClick={() => setIsNewModalOpen(true)}
-                    className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 text-sm font-semibold text-white"
+                    className="flex items-center gap-2 rounded-lg bg-blue-primary px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors"
                 >
                     <Plus size={18} /> Add User
                 </button>

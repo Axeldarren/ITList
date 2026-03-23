@@ -75,11 +75,11 @@ const ProjectHeader = ({
             case 'Start':
                 return (
                     <>
-                        <button onClick={() => onStatusChange('OnProgress')} className='flex items-center rounded-md bg-blue-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-blue-600'>
-                            <Play className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">Start Project</span><span className="sm:hidden">Start</span>
+                        <button onClick={() => onStatusChange('OnProgress')} className='flex items-center gap-1.5 rounded-lg bg-blue-primary px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-accent-600 transition-colors'>
+                            <Play className='size-4' /> <span className="hidden sm:inline">Start Project</span><span className="sm:hidden">Start</span>
                         </button>
                         {loggedInUser?.role === 'ADMIN' && (
-                            <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-red-600'>
+                            <button onClick={() => onStatusChange('Cancel')} className='flex items-center gap-1.5 rounded-lg bg-red-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-red-600 transition-colors'>
                                 <span className="hidden sm:inline">Cancel Project</span><span className="sm:hidden">Cancel</span>
                             </button>
                         )}
@@ -93,14 +93,14 @@ const ProjectHeader = ({
                             <>
                                 <button 
                                     onClick={() => onStatusChange('Finish')} 
-                                    className='flex items-center rounded-md bg-green-500 px-3 py-2 text-white hover:bg-green-600'
+                                    className='flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-600 transition-colors'
                                 >
-                                    <CheckCircle className='mr-2 size-5' /> Finish Project
+                                    <CheckCircle className='size-4' /> Finish Project
                                 </button>
                             </>
                         )}
                         {loggedInUser?.role === 'ADMIN' && (
-                            <button onClick={() => onStatusChange('Cancel')} className='flex items-center rounded-md bg-red-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-red-600'>
+                            <button onClick={() => onStatusChange('Cancel')} className='flex items-center gap-1.5 rounded-lg bg-red-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-red-600 transition-colors'>
                                 <span className="hidden sm:inline">Cancel Project</span><span className="sm:hidden">Cancel</span>
                             </button>
                         )}
@@ -110,8 +110,8 @@ const ProjectHeader = ({
                  return (
                     <>
                         {loggedInUser?.role === 'ADMIN' && (
-                            <button onClick={onArchive} disabled={!isArchivable} className='flex items-center rounded-md bg-green-600 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'>
-                                <Archive className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">New Version</span><span className="sm:hidden">Version</span>
+                            <button onClick={onArchive} disabled={!isArchivable} className='flex items-center gap-1.5 rounded-lg bg-emerald-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+                                <Archive className='size-4' /> <span className="hidden sm:inline">New Version</span><span className="sm:hidden">Version</span>
                             </button>
                         )}
                     </>
@@ -122,11 +122,11 @@ const ProjectHeader = ({
                         {loggedInUser?.role === 'ADMIN' && (
                             <button 
                                 onClick={onArchive} 
-                                disabled={!isArchivable} // 'isArchivable' is now powered by our new logic
+                                disabled={!isArchivable}
                                 title={isArchivable ? "Create a new version of this project" : ""}
-                                className='flex items-center rounded-md bg-green-600 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed'
+                                className='flex items-center gap-1.5 rounded-lg bg-emerald-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                             >
-                                <Archive className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">New Version</span><span className="sm:hidden">Version</span>
+                                <Archive className='size-4' /> <span className="hidden sm:inline">New Version</span><span className="sm:hidden">Version</span>
                             </button>
                         )}
                     </>
@@ -152,12 +152,12 @@ const ProjectHeader = ({
                                 )}
                                 {loggedInUser?.role === 'ADMIN' && (
                                     <>
-                                        <button onClick={onEdit} className='flex items-center rounded-md bg-gray-500 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-gray-600'><Edit className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">Edit</span></button>
-                                        <button onClick={onExportPDF} className='flex items-center rounded-md bg-purple-600 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-purple-700'><FileDown className='mr-1 sm:mr-2 size-4 sm:size-5' /> <span className="hidden sm:inline">Report</span></button>
+                                        <button onClick={onEdit} className='flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-tertiary px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'><Edit className='size-4' /> <span className="hidden sm:inline">Edit</span></button>
+                                        <button onClick={onExportPDF} className='flex items-center gap-1.5 rounded-lg bg-blue-primary px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-accent-600 transition-colors'><FileDown className='size-4' /> <span className="hidden sm:inline">Report</span></button>
                                     </>
                                 )}
                                 {docUrl && (
-                                    <a href={docUrl} target="_blank" rel="noopener noreferrer" className='flex items-center rounded-md bg-indigo-600 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white hover:bg-indigo-700'>
+                                    <a href={docUrl} target="_blank" rel="noopener noreferrer" className='flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-dark-tertiary bg-white dark:bg-dark-tertiary px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'>
                                         <span className="hidden sm:inline">Document</span><span className="sm:hidden">Doc</span>
                                     </a>
                                 )}
@@ -242,10 +242,10 @@ const TabButton = ({ name, icon, setActiveTab, activeTab }: TabButtonProps) => {
 
     return (
         <button
-            className={`relative flex items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm transition-colors rounded-md whitespace-nowrap ${
+            className={`relative flex items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm transition-colors rounded-lg whitespace-nowrap ${
                 isActive 
-                    ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-200 font-medium" 
-                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                    ? "bg-blue-primary/10 text-blue-primary dark:bg-blue-primary/20 dark:text-accent-300 font-semibold" 
+                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-tertiary"
             }`}
             onClick={() => setActiveTab(name)}
         >

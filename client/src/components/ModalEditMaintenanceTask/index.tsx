@@ -9,13 +9,19 @@ import {
   useStopMaintenanceTimerMutation,
   useGetProductMaintenanceByIdQuery,
   useGetTicketsWithStatusOpenQuery,
+  useUpdateCommentMutation,
+  useDeleteCommentMutation,
+  Comment,
 } from "@/state/api";
 import { useAppSelector } from "@/app/redux";
 import { selectCurrentUser } from "@/state/authSlice";
 import { differenceInSeconds } from "date-fns";
-import { Play, Square } from "lucide-react";
+import { Play, Square, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import Modal from "@/components/Modal";
+import ModalConfirm from "@/components/ModalConfirm";
+import MentionHighlighter from "@/components/MentionHighlighter";
+import MentionInput from "@/components/MentionInput";
 
 type Props = {
   isOpen: boolean;
@@ -43,6 +49,63 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
     useStartMaintenanceTimerMutation();
   const [stopMaintenanceTimer, { isLoading: isStopping }] =
     useStopMaintenanceTimerMutation();
+  const [updateComment, { isLoading: isUpdatingComment }] = useUpdateCommentMutation();
+  const [deleteComment, { isLoading: isDeletingComment }] = useDeleteCommentMutation();
+
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleEditStart = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditText(comment.text);
+    setActiveMenuId(null);
+  };
+
+  const handleEditSave = async (commentId: number) => {
+    if (!editText.trim() || isUpdatingComment) return;
+    try {
+      await updateComment({ id: commentId, text: editText.trim(), maintenanceTaskId: task.id }).unwrap();
+      setEditingCommentId(null);
+      setEditText("");
+      toast.success("Comment updated!");
+    } catch {
+      toast.error("Failed to update comment");
+    }
+  };
+
+  const handleDeleteClick = (commentId: number) => {
+    setDeletingCommentId(commentId);
+    setIsConfirmModalOpen(true);
+    setActiveMenuId(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingCommentId || isDeletingComment) return;
+    try {
+      await deleteComment({ commentId: deletingCommentId, maintenanceTaskId: task.id }).unwrap();
+      setIsConfirmModalOpen(false);
+      setDeletingCommentId(null);
+      toast.success("Comment deleted!");
+    } catch {
+      toast.error("Failed to delete comment");
+    }
+  };
 
   const { data: users } = useGetUsersQuery();
   const { data: timeLogs } = useGetMaintenanceTaskTimeLogsQuery(task.id);
@@ -219,6 +282,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
   };
 
   return (
+    <>
   <Modal isOpen={isOpen} onClose={onClose} name="Edit Maintenance Task" closeOnBackdropClick={false}>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
@@ -472,7 +536,7 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
                 return (
                   <div
                     key={comment.id}
-                    className="dark:bg-dark-tertiary rounded border border-gray-200 bg-white p-3 dark:border-gray-600"
+                    className="dark:bg-dark-tertiary rounded border border-gray-200 bg-white p-3 dark:border-gray-600 group relative"
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -484,14 +548,85 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
                             {formatDurationShort(associatedTimeLog.duration)}
                           </span>
                         )}
+                        {comment.isEdited && <span className="text-[10px] text-gray-400 opacity-70">(edited)</span>}
                       </div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(comment.createdAt).toLocaleString()}
-                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </span>
+
+                        {/* Action Menu (only for owner or admin) */}
+                        {(comment.userId === loggedInUser?.userId || loggedInUser?.role === "ADMIN") && editingCommentId !== comment.id && (
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setActiveMenuId(activeMenuId === comment.id ? null : comment.id)}
+                              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-secondary opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                            {activeMenuId === comment.id && (
+                              <div 
+                                ref={menuRef}
+                                className="absolute right-0 mt-1 w-28 bg-white dark:bg-dark-tertiary rounded-md shadow-lg border border-gray-200 dark:border-dark-tertiary z-20 py-1"
+                              >
+                                {comment.userId === loggedInUser?.userId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditStart(comment)}
+                                    className="w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-secondary flex items-center gap-2"
+                                  >
+                                    <Edit2 size={12} /> Edit
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteClick(comment.id)}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                      {comment.text}
-                    </div>
+
+                    {editingCommentId === comment.id ? (
+                      <div className="mt-1 space-y-2">
+                        <MentionInput
+                          value={editText}
+                          onChange={setEditText}
+                          placeholder="Edit your comment..."
+                          rows={2}
+                          dropdownPosition="below"
+                          allowedUsers={availableAssignees}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            type="button"
+                            onClick={() => setEditingCommentId(null)}
+                            className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleEditSave(comment.id)}
+                            disabled={isUpdatingComment || !editText.trim()}
+                            className="text-xs font-semibold text-blue-500 hover:text-blue-600 disabled:opacity-50"
+                          >
+                            {isUpdatingComment ? "Saving..." : "Save"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                        <MentionHighlighter text={comment.text} />
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -523,6 +658,16 @@ const ModalEditMaintenanceTask = ({ isOpen, onClose, task }: Props) => {
         </div>
       </form>
     </Modal>
+
+    <ModalConfirm
+      isOpen={isConfirmModalOpen}
+      onClose={() => setIsConfirmModalOpen(false)}
+      onConfirm={handleDeleteConfirm}
+      title="Delete Comment"
+      message="Are you sure you want to delete this comment? This action cannot be undone."
+      isLoading={isDeletingComment}
+    />
+    </>
   );
 };
 

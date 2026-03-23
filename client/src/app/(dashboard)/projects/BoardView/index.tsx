@@ -214,11 +214,11 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "task",
     item: { id: task.id },
-    canDrag: isProjectActive,
+    canDrag: () => isProjectActive,
     collect: (monitor: import("react-dnd").DragSourceMonitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-  }));
+  }), [isProjectActive]);
 
   // --- Handlers for opening and closing the modal ---
   const handleCardClick = () => {
@@ -302,7 +302,7 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
           drag(instance);
         }}
         onClick={handleCardClick} // <-- Open modal on card click
-        className={`relative dark:bg-dark-secondary mb-4 cursor-pointer rounded-md bg-white shadow hover:shadow-xl ${isDragging ? "opacity-50" : "opacity-100"} ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : ''}`}
+        className={`relative dark:bg-dark-secondary mb-4 rounded-md bg-white shadow hover:shadow-xl ${isDragging ? "opacity-50" : "opacity-100"} ${isProjectActive ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : ''}`}
       >
         {/* Overdue Stamp */}
         {isOverdue && (

@@ -9,6 +9,7 @@ import {
     useGetProductMaintenancesQuery,
     Task,
     ProductMaintenance,
+    Project,
 } from '@/state/api';
 import { useAppSelector } from '@/app/redux';
 import { selectCurrentUser } from '@/state/authSlice';
@@ -120,9 +121,9 @@ const BusinessOwnerHome = () => {
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Start': return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
-            case 'OnProgress': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+            case 'OnProgress': return 'bg-blue-primary/10 text-blue-primary dark:bg-blue-primary/20 dark:text-blue-300';
             case 'Resolve': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
-            case 'Finish': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+            case 'Finish': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300';
             case 'Cancel': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
             default: return 'bg-gray-100 text-gray-600';
         }
@@ -130,8 +131,8 @@ const BusinessOwnerHome = () => {
 
     const getProgressBarColor = (percentage: number, isOverdue: boolean) => {
         if (isOverdue) return 'bg-red-500';
-        if (percentage >= 75) return 'bg-green-500';
-        if (percentage >= 50) return 'bg-blue-500';
+        if (percentage >= 75) return 'bg-emerald-500';
+        if (percentage >= 50) return 'bg-blue-primary';
         if (percentage >= 25) return 'bg-yellow-500';
         return 'bg-gray-400';
     };
@@ -142,10 +143,10 @@ const BusinessOwnerHome = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                            <Briefcase size={20} className="text-blue-600 dark:text-blue-400" />
+                        <div className="p-2 rounded-lg bg-blue-primary/10 dark:bg-blue-primary/20">
+                            <Briefcase size={20} className="text-blue-primary dark:text-blue-400" />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.totalProjects}</p>
@@ -154,10 +155,10 @@ const BusinessOwnerHome = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                            <TrendingUp size={20} className="text-green-600 dark:text-green-400" />
+                        <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                            <TrendingUp size={20} className="text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.activeProjects}</p>
@@ -166,10 +167,10 @@ const BusinessOwnerHome = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                            <AlertTriangle size={20} className="text-red-600 dark:text-red-400" />
+                            <AlertTriangle size={20} className="text-red-500 dark:text-red-400" />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.atRiskProjects}</p>
@@ -178,7 +179,7 @@ const BusinessOwnerHome = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
                             <BarChart3 size={20} className="text-purple-600 dark:text-purple-400" />
@@ -215,17 +216,17 @@ const BusinessOwnerHome = () => {
                             <Link
                                 key={project.id}
                                 href={`/projects/${project.id}`}
-                                className="block bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all group"
+                                className="block bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-blue-primary/30 dark:hover:border-blue-primary/50 transition-all duration-300 group"
                             >
                                 {/* Project Header */}
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-semibold text-gray-800 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                            <h3 className="font-semibold text-gray-800 dark:text-white truncate group-hover:text-blue-primary dark:group-hover:text-blue-400 transition-colors duration-300">
                                                 {project.name}
                                             </h3>
                                             {project.ticket_id && (
-                                                <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded flex-shrink-0">
+                                                <span className="text-xs font-semibold text-blue-primary dark:text-blue-400 bg-blue-primary/10 dark:bg-blue-primary/20 px-2 py-0.5 rounded flex-shrink-0">
                                                     #{project.ticket_id}
                                                 </span>
                                             )}
@@ -240,7 +241,7 @@ const BusinessOwnerHome = () => {
                                         <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusColor(project.status)}`}>
                                             {project.status === 'OnProgress' ? 'In Progress' : project.status}
                                         </span>
-                                        <ArrowRight size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                                        <ArrowRight size={16} className="text-gray-400 group-hover:text-blue-primary transition-colors flex-shrink-0" />
                                     </div>
                                 </div>
 
@@ -248,7 +249,7 @@ const BusinessOwnerHome = () => {
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="h-2.5 flex-1 rounded-full bg-gray-100 dark:bg-dark-tertiary overflow-hidden">
                                         <div
-                                            className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(project.percentage, project.isOverdue)}`}
+                                            className={`h-full rounded-full transition-all duration-1000 ease-out ${getProgressBarColor(project.percentage, project.isOverdue)}`}
                                             style={{ width: `${project.percentage}%` }}
                                         />
                                     </div>
@@ -314,7 +315,7 @@ const BusinessOwnerHome = () => {
                             {myMaintenances.map((m: ProductMaintenance) => (
                                 <div
                                     key={m.id}
-                                    className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm"
+                                    className="bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm"
                                 >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1 min-w-0">
@@ -359,12 +360,9 @@ const BusinessOwnerHome = () => {
                                                 <span>{m.priority} priority</span>
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-1">
-                                            <CheckCircle size={13} className="text-blue-500" />
-                                            <span>{m._count?.maintenanceTasks || m.maintenanceTasks?.length || 0} tasks</span>
-                                        </div>
                                         {m.maintainers && m.maintainers.length > 0 && (
                                             <div className="flex items-center gap-1">
+                                                <Shield size={13} className="text-blue-primary" />
                                                 <span>{m.maintainers.length} maintainer{m.maintainers.length > 1 ? 's' : ''}</span>
                                             </div>
                                         )}
@@ -382,7 +380,7 @@ const BusinessOwnerHome = () => {
                 {/* Right Sidebar */}
                 <div className="space-y-4">
                     {/* Recent Milestone Comments across all projects */}
-                    <RecentMilestoneComments projectIds={myProjects.map(p => p.id)} />
+                    <RecentMilestoneComments projects={myProjects} />
 
                     {/* Quick Project Timeline */}
                     <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm">
@@ -415,10 +413,12 @@ const BusinessOwnerHome = () => {
 };
 
 // Sub-component to show recent milestone comments across all BO projects
-const RecentMilestoneComments = ({ projectIds }: { projectIds: number[] }) => {
+const RecentMilestoneComments = ({ projects }: { projects: Project[] }) => {
     // We fetch comments for the first project that has a valid ID
     // RTK Query doesn't support multi-key fetching in a single hook, so show for first project
-    const firstProjectId = projectIds[0];
+    const firstProject = projects[0];
+    const firstProjectId = firstProject?.id;
+    
     const { data: comments = [] } = useGetMilestoneCommentsQuery(firstProjectId, {
         skip: !firstProjectId,
     });
@@ -426,11 +426,14 @@ const RecentMilestoneComments = ({ projectIds }: { projectIds: number[] }) => {
     const recentComments = comments.slice(0, 5);
 
     return (
-        <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm">
+        <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <MessageSquare size={16} />
                 Recent Comments
             </h3>
+            {firstProject && (
+                <p className="text-xs text-blue-primary dark:text-blue-400 mb-3 font-medium">From: {firstProject.name}</p>
+            )}
             {recentComments.length === 0 ? (
                 <p className="text-sm text-gray-400 dark:text-gray-500">No milestone comments yet.</p>
             ) : (
