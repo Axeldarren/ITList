@@ -320,8 +320,46 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
         </div>
       </div>
 
-      {/* Loading / Error */}
-      {isLoading && <div className="flex flex-1 items-center justify-center"><p className="text-gray-400">Loading task…</p></div>}
+      {/* Loading State Skeleton */}
+      {isLoading && (
+        <div className="flex flex-1 overflow-hidden animate-pulse">
+          {/* Left Column Skeleton */}
+          <div className="flex flex-1 flex-col overflow-y-auto p-6 md:p-8 space-y-6">
+            <div>
+              <div className="h-8 w-3/4 rounded bg-gray-200 dark:bg-gray-700 mb-4" />
+              <div className="flex gap-2">
+                <div className="h-5 w-20 rounded-full bg-gray-200 dark:bg-gray-700" />
+                <div className="h-5 w-32 rounded-full bg-gray-200 dark:bg-gray-700" />
+              </div>
+            </div>
+            <div>
+              <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700 mb-2" />
+              <div className="space-y-2">
+                <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-4 w-4/5 rounded bg-gray-200 dark:bg-gray-700" />
+              </div>
+            </div>
+            <div>
+              <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700 mb-3" />
+              <div className="h-16 w-full rounded-xl bg-gray-200 dark:bg-gray-700 mb-2" />
+              <div className="h-12 w-full border border-dashed border-gray-300 dark:border-gray-700 rounded-xl" />
+            </div>
+          </div>
+          {/* Right Column Skeleton */}
+          <div className="hidden w-72 shrink-0 flex-col overflow-y-auto border-l border-gray-200 p-5 dark:border-dark-tertiary md:flex">
+            <div className="h-3 w-16 rounded bg-gray-200 dark:bg-gray-700 mb-4" />
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i}>
+                  <div className="h-3 w-20 rounded bg-gray-200 dark:bg-gray-700 mb-1" />
+                  <div className="h-9 w-full rounded-lg bg-gray-200 dark:bg-gray-700" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {(isError || (!isLoading && !task)) && <div className="flex flex-1 items-center justify-center"><p className="text-red-500">Error loading task details.</p></div>}
 
       {/* ── Content ── */}
