@@ -121,11 +121,24 @@ const prisma = new PrismaClient();
 // Initialize WebSocket Server
 initWebSocket(server);
 
-// Test database connection
+async function connectDbWithRetry(maxRetries = 10, delayMs = 5000) {
+    for (let i = 1; i <= maxRetries; i++) {
+        try {
+            await prisma.$connect();
+            console.log('✅ Database connected successfully');
+            return;
+        } catch (error) {
+            console.warn(`⏳ Database connection failed (Attempt ${i}/${maxRetries}). Retrying in ${delayMs / 1000}s...`);
+            if (i === maxRetries) throw error;
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+}
+
+// Start Server
 async function startServer() {
     try {
-        await prisma.$connect();
-        console.log('✅ Database connected successfully');
+        await connectDbWithRetry();
         
         server.listen(port, () => {
             console.log(`🚀 Server is running on port ${port}`);
@@ -134,7 +147,7 @@ async function startServer() {
         // Start the notification scheduler after server is running
         startNotificationScheduler();
     } catch (error) {
-        console.error('❌ Database connection failed:', error);
+        console.error('❌ Fatal error: Database connection could not be established:', error);
         process.exit(1);
     }
 }
