@@ -38,14 +38,18 @@ const app = express();
 // Trust first proxy (required for Railway, Heroku, etc.)
 app.set('trust proxy', 1);
 
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ["http://localhost:3000"];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Encrypted'],
   exposedHeaders: ['X-Encrypted']
 };
-app.use(cors(corsOptions)); // Use the new options
+app.use(cors(corsOptions));
 
 // Security middleware
 app.use(helmet({

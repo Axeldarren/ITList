@@ -11,99 +11,72 @@ ITList is a comprehensive project management system built with modern web techno
 
 ## 📋 Table of Contents
 
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
+- [System Modules & Features](#-system-modules--features)
+- [Tech Stack](#️-tech-stack)
+- [Key Library Versions](#-key-library-versions)
 - [Getting Started](#-getting-started)
-- [Installation](#-installation)
-- [Environment Setup](#-environment-setup)
-- [Database Setup](#-database-setup)
-- [Running the Application](#-running-the-application)
 - [Project Structure](#-project-structure)
 - [API Documentation](#-api-documentation)
-- [User Roles](#-user-roles)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Screenshots](#-screenshots)
+- [Future Enhancements](#-future-enhancements)
+- [Support](#-support)
 
-## ✨ Features (Latest)
+## 🧩 System Modules & Features
 
-- **Admin Ticket Bypass for Projects & Maintenance:** Admin users can create both projects and maintenance tasks without requiring ticket selection, while non-admin users must select a ticket.
-- **Unified Task & Maintenance Dashboard:** Maintenance tasks and regular tasks are displayed in unified DataGrid tables with consistent filtering and design.
-- **Developer Productivity Analytics:** Advanced reporting and analytics for developer productivity, including weekly/monthly stats and time logs.
-- **Improved Error Handling:** Fixed issues with read-only arrays in task sorting (e.g., using `[...filtered].sort(...)` to avoid mutation errors).
-- **Consistent Toast Notifications:** Toast notifications respect dark mode and are shown in all major dashboard and login pages.
-- **Error-Resistant UI:** UI now prevents common errors (e.g., sorting read-only arrays) and provides clear feedback for required fields.
+The application is architected into several core modules to ensure scalability, maintainability, and clear separation of concerns:
 
-## ✨ Features
+### 1. 🔐 Authentication & Security Module
+- **Secure Access:** JWT-based user authentication and secure session management.
+- **Enterprise-Grade Protection:** Automated XSS prevention, SQL/NoSQL injection protection, progressive rate limiting against brute-force attacks, and input sanitization.
+- **Password Security:** Bcrypt hashing with configurable strength requirements.
 
-### 🎯 Core Project Management
-- **Project Creation & Management** - Create, edit, and manage projects with version control
-- **Task Management** - Comprehensive task creation, assignment, and tracking
-- **Team Collaboration** - Multi-user team management with role-based access
-- **Real-time Updates** - WebSocket integration for live collaboration
-- **Priority Management** - Organize tasks by priority levels (Urgent, High, Medium, Low, Backlog)
+### 2. 👥 User & Role Management Module
+- **Role-Based Access Control (RBAC):** Differentiates between Admin and Regular Users. Admins possess elevated privileges, such as creating entities without pre-existing support tickets.
+- **Profile Management:** Complete profile management with secure avatar uploads.
+- **Security Audit Trails:** Comprehensive event logging for all critical system changes and administrative actions.
 
-### ⏱️ Time Tracking & Productivity
-- **Unified Timer System** - Single comprehensive timer for both regular tasks and maintenance operations
-- **Real-time Timer Broadcasting** - Live timer updates via WebSocket across all connected clients
-- **Advanced Time Logging** - Detailed time tracking with mandatory work session comments
-- **Cross-platform Time Management** - Seamless timer functionality for tasks and maintenance activities
-- **Total Time Aggregation** - Display cumulative time logged for tasks, projects, and maintenance items
-- **Comment-linked Time Entries** - Associate detailed work descriptions with every time log
-- **Developer Productivity Reports** - Monthly productivity analytics with comprehensive time metrics
-- **Duration Formatting** - Human-readable time displays with smart formatting (hours, days, minutes)
-- **Maintenance Time Tracking** - Specialized time tracking for IT product maintenance activities
+### 3. 🏢 Project Management Module
+- **Lifecycle Tracking:** Complete project tracking from Start → OnProgress → Resolve → Finish → Cancel.
+- **Progress Tracking:** Dynamic visual indicators and percentage-based completion metrics.
+- **Version Control:** Project entity versioning with access to historical, archived versions.
 
-### 📊 Advanced Reporting & Analytics
-- **Project Recap Reports** - Comprehensive project portfolio analysis with executive-level signatures
-- **Individual Project Reports** - Detailed project reports with departmental-level approval workflow
-- **Weekly Report (Excel)** - Export department-based weekly activity with:
-   - Scope selector: This week (projects with time logged) or All projects
-   - Department grouping based on time log authors; a project can show under multiple departments
-   - Bold headers, merged group titles, auto-filter, and a spacer row between groups
-   - Filename includes a 6-character unique ID suffix
-- **Story Points Tracking** - Agile story point management and reporting
-- **Time Analytics** - Detailed time logging analysis across projects and developers
-- **Professional PDF Export** - Multiple PDF report types with customizable columns and signature workflows
-- **Signature Hierarchy System** - Role-based signature requirements (IT Supervisor, IT Department Head, IT Division Head)
-- **Task Status Organization** - Categorized task reporting (To Do, Work In Progress, Under Review, Completed)
-- **Completion Date Tracking** - Automated completion date capture for finished tasks
-- **Filtering & Search** - Advanced filtering by status, date ranges, and project criteria
+### 4. ✅ Task Management Module
+- **Task Orchestration:** Granular task creation, assignments, and priority leveling (Urgent, High, Medium, Low, Backlog).
+- **Interactive Visual Timelines:** Gantt chart and kanban-style board views for tracking dependencies and schedules.
+- **Workflow Organization:** Standardized, automated status pipelines (To Do, Work In Progress, Under Review, Completed).
 
-### 👥 User Management & Security
-- **Role-Based Access Control** - Admin and regular user permissions
-- **JWT Authentication** - Secure token-based authentication system
-- **Advanced Security Protection** - XSS prevention, SQL injection protection, and input sanitization
-- **Rate Limiting** - Brute force attack prevention with progressive delays
-- **Security Monitoring** - Real-time threat detection and logging
-- **Password Security** - Bcrypt hashing with strength validation
-- **Profile Management** - User profiles with avatar support
-- **Audit Trail** - Complete audit logging for all system changes
+### 5. ⏱️ Time Tracking & Logging Module
+- **Unified Distributed Timer:** Cross-platform live timer system utilizing WebSockets to broadcast running state globally.
+- **Contextual Logging:** Time logs enforce mandatory descriptive work session comments.
+- **Time Aggregation:** Cumulative duration metrics dynamically calculated across tasks, comprehensive projects, and team members.
 
-### ⚡ Enhanced Timer System & Maintenance
-- **Unified Timer Architecture** - Single timer system for both regular tasks and maintenance operations
-- **Product Maintenance Management** - Comprehensive maintenance task tracking for IT products
-- **Maintenance Task Scheduling** - Create, assign, and track maintenance activities
-- **Real-time Timer Broadcasting** - WebSocket-powered live timer updates across all clients
-- **Comment-linked Time Logs** - Associate detailed work descriptions with time entries
-- **Total Time Aggregation** - Display total time logged for tasks, projects, and maintenance items
-- **Duration Formatting** - Human-readable time displays (e.g., "2h 30m", "1d 4h 15m")
-- **Cross-platform Time Tracking** - Seamless timer functionality across regular and maintenance workflows
+### 6. 💬 Comments & Collaboration Module
+- **Contextual Feedback:** Integrated messaging and feedback loops on tasks and specific work sessions.
+- **File Management:** Secure file attachment and storage capabilities bound to project and task entities.
+- **Activity Feeds:** Real-time push updates on state changes and entity modifications.
 
-### 🎨 User Interface & Experience
-- **Modern Dark/Light Theme** - Toggle between dark and light modes
-- **Responsive Design** - Fully responsive across desktop, tablet, and mobile
-- **Intuitive Dashboard** - Clean, modern interface with easy navigation
-- **Real-time Notifications** - Toast notifications for user actions
-- **File Attachments** - Upload and manage task attachments
-- **Loading Animations** - Comprehensive loading states with skeletons and spinners
-- **Smooth Transitions** - Fade-in animations and smooth page transitions
+### 7. 🤝 Team Management Module
+- **Resource Allocation:** Structured grouping of users into distinct functional teams and departments.
+- **Assignment Routing:** Automated tools to assign team pools seamlessly to active projects.
 
-### 📈 Project Tracking Features
-- **Gantt Chart Timeline** - Visual project timeline representation
-- **Project Status Lifecycle** - Start → OnProgress → Resolve → Finish → Cancel
-- **Version Control** - Project versioning with archived version access
-- **Progress Tracking** - Visual progress indicators and completion percentages
-- **Activity Feeds** - Real-time activity tracking across projects
+### 8. 📊 Reporting & Analytics Module
+- **Multi-Level Approval Workflows:** Generate hierarchical PDF reports bound to specific digital approval tiers (e.g., IT Supervisor, IT Department Head, IT Division Head).
+- **Developer Productivity Stats:** Measure workflow efficiency utilizing weekly and monthly analytical snapshots.
+- **Dynamic Spreadsheets:** Export categorized department activities instantly into auto-formatted Excel spreadsheets.
+
+### 9. 🛠️ Product Maintenance Module
+- **Asset Maintenance Workflows:** Specialized subsystem exclusively for organizing, scheduling, and logging IT product maintenance tasks.
+- **Dedicated Telemetry:** Employs the same unified timing architecture to safely quarantine maintenance metrics apart from primary production projects.
+
+### 10. 🎨 Theme Configuration & UI Module
+- **Appearance Matrix:** Modern Dark/Light mode thematic toggles via persistent local storage.
+- **Responsive Architecture:** Fully reactive layouts catering to Desktop, Tablet, and Mobile ecosystems.
+- **State Feedback:** Engaging loading transitions, skeleton animations, and dynamic toast notification alerts.
+
+### 11. 🔔 Notification & Real-Time Module
+- **Live Event Broadcasting:** Utilizes WebSockets to instantly broadcast system state changes, such as live active timers and organizational collaboration flows, across all connected client sessions.
+- **In-App Toast Alerts:** Provides dynamic, immediate, and non-intrusive feedback regarding the success, processing, or failure states of critical user actions.
+- **Centralized Activity Tracking:** Aggregates individual system events into readable activity feeds so users can effortlessly stay updated on continuous project progress without needing manual page refreshes.
 
 ## 🛠️ Tech Stack
 
@@ -441,22 +414,6 @@ project-management-app/
 - `POST /reports/project-recap` - Generate comprehensive project portfolio reports
 - `GET /search` - Global search across projects and tasks
 
-## 👤 User Roles
-
-### Admin Users
-- Full system access
-- User management capabilities
-- Project creation and deletion
-- **Ticket Bypass Privileges** - Can create projects and maintenance tasks without requiring ticket selection
-- Advanced reporting and analytics
-- Team and assignment management
-
-### Regular Users
-- Project and task participation
-- Time tracking and logging
-- Comment and collaboration features
-- Personal productivity tracking
-- Limited reporting access
 
 ## 🤝 Contributing
 
@@ -502,55 +459,6 @@ project-management-app/
 ### Gantt Timeline
 ![Timeline](https://github.com/user-attachments/assets/4b6a8f22-4450-4fc7-887e-7466a0a0f63d)
 
-## 🏆 Key Features Highlights
-
-- **Enterprise-Grade Security** - XSS protection, SQL injection prevention, rate limiting, and input sanitization
-- **Unified Timer Architecture** - Single comprehensive timer system for tasks and maintenance operations
-- **Real-time Collaboration** - WebSocket integration with live timer broadcasting and updates
-- **Advanced Time Tracking** - Comment-linked time logs with total aggregation across projects
-- **Product Maintenance System** - Complete IT product maintenance workflow management
-- **Multi-tier PDF Reporting** - Professional PDF reports with role-based signature workflows
-  - **Individual Project Reports** - IT Supervisor + IT Department Head approval
-  - **Portfolio Recap Reports** - IT Division Head + IT Department Head approval
-- **Task Status Organization** - Color-coded task categorization (To Do, In Progress, Under Review, Completed)
-- **Automated Completion Tracking** - Automatic capture of task completion dates and timestamps
-- **Story Points Management** - Agile development workflow support with story point analytics
-- **Audit Trail System** - Complete change tracking and security monitoring
-- **File Upload Support** - Secure file attachment handling for tasks
-- **Responsive Design** - Optimized for all devices with modern UI/UX
-- **Dark/Light Theme** - User preference toggle with persistent settings
-- **Loading Animations** - Professional loading states with skeletons and spinners
-- **Smooth Transitions** - Page animations and seamless user experience
-
-## 🔒 Security Features
-
-### Authentication & Authorization
-- **JWT-based Authentication** - Secure token system with configurable expiration
-- **Role-based Access Control** - Admin and user permission levels
-- **Session Management** - Secure cookie handling with httpOnly and sameSite flags
-
-### Input Protection
-- **XSS Prevention** - Real-time script injection detection and blocking
-- **SQL Injection Protection** - Parameterized queries via Prisma ORM
-- **Input Sanitization** - Comprehensive validation and cleaning of user inputs
-- **NoSQL Injection Prevention** - Protection against NoSQL-based attacks
-
-### Rate Limiting & DDoS Protection
-- **Login Rate Limiting** - 5 attempts per 15 minutes with progressive delays
-- **API Rate Limiting** - 100 requests per 15 minutes per IP address
-- **Background Process Protection** - Automated request throttling
-
-### Security Monitoring
-- **Threat Detection** - Real-time suspicious activity monitoring
-- **Security Logging** - Comprehensive audit trails for security events
-- **IP Tracking** - Request origin tracking and logging
-- **User Agent Analysis** - Browser fingerprinting for security assessment
-
-### Data Protection
-- **Password Security** - Bcrypt hashing with configurable salt rounds
-- **Secure Headers** - Helmet.js implementation with CSP policies
-- **CORS Configuration** - Controlled cross-origin resource sharing
-- **File Upload Security** - Size limits and type validation
 
 ## 🎯 Future Enhancements
 
