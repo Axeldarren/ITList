@@ -117,7 +117,6 @@ const ProjectRecap = () => {
         </label>
     );
     
-    const inputClass = "w-full rounded border p-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white";
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">

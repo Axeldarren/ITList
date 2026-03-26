@@ -527,7 +527,6 @@ const HomePage = () => {
   // Truth-seeking: server data preferred over local state
   const activeUser = fullCurrentUser || loggedInUser;
   const isBusinessOwner = activeUser?.role === 'BUSINESS_OWNER';
-  const isAdmin = activeUser?.role === 'ADMIN';
   const { data: userTasks = [], isLoading: tasksLoading } = useGetTasksByUserQuery({ userId: UserID! }, { skip: !UserID });
   const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
   const { data: allTasks = [], isLoading: allTasksLoading } = useGetAllTasksQuery();

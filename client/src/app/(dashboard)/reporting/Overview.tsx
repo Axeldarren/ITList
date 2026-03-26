@@ -10,12 +10,6 @@ import { Briefcase, ListTodo, CheckCircle2, TrendingUp, Clock, Filter } from 'lu
 
 const COLORS = ['#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#6b7280'];
 
-const formatDuration = (seconds: number): string => {
-    if (!seconds || seconds < 0) return '0h';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    return `${h}h ${m}m`;
-};
 
 const Overview = () => {
     const { data: projects = [], isLoading: pLoading } = useGetProjectsQuery();

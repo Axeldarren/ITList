@@ -14,11 +14,12 @@ import { LayoutDashboard, Briefcase, Users, Calendar } from 'lucide-react';
 
 const ReportingPage = () => {
     const router = useRouter();
-    const currentUser = useAppSelector(selectCurrentUser);
-    const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(currentUser?.userId!, { skip: !currentUser?.userId });
+    const loggedInUser = useAppSelector(selectCurrentUser);
+    const userId = loggedInUser?.userId ?? "";
+    const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(userId, { skip: !userId });
     
     // Server-side truth (userData) is preferred over local state (currentUser)
-    const activeUser = userData || currentUser;
+    const activeUser = userData || loggedInUser; // Use loggedInUser here
     const isAllowed = 
         activeUser?.role === 'ADMIN' || 
         activeUser?.role === 'BUSINESS_OWNER';

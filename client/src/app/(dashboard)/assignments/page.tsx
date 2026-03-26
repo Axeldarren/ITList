@@ -14,7 +14,8 @@ import { selectCurrentUser } from '@/state/authSlice';
 const Assignments = () => {
     const router = useRouter();
     const currentUser = useAppSelector(selectCurrentUser);
-    const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(currentUser?.userId!, { skip: !currentUser?.userId });
+    const userId = currentUser?.userId ?? "";
+    const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(userId, { skip: !userId });
 
     // Server-side truth (userData) is preferred over local state (currentUser)
     const activeUser = userData || currentUser;

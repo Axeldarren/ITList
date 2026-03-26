@@ -19,7 +19,8 @@ const ProductMaintenancePage = () => {
   const [isModalNewProductMaintenanceOpen, setIsModalNewProductMaintenanceOpen] = useState(false);
 
   const loggedInUser = useAppSelector(selectCurrentUser);
-  const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(loggedInUser?.userId!, { skip: !loggedInUser?.userId });
+  const userId = loggedInUser?.userId ?? "";
+  const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(userId, { skip: !userId });
 
   // Server-side truth (userData) is preferred over local state (loggedInUser)
   const activeUser = userData || loggedInUser;
