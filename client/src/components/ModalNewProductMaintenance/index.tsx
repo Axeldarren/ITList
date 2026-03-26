@@ -37,7 +37,7 @@ const ModalNewProductMaintenance = ({ isOpen, onClose }: Props) => {
         maintainerIds: selectedMaintainers,
       }).unwrap();
 
-      toast.success("Product maintenance created successfully!");
+      toast.success(`Product maintenance "${name.trim()}" created successfully!`);
       onClose();
       resetForm();
     } catch (error) {

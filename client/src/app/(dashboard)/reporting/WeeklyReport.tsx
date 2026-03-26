@@ -315,9 +315,9 @@ const WeeklyReport = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow dark:bg-dark-secondary">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-2">
         <div>
           <h2 className="text-2xl font-bold dark:text-white">Weekly Report</h2>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Export weekly overview with Department, Project/Product, tasks, progress, and Status</p>
@@ -325,41 +325,36 @@ const WeeklyReport = () => {
       </div>
 
       {/* Scope Filter Section */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Report Scope</h3>
-        <div className="p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
-          <div className="flex items-center gap-4">
-            <label htmlFor="scope" className="text-sm font-medium text-gray-700 dark:text-gray-300">Data Scope:</label>
+      <div className="rounded-2xl border border-gray-100 bg-white/60 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60">
+        <h3 className="text-lg font-semibold mb-5 dark:text-gray-200">Report Scope</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <label htmlFor="scope" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Data Scope:</label>
             <select
               id="scope"
               value={scope}
               onChange={(e) => setScope(e.target.value as 'week' | 'all')}
-              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-secondary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-auto rounded-xl border border-gray-200 bg-white/50 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-white/10 dark:bg-dark-bg/50 dark:text-gray-200 transition-colors"
             >
               <option value="week">This week only (projects/products with time logged)</option>
-              <option value="all">All projects/products</option>
+              <option value="all">All active projects & products</option>
             </select>
-          </div>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {scope === 'week' ? 'Only showing items with time logged this week' : 'Showing all active projects and products'}
-          </p>
         </div>
+        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+          {scope === 'week' ? 'Only showing items with time logged this week.' : 'Showing all active projects and products regardless of time logged.'}
+        </p>
       </div>
 
       {/* Summary Preview */}
       {!isLoading && rows.length > 0 && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-200 dark:border-emerald-700/50">
-          <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Report Preview</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-emerald-600">{rows.length}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Rows</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50/50 p-6 shadow-sm dark:border-emerald-900/30 dark:from-emerald-900/20 dark:to-teal-900/10">
+                <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-1">Total Rows</h3>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{rows.length}</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-teal-600">{new Set(rows.map(r => r.department)).size}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Departments</p>
+            <div className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-cyan-50/50 p-6 shadow-sm dark:border-teal-900/30 dark:from-teal-900/20 dark:to-cyan-900/10">
+                <h3 className="text-sm font-semibold text-teal-600 dark:text-teal-400 mb-1">Departments</h3>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{new Set(rows.map(r => r.department)).size}</p>
             </div>
-          </div>
         </div>
       )}
 
@@ -367,7 +362,7 @@ const WeeklyReport = () => {
       <button
         onClick={handleExport}
         disabled={isLoading}
-        className="w-full flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 text-base font-semibold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-gradient-to-r hover:from-emerald-600 hover:to-teal-700 hover:shadow-emerald-500/30 disabled:opacity-50 disabled:shadow-none"
       >
         {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileSpreadsheet className="h-5 w-5" />}
         {isLoading ? "Loading data..." : `Export Weekly Report (${rows.length} rows)`}

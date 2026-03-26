@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Search, Wrench } from "lucide-react";
-import { useGetProductMaintenancesQuery } from "@/state/api";
+import { useGetProductMaintenancesQuery, useGetUserByIdQuery } from "@/state/api";
 import ProductMaintenanceCard from "@/components/ProductMaintenanceCard";
 import ModalNewProductMaintenance from "@/components/ModalNewProductMaintenance";
 import Header from "@/components/Header";
@@ -10,6 +11,7 @@ import { useAppSelector } from "../../redux";
 import { selectCurrentUser } from "@/state/authSlice";
 
 const ProductMaintenancePage = () => {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
@@ -17,6 +19,15 @@ const ProductMaintenancePage = () => {
   const [isModalNewProductMaintenanceOpen, setIsModalNewProductMaintenanceOpen] = useState(false);
 
   const loggedInUser = useAppSelector(selectCurrentUser);
+  const { data: userData } = useGetUserByIdQuery(loggedInUser?.userId!, { skip: !loggedInUser?.userId });
+
+  const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER' || userData?.role === 'BUSINESS_OWNER';
+
+  useEffect(() => {
+    if ((loggedInUser || userData) && isBusinessOwner) {
+      router.push('/unauthorized');
+    }
+  }, [loggedInUser, userData, isBusinessOwner, router]);
 
   const {
     data: productMaintenancesData,

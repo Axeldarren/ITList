@@ -53,7 +53,7 @@ const ModalEditProductMaintenance = ({ isOpen, onClose, productMaintenance }: Pr
         maintainerIds: selectedMaintainers,
       }).unwrap();
 
-      toast.success("Product maintenance updated successfully!");
+      toast.success(`Product maintenance "${name.trim()}" updated successfully!`);
       onClose();
     } catch (error) {
       const errorMessage = error && typeof error === 'object' && 'data' in error && 

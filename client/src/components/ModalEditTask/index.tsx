@@ -41,6 +41,7 @@ import { selectCurrentUser } from "@/state/authSlice";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
 import MentionInput from "@/components/MentionInput";
 import MentionHighlighter from "@/components/MentionHighlighter";
+import ModalConfirm from "@/components/ModalConfirm";
 import ReactDOM from "react-dom";
 
 const formatDuration = (seconds: number): string => {
@@ -141,6 +142,9 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
   const [replyText, setReplyText] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
 
   const runningLog = task?.timeLogs?.find(log => log.userId === loggedInUser?.userId && !log.endTime);
 
@@ -190,8 +194,8 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
   const handleSave = () => {
     updateTask({ id: taskId, ...formData })
       .unwrap()
-      .then(() => toast.success("Task updated successfully!"))
-      .catch(() => toast.error("Failed to update task."))
+      .then(() => toast.success(`Task "${formData.title || "Untitled"}" updated successfully!`))
+      .catch(() => toast.error(`Failed to update task "${formData.title || "Untitled"}".`))
       .finally(() => onClose());
   };
 
@@ -270,12 +274,18 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
     }
   };
 
-  const handleDeleteComment = async (commentId: number) => {
+  const handleDeleteConfirm = async () => {
+    if (!deletingCommentId) return;
+    setIsDeleting(true);
     try {
-      await deleteComment({ commentId, taskId }).unwrap();
+      await deleteComment({ commentId: deletingCommentId, taskId }).unwrap();
       toast.success("Comment deleted!");
+      setIsConfirmModalOpen(false);
+      setDeletingCommentId(null);
     } catch {
       toast.error("Failed to delete comment.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -324,6 +334,14 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
       className="fixed top-[56px] bottom-0 right-0 z-[45] flex flex-col overflow-hidden bg-gray-50 dark:bg-dark-bg"
       style={{ left: `${sidebarWidth}px`, transition: 'left 300ms ease-in-out' }}
     >
+      <ModalConfirm
+        isOpen={isConfirmModalOpen}
+        onClose={() => { setIsConfirmModalOpen(false); setDeletingCommentId(null); }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        isLoading={isDeleting}
+      />
       {/* ── Top Bar ── */}
       <div className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3 dark:border-dark-tertiary dark:bg-dark-secondary">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -537,7 +555,7 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
                                   <button onClick={() => handleEditStart(comment)} className="text-xs text-gray-400 hover:text-blue-500 transition-colors">Edit</button>
                                 )}
                                 {(loggedInUser?.userId === comment.userId || loggedInUser?.role === "ADMIN") && (
-                                  <button onClick={() => handleDeleteComment(comment.id)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                                  <button onClick={() => { setDeletingCommentId(comment.id); setIsConfirmModalOpen(true); }} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
                                 )}
                               </div>
                             </div>
@@ -575,7 +593,7 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
                                       {(loggedInUser?.userId === reply.userId || loggedInUser?.role === "ADMIN") && (
                                         <div className="mt-1 flex items-center gap-3">
                                           {loggedInUser?.userId === reply.userId && <button onClick={() => handleEditStart(reply)} className="text-[10px] text-gray-400 hover:text-blue-500 transition-colors">Edit</button>}
-                                          <button onClick={() => handleDeleteComment(reply.id)} className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={10} /></button>
+                                          <button onClick={() => { setDeletingCommentId(reply.id); setIsConfirmModalOpen(true); }} className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={10} /></button>
                                         </div>
                                       )}
                                     </div>

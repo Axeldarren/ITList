@@ -80,7 +80,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
 
     toast.promise(promise, {
         loading: 'Creating task...',
-        success: (data) => { resetForm(); onClose(); return `Task "${data.title}" created successfully!`; },
+        success: (data) => { resetForm(); onClose(); return `Task "${data.title}" created successfully in Project "${data.project?.name || 'Unknown'}"!`; },
         error: 'Failed to create task.'
     });
   };

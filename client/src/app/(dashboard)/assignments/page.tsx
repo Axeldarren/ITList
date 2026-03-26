@@ -1,15 +1,29 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
-import { useGetDeveloperAssignmentsQuery, useGetProjectsQuery, Task, DeveloperAssignmentWithStats } from '@/state/api';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useGetDeveloperAssignmentsQuery, useGetProjectsQuery, useGetUserByIdQuery, Task, DeveloperAssignmentWithStats } from '@/state/api';
 import Header from '@/components/Header';
 import { AlertTriangle, Target, ArrowRight, User as UserIcon, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
 import { useRouter } from 'next/navigation';
 import ModalViewAllTasks from '@/components/ModalViewAllTasks';
+import { useAppSelector } from '@/app/redux';
+import { selectCurrentUser } from '@/state/authSlice';
 
 const Assignments = () => {
+    const router = useRouter();
+    const currentUser = useAppSelector(selectCurrentUser);
+    const { data: userData } = useGetUserByIdQuery(currentUser?.userId!, { skip: !currentUser?.userId });
+
+    const isAdmin = currentUser?.role === 'ADMIN' || userData?.role === 'ADMIN';
+
+    useEffect(() => {
+        if ((currentUser || userData) && !isAdmin) {
+            router.push('/unauthorized');
+        }
+    }, [currentUser, userData, isAdmin, router]);
+
     // Force rebuild of types
     const [selectedDeveloper, setSelectedDeveloper] = useState<DeveloperAssignmentWithStats | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,8 +33,7 @@ const Assignments = () => {
     const [sortOption, setSortOption] = useState('username_asc');
     const [limit] = useState(8);
 
-    const router = useRouter();
-    
+
     // Fetch paginated assignments from backend
     const { 
         data: assignmentsData, 

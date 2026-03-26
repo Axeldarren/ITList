@@ -78,9 +78,9 @@ const ModalEditProject = ({ isOpen, onClose, project }: Props) => {
         }, 100);
       }),
       {
-        loading: "Updating project...",
-        success: "Project updated successfully!",
-        error: "Failed to update project.",
+        loading: `Updating project "${projectName}"...`,
+        success: `Project "${projectName}" updated successfully!`,
+        error: `Failed to update project "${projectName}".`,
       },
     );
   };

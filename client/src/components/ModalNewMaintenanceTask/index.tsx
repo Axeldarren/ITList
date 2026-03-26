@@ -78,7 +78,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
         ticket_id: ticketId || undefined, // Send ticket_id only if it has a value
       }).unwrap();
 
-      toast.success("Maintenance task created successfully!");
+      toast.success(`Maintenance task "${title.trim()}" created successfully!`);
       onClose();
       resetForm();
     } catch (error) {

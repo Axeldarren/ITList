@@ -3,6 +3,7 @@ import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { RootState } from '@/app/redux';
 import { logOut } from './authSlice';
 import { encryptJson, decryptJson, isEncryptedEnvelope } from '@/lib/crypto';
+import toast from 'react-hot-toast';
 
 export interface Activity {
   id: number;
@@ -49,6 +50,7 @@ export interface Project {
         ticket_id: string;
     };
 
+    productMaintenances?: { id: number }[];
     versions?: ProjectVersion[];
 }
 
@@ -502,9 +504,12 @@ const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
 
             const result = await rawBaseQuery(finalArgs, api, extraOptions);
     const status = (result as { error?: { status?: number } }).error?.status;
-    if (status === 401 || status === 403) {
+    if (status === 401) {
         // Clear auth state; Persist will update and dashboard layout will redirect on token missing
         api.dispatch(logOut());
+    } else if (status === 403) {
+        // Forbidden - show toast but do NOT logout
+        toast.error("You do not have permission to perform this action.");
     }
     // Decrypt successful JSON responses
     if (useEncryption && 'data' in result) {

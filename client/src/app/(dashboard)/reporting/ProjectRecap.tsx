@@ -120,9 +120,9 @@ const ProjectRecap = () => {
     const inputClass = "w-full rounded border p-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white";
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow dark:bg-dark-secondary">
+        <div className="space-y-6 animate-in fade-in duration-300">
             {/* Header */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-2">
                 <div>
                     <h2 className="text-2xl font-bold dark:text-white">Project Recap Report</h2>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Generate comprehensive PDF reports of your projects</p>
@@ -130,84 +130,77 @@ const ProjectRecap = () => {
             </div>
             
             {/* Filters Section */}
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200 flex items-center gap-2">Filters</h3>
-                <div className="p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="rounded-2xl border border-gray-100 bg-white/60 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60">
+                <h3 className="text-lg font-semibold mb-5 dark:text-gray-200 flex items-center gap-2">Filters</h3>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Include Statuses</label>
+                        <div className="flex flex-wrap gap-3">
+                            {projectStatuses.map(status => (
+                                <label key={status} className={`flex items-center px-4 py-2 cursor-pointer transition-all duration-200 rounded-xl border ${selectedStatuses.includes(status) ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-300 shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-dark-bg dark:border-white/5 dark:text-gray-400 dark:hover:bg-dark-tertiary'}`}>
+                                    <input type="checkbox" checked={selectedStatuses.includes(status)} onChange={() => handleStatusChange(status)} className="sr-only"/>
+                                    <span className="text-sm font-medium">{status}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Include Statuses</label>
-                            <div className="flex flex-wrap gap-x-4 gap-y-2">
-                                {projectStatuses.map(status => (
-                                    <label key={status} className="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" checked={selectedStatuses.includes(status)} onChange={() => handleStatusChange(status)} className="h-4 w-4 rounded text-blue-500 focus:ring-blue-500"/>
-                                        <span className="text-sm dark:text-gray-300">{status}</span>
-                                    </label>
-                                ))}
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Date Range</label>
+                            <div className="flex items-center gap-3">
+                                <input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className="rounded-xl border border-gray-200 bg-white/50 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-white/10 dark:bg-dark-bg/50 dark:text-gray-200 transition-colors" />
+                                <span className="text-gray-400 font-medium">to</span>
+                                <input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className="rounded-xl border border-gray-200 bg-white/50 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-white/10 dark:bg-dark-bg/50 dark:text-gray-200 transition-colors" />
                             </div>
                         </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Date Range</label>
-                                <div className="flex items-center gap-2">
-                                    <input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className={inputClass} />
-                                    <span className="text-gray-500 dark:text-gray-300">to</span>
-                                    <input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className={inputClass} />
-                                </div>
-                            </div>
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} className="h-4 w-4 rounded text-blue-500 focus:ring-blue-500"/>
-                                <span className="text-sm dark:text-gray-300">Include Previous/Archived Versions</span>
-                            </label>
-                        </div>
+                        <label className="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} className="h-4 w-4 rounded text-blue-500 focus:ring-blue-500"/>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-blue-600 transition-colors">Include Previous/Archived Versions</span>
+                        </label>
                     </div>
                 </div>
             </div>
 
             {/* Report Columns Section */}
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200 flex items-center gap-2"><Settings size={18} /> Report Columns</h3>
-                <div className="p-4 bg-gray-50 dark:bg-dark-tertiary rounded-lg">
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <OptionCheckbox id="includeId" label="Project ID" />
-                        <OptionCheckbox id="includeVersion" label="Version" />
-                        <OptionCheckbox id="includeStatus" label="Status" />
-                        <OptionCheckbox id="includeProgress" label="Progress" />
-                        <OptionCheckbox id="includeStoryPoints" label="Story Points" />
-                        <OptionCheckbox id="includeDates" label="Start/End Dates" />
-                        <OptionCheckbox id="includePO" label="Business Owner" />
-                        <OptionCheckbox id="includePM" label="Project Manager" />
-                        <OptionCheckbox id="includeMembers" label="Team Members" />
-                        <OptionCheckbox id="includeProducts" label="Products/Maintenance" />
-                    </div>
+            <div className="rounded-2xl border border-gray-100 bg-white/60 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60">
+                <h3 className="text-lg font-semibold mb-5 dark:text-gray-200 flex items-center gap-2"><Settings size={18} className="text-gray-400" /> Report Columns</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-y-4 gap-x-6">
+                    <OptionCheckbox id="includeId" label="Project ID" />
+                    <OptionCheckbox id="includeVersion" label="Version" />
+                    <OptionCheckbox id="includeStatus" label="Status" />
+                    <OptionCheckbox id="includeProgress" label="Progress" />
+                    <OptionCheckbox id="includeStoryPoints" label="Story Points" />
+                    <OptionCheckbox id="includeDates" label="Start/End Dates" />
+                    <OptionCheckbox id="includePO" label="Business Owner" />
+                    <OptionCheckbox id="includePM" label="Project Manager" />
+                    <OptionCheckbox id="includeMembers" label="Team Members" />
+                    <OptionCheckbox id="includeProducts" label="Products/Maintenance" />
                 </div>
             </div>
 
             {/* Summary Preview */}
             {!isLoading && filteredReportData.length > 0 && options.includeStoryPoints && (
-                <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg mb-6 border border-green-200 dark:border-gray-600">
-                    <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Report Summary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="text-center">
-                            <p className="text-2xl font-bold text-blue-600">{filteredReportData.length}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Total Projects</p>
-                        </div>
-                        {options.includeStoryPoints && (
-                            <div className="text-center">
-                                <p className="text-2xl font-bold text-indigo-600">{summaryTotals.totalStoryPoints}</p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Total Story Points</p>
-                            </div>
-                        )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-6 shadow-sm dark:border-blue-900/30 dark:from-blue-900/20 dark:to-indigo-900/10">
+                        <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1">Total Projects Selected</h3>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">{filteredReportData.length}</p>
                     </div>
+                    {options.includeStoryPoints && (
+                        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-purple-50/50 p-6 shadow-sm dark:border-indigo-900/30 dark:from-indigo-900/20 dark:to-purple-900/10">
+                            <h3 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-1">Total Story Points</h3>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">{summaryTotals.totalStoryPoints}</p>
+                        </div>
+                    )}
                 </div>
             )}
 
             <button 
                 onClick={handleExport}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 rounded-md bg-purple-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-base font-semibold text-white shadow-md shadow-indigo-500/20 transition-all hover:bg-gradient-to-r hover:from-purple-700 hover:to-indigo-700 hover:shadow-indigo-500/30 disabled:opacity-50 disabled:shadow-none"
             >
                 <FileDown size={20} />
-                {isLoading ? "Loading Data..." : `Generate Report (${filteredReportData.length} Projects${options.includeProducts ? `, ${productMaintenances.length} Products` : ''})`}
+                {isLoading ? "Loading Data..." : `Generate PDF Report (${filteredReportData.length} Projects${options.includeProducts ? `, ${productMaintenances.length} Products` : ''})`}
             </button>
 
             <ModalRecapSignatureSelect

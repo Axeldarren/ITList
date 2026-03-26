@@ -187,7 +187,7 @@ const MentionInput = ({
                     {filteredUsers.map((user, index) => (
                         <button
                             key={user.userId}
-                            onClick={(e) => {
+                            onMouseDown={(e) => {
                                 e.preventDefault();
                                 selectUser(user);
                             }}

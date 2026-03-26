@@ -364,7 +364,7 @@ const ProductMaintenanceDetailPage = () => {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         title="Delete Product Maintenance"
-        message={`Are you sure you want to delete "${productMaintenance.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${productMaintenance.name}"?${productMaintenance.projectId ? " Warning: The associated project and all its tasks will also be deleted." : ""} This action cannot be undone.`}
         isLoading={isDeleting}
       />
     </div>

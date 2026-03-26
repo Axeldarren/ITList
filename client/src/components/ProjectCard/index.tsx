@@ -26,7 +26,10 @@ const ProjectCard = ({ project }: Props) => {
 
     const handleDelete = async () => {
         // IMPORTANT: Always confirm a destructive action
-        if (window.confirm(`Are you sure you want to delete the "${project.name}" project? This cannot be undone.`)) {
+        const warning = project.productMaintenances && project.productMaintenances.length > 0 
+            ? "\nWarning: This project has associated product maintenances that will also be deleted." 
+            : "";
+        if (window.confirm(`Are you sure you want to delete the "${project.name}" project?${warning} This cannot be undone.`)) {
             const promise = deleteProject(project.id).unwrap();
 
             toast.promise(promise, {

@@ -145,7 +145,7 @@ const Sidebar = () => {
                     onClose={() => setConfirmModalOpen(false)}
                     onConfirm={handleConfirmDelete}
                     title="Delete Project"
-                    message={`Are you sure you want to permanently delete the "${projectToDelete.name}" project? This action cannot be undone.`}
+                    message={`Are you sure you want to permanently delete the "${projectToDelete.name}" project?${projectToDelete.productMaintenances && projectToDelete.productMaintenances.length > 0 ? " Warning: This project has associated product maintenances that will also be deleted." : ""} This action cannot be undone.`}
                     isLoading={isDeleting}
                 />
             )}
@@ -190,14 +190,15 @@ const Sidebar = () => {
                 )}
                 <nav className='z-10 w-full'>
                     <SidebarLink icon={HomeIcon} label='Dashboard' href='/home' />
-                    {currentUser?.role === 'ADMIN' && (
-                        <>
-                            <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
-                            <SidebarLink icon={UserCheck} label='Assignments' href='/assignments' />
-                        </>
+                    {((currentUser?.role === 'ADMIN' || userData?.role === 'ADMIN') || 
+                      (currentUser?.role === 'BUSINESS_OWNER' || userData?.role === 'BUSINESS_OWNER')) && (
+                        <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
+                    )}
+                    {(currentUser?.role === 'ADMIN' || userData?.role === 'ADMIN') && (
+                        <SidebarLink icon={UserCheck} label='Assignments' href='/assignments' />
                     )}
                     <SidebarLink icon={Calendar} label='Timeline' href='/timeline' />
-                    {currentUser?.role !== 'BUSINESS_OWNER' && (
+                    {(currentUser?.role !== 'BUSINESS_OWNER' && userData?.role !== 'BUSINESS_OWNER') && (
                         <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
                     )}
                 </nav>
