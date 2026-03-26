@@ -14,15 +14,18 @@ import { selectCurrentUser } from '@/state/authSlice';
 const Assignments = () => {
     const router = useRouter();
     const currentUser = useAppSelector(selectCurrentUser);
-    const { data: userData } = useGetUserByIdQuery(currentUser?.userId!, { skip: !currentUser?.userId });
+    const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(currentUser?.userId!, { skip: !currentUser?.userId });
 
-    const isAdmin = currentUser?.role === 'ADMIN' || userData?.role === 'ADMIN';
+    // Server-side truth (userData) is preferred over local state (currentUser)
+    const activeUser = userData || currentUser;
+    const isAdmin = activeUser?.role === 'ADMIN';
 
     useEffect(() => {
-        if ((currentUser || userData) && !isAdmin) {
+        // Only redirect if we are sure the user is NOT an admin
+        if (!userDataLoading && activeUser && !isAdmin) {
             router.push('/unauthorized');
         }
-    }, [currentUser, userData, isAdmin, router]);
+    }, [activeUser, isAdmin, router, userDataLoading]);
 
     // Force rebuild of types
     const [selectedDeveloper, setSelectedDeveloper] = useState<DeveloperAssignmentWithStats | null>(null);
@@ -32,7 +35,6 @@ const Assignments = () => {
     const [filterOption, setFilterOption] = useState('all');
     const [sortOption, setSortOption] = useState('username_asc');
     const [limit] = useState(8);
-
 
     // Fetch paginated assignments from backend
     const { 
@@ -45,9 +47,9 @@ const Assignments = () => {
         search: searchQuery,
         filter: filterOption,
         sort: sortOption
-    });
+    }, { skip: !isAdmin }); // Skip if not admin to avoid 403s before redirect
 
-    const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
+    const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery(undefined, { skip: !isAdmin });
 
     const developers = assignmentsData?.data || [];
     const meta = assignmentsData?.meta;
@@ -101,17 +103,16 @@ const Assignments = () => {
         setPage(1); // Reset to first page on search
     };
 
-    if (assignmentsLoading || projectsLoading) {
+    if (userDataLoading || assignmentsLoading || projectsLoading) {
         return (
-            <div className="p-6">
-                <Header name="Developer Assignments" />
-                <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">Loading assignments...</p>
-                </div>
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
+
+    // Double check before rendering
+    if (!isAdmin) return null;
 
     return (
         <div className="p-6">

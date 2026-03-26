@@ -10,7 +10,7 @@ router.use(protect);
 router.post("/", restrictToAdmin, createUser);
 
 router.get("/", getUsers);
-router.get("/assignments", getDeveloperAssignments);
+router.get("/assignments", restrictToAdmin, getDeveloperAssignments);
 router.get("/:userId", getUserById);
 router.get("/:userId/weekly-stats", getUserWeeklyStats);
 

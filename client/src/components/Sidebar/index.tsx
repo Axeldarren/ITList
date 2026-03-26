@@ -190,17 +190,27 @@ const Sidebar = () => {
                 )}
                 <nav className='z-10 w-full'>
                     <SidebarLink icon={HomeIcon} label='Dashboard' href='/home' />
-                    {((currentUser?.role === 'ADMIN' || userData?.role === 'ADMIN') || 
-                      (currentUser?.role === 'BUSINESS_OWNER' || userData?.role === 'BUSINESS_OWNER')) && (
-                        <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
-                    )}
-                    {(currentUser?.role === 'ADMIN' || userData?.role === 'ADMIN') && (
-                        <SidebarLink icon={UserCheck} label='Assignments' href='/assignments' />
-                    )}
-                    <SidebarLink icon={Calendar} label='Timeline' href='/timeline' />
-                    {(currentUser?.role !== 'BUSINESS_OWNER' && userData?.role !== 'BUSINESS_OWNER') && (
-                        <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
-                    )}
+                    {(() => {
+                        const activeUser = userData || currentUser;
+                        const canSeeReporting = activeUser?.role === 'ADMIN' || activeUser?.role === 'BUSINESS_OWNER';
+                        const canSeeAssignments = activeUser?.role === 'ADMIN';
+                        const isNotBO = activeUser?.role !== 'BUSINESS_OWNER';
+
+                        return (
+                            <>
+                                {canSeeReporting && (
+                                    <SidebarLink icon={BarChartHorizontal} label='Reporting' href='/reporting' />
+                                )}
+                                {canSeeAssignments && (
+                                    <SidebarLink icon={UserCheck} label='Assignments' href='/assignments' />
+                                )}
+                                <SidebarLink icon={Calendar} label='Timeline' href='/timeline' />
+                                {isNotBO && (
+                                    <SidebarLink icon={Wrench} label='Product Maintenance' href='/product-maintenance' />
+                                )}
+                            </>
+                        );
+                    })()}
                 </nav>
 
                 {/* SETTINGS Section */}

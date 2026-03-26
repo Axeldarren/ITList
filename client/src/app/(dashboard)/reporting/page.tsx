@@ -17,18 +17,31 @@ const ReportingPage = () => {
     const currentUser = useAppSelector(selectCurrentUser);
     const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(currentUser?.userId!, { skip: !currentUser?.userId });
     
+    // Server-side truth (userData) is preferred over local state (currentUser)
+    const activeUser = userData || currentUser;
     const isAllowed = 
-        currentUser?.role === 'ADMIN' || userData?.role === 'ADMIN' || 
-        currentUser?.role === 'BUSINESS_OWNER' || userData?.role === 'BUSINESS_OWNER';
+        activeUser?.role === 'ADMIN' || 
+        activeUser?.role === 'BUSINESS_OWNER';
 
     useEffect(() => {
-        // Wait for userData to load before making a decision to redirect
-        if (!userDataLoading && (currentUser || userData) && !isAllowed) {
+        // Only redirect if we are sure the user is NOT allowed
+        if (!userDataLoading && activeUser && !isAllowed) {
             router.push('/unauthorized');
         }
-    }, [currentUser, userData, isAllowed, router, userDataLoading]);
+    }, [activeUser, isAllowed, router, userDataLoading]);
 
     const [activeTab, setActiveTab] = useState('overview');
+
+    if (userDataLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
+    // Double check before rendering
+    if (!isAllowed) return null;
 
     const renderTabButton = (tabName: string, label: string, icon: React.ReactNode) => {
         const isActive = activeTab === tabName;

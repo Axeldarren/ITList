@@ -19,11 +19,12 @@ import {
   stopMaintenanceTaskTimer,
   updateMaintenanceLifecycle,
 } from "../controller/productMaintenanceController";
-import { protect } from "../middleware/authMiddleware";
+import { protect, restrictTo } from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.use(protect); // Protect all routes in this router
+router.use(protect);
+router.use(restrictTo('ADMIN', 'DEVELOPER'));
 
 // Product Maintenance routes
 router.get("/", getProductMaintenances);

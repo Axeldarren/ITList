@@ -19,19 +19,23 @@ const ProductMaintenancePage = () => {
   const [isModalNewProductMaintenanceOpen, setIsModalNewProductMaintenanceOpen] = useState(false);
 
   const loggedInUser = useAppSelector(selectCurrentUser);
-  const { data: userData } = useGetUserByIdQuery(loggedInUser?.userId!, { skip: !loggedInUser?.userId });
+  const { data: userData, isLoading: userDataLoading } = useGetUserByIdQuery(loggedInUser?.userId!, { skip: !loggedInUser?.userId });
 
-  const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER' || userData?.role === 'BUSINESS_OWNER';
+  // Server-side truth (userData) is preferred over local state (loggedInUser)
+  const activeUser = userData || loggedInUser;
+  const isBusinessOwner = activeUser?.role === 'BUSINESS_OWNER';
+  const isAllowed = activeUser && !isBusinessOwner;
 
   useEffect(() => {
-    if ((loggedInUser || userData) && isBusinessOwner) {
+    // Only redirect if we are sure the user is a business owner
+    if (!userDataLoading && activeUser && isBusinessOwner) {
       router.push('/unauthorized');
     }
-  }, [loggedInUser, userData, isBusinessOwner, router]);
+  }, [activeUser, isBusinessOwner, router, userDataLoading]);
 
   const {
     data: productMaintenancesData,
-    isLoading,
+    isLoading: maintenanceLoading,
     isError,
   } = useGetProductMaintenancesQuery({
     page,
@@ -39,11 +43,13 @@ const ProductMaintenancePage = () => {
     search: searchTerm,
     status: statusFilter,
     priority: priorityFilter
-  });
+  }, { skip: !isAllowed }); // Skip if not allowed to avoid 403s before redirect
 
   const productMaintenances = productMaintenancesData?.data || [];
   const meta = productMaintenancesData?.meta;
   const stats = productMaintenancesData?.stats;
+
+  // ... (rest of the logic)
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -60,7 +66,7 @@ const ProductMaintenancePage = () => {
     setPage(1);
   };
 
-  if (isLoading) return (
+  if (userDataLoading || maintenanceLoading) return (
     <div className="mx-auto flex w-full flex-col p-4 lg:p-8">
       {/* Stat card skeletons */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -97,6 +103,9 @@ const ProductMaintenancePage = () => {
       </div>
     </div>
   );
+
+  // Double check before rendering
+  if (!isAllowed) return null;
   if (isError) return <div className="py-4 text-red-500">Error loading product maintenances</div>;
 
   return (
