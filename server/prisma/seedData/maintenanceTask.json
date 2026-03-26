@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "title": "Optimize Project Alpha Database",
+    "description": "Index critical tables and optimize query performance for Project Alpha.",
+    "priority": "High",
+    "type": "Optimize Query",
+    "estimatedHours": 10,
+    "actualHours": 5,
+    "productMaintenanceId": 1,
+    "assignedToId": 2,
+    "createdById": 1
+  },
+  {
+    "id": 2,
+    "title": "Security Patching for Project Alpha",
+    "description": "Apply the latest security patches and updates for Project Alpha.",
+    "priority": "Critical",
+    "type": "Security Updates",
+    "estimatedHours": 8,
+    "actualHours": 8,
+    "productMaintenanceId": 1,
+    "assignedToId": 3,
+    "createdById": 1
+  },
+  {
+    "id": 3,
+    "title": "On-call Support for Project Beta",
+    "description": "Provide on-call support for Project Beta and handle minor bug fixes.",
+    "priority": "Medium",
+    "type": "Bug Fixes",
+    "estimatedHours": 40,
+    "actualHours": 15,
+    "productMaintenanceId": 2,
+    "assignedToId": 4,
+    "createdById": 1
+  }
+]

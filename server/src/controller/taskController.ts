@@ -12,8 +12,39 @@ export const getTasks = async (req: Request, res: Response): Promise<void> => {
         deletedAt: null, // Only fetch tasks that are not deleted
     };
 
+    const loggedInUser = req.user;
+
+    if (!projectId && loggedInUser?.role === 'BUSINESS_OWNER') {
+        const ownedProjects = await Prisma.project.findMany({
+            where: { productOwnerUserId: loggedInUser.userId, deletedAt: null },
+            select: { id: true }
+        });
+        whereClause.projectId = { in: ownedProjects.map(p => p.id) };
+    }
+
     if (projectId) {
-        whereClause.projectId = Number(projectId);
+        const numericProjectId = Number(projectId);
+        
+        // If Business Owner, verify they own the project
+        if (loggedInUser?.role === 'BUSINESS_OWNER') {
+            const project = await Prisma.project.findFirst({
+                where: { id: numericProjectId, productOwnerUserId: loggedInUser.userId, deletedAt: null }
+            });
+            if (!project) {
+                res.status(403).json({ message: "You do not have access to tasks in this project." });
+                return;
+            }
+        } else if (loggedInUser?.role !== 'ADMIN') {
+            // For others (developers), verify they are in the project team (optional, but good)
+            // For now, at least ensure the project exists and is not deleted
+            const project = await Prisma.project.findFirst({ where: { id: numericProjectId, deletedAt: null } });
+            if (!project) {
+                res.status(404).json({ message: "Project not found." });
+                return;
+            }
+        }
+
+        whereClause.projectId = numericProjectId;
         if (version) {
             whereClause.version = Number(version);
         }
@@ -207,6 +238,9 @@ export const getUserTasks = async (req: Request, res: Response): Promise<void> =
       deletedAt: null, // Only fetch non-deleted tasks
     };
 
+    const loggedInUser = req.user;
+    const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER';
+
     if (assignedOnly === 'true') {
         whereClause.assignedUserId = userId;
     } else {
@@ -214,6 +248,14 @@ export const getUserTasks = async (req: Request, res: Response): Promise<void> =
             { authorUserId: userId },
             { assignedUserId: userId },
         ];
+    }
+
+    // If Business Owner is requesting, only show tasks from their projects
+    if (isBusinessOwner) {
+        whereClause.project = {
+            productOwnerUserId: loggedInUser.userId,
+            deletedAt: null
+        };
     }
 
     const tasks = await Prisma.task.findMany({
@@ -358,7 +400,7 @@ export const getTaskById = async (req: Request, res: Response): Promise<void> =>
                 },
                 timeLogs: {
                     include: {
-                        user: { select: { username: true } },
+                        user: { select: { username: true, profilePictureUrl: true } },
                         comment: { select: { text: true } }
                     }
                 },
@@ -470,7 +512,8 @@ export const getTaskTimeLogs = async (req: Request, res: Response): Promise<void
             include: {
                 user: { // Include the user's name with each log
                     select: {
-                        username: true
+                        username: true,
+                        profilePictureUrl: true,
                     }
                 },
                 comment: {

@@ -54,6 +54,9 @@ async function main() {
     "team.json",           // References Users
     "project.json",        // References Users
     "projectTeam.json",
+    "productMaintenance.json", // References Users and Projects
+    "maintenanceTask.json",    // References Users and Product Maintenance
+    "productMaintainer.json", // References Users and Product Maintenance
     "task.json",           // References Users and Projects
     "timeLog.json",        // References Users and Tasks
     // "attachment.json",  // Removed: File missing in seedData

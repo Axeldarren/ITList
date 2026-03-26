@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "name": "Project Alpha Maintenance",
+    "description": "Routine maintenance for Project Alpha focusing on performance and security updates.",
+    "status": "Active",
+    "lifecycle": "Maintaining",
+    "priority": "High",
+    "projectId": 1,
+    "createdById": 1
+  },
+  {
+    "id": 2,
+    "name": "Project Beta Support",
+    "description": "On-call support and minor bug fixes for Project Beta.",
+    "status": "Active",
+    "lifecycle": "Planned",
+    "priority": "Medium",
+    "projectId": 2,
+    "createdById": 1
+  }
+]

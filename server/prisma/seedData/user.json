@@ -1,7 +1,7 @@
 [
   { "userId": 1, "username": "AliceJones", "email": "alice.jones@example.com", "password": "$2a$12$ZUwgomDEtC.HiMbo9f2zMuWdZsbH3G.lAtyIxPOS2a.lOMOCQEg7e", "NIK": 12301, "profilePictureUrl": null, "role": "ADMIN" },
   { "userId": 2, "username": "BobSmith", "email": "bob.smith@example.com", "password": "$2a$12$9BPExSBv2yQYCiTOMdg58O1/OlADXxhrL7HNOCPy7v8M5htsPQuci", "NIK": 12302, "profilePictureUrl": null, "role": "DEVELOPER" },
-  { "userId": 3, "username": "CarolWhite", "email": "carol.white@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12303, "profilePictureUrl": null, "role": "DEVELOPER" },
+  { "userId": 3, "username": "CarolWhite", "email": "carol.white@example.com", "password": "$2a$12$9BPExSBv2yQYCiTOMdg58O1/OlADXxhrL7HNOCPy7v8M5htsPQuci", "NIK": 12303, "profilePictureUrl": null, "role": "DEVELOPER" },
   { "userId": 4, "username": "DaveBrown", "email": "dave.brown@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12304, "profilePictureUrl": null, "role": "DEVELOPER" },
   { "userId": 5, "username": "EveClark", "email": "eve.clark@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12305, "profilePictureUrl": null, "role": "DEVELOPER" },
   { "userId": 6, "username": "FrankWright", "email": "frank.wright@example.com", "password": "$2a$12$gL.5WJ74n5D5iY2J1b.8.O1f/n.Z.e.W.8.u.u.p.o.j.a.c.k.e", "NIK": 12306, "profilePictureUrl": null, "role": "DEVELOPER" },

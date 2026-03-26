@@ -269,7 +269,18 @@ export const getAllTimeLogs = async (req: Request, res: Response) => {
         { maintenanceTaskId: { not: null } }
       ];
     }
-    
+
+    // Business Owners only see time logs for tasks in their owned projects
+    if (req.user?.role === 'BUSINESS_OWNER') {
+      const ownedProjects = await prisma.project.findMany({
+        where: { productOwnerUserId: req.user.userId, deletedAt: null },
+        select: { id: true }
+      });
+      const ownedProjectIds = ownedProjects.map(p => p.id);
+      delete whereClause.OR;
+      whereClause.task = { ...whereClause.task, projectId: { in: ownedProjectIds }, deletedAt: null };
+    }
+
     // Get total count for pagination meta
     const total = await prisma.timeLog.count({ where: whereClause });
     
@@ -457,10 +468,17 @@ export const stopTimerById = async (req: Request, res: Response): Promise<void> 
 // Get all running time logs for all users
 export const getAllRunningTimeLogs = async (req: Request, res: Response): Promise<void> => {
   try {
+    const runningWhere: any = { endTime: null };
+    if (req.user?.role === 'BUSINESS_OWNER') {
+      const ownedProjects = await prisma.project.findMany({
+        where: { productOwnerUserId: req.user.userId, deletedAt: null },
+        select: { id: true }
+      });
+      runningWhere.task = { projectId: { in: ownedProjects.map(p => p.id) }, deletedAt: null };
+    }
+
     const runningLogs = await prisma.timeLog.findMany({
-      where: {
-        endTime: null,
-      },
+      where: runningWhere,
       include: {
         user: { select: { userId: true, username: true, profilePictureUrl: true, role: true } },
         task: { select: { id: true, title: true, projectId: true, deletedAt: true, project: { select: { id: true, name: true } } } },

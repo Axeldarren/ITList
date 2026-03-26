@@ -21,19 +21,25 @@ async function userHasProjectAccess(
 ): Promise<boolean> {
   if (user?.role === 'ADMIN') return true;
   if (!user?.userId) return false;
+
   const project = await Prisma.project.findFirst({
     where: {
       id: projectId,
       deletedAt: null,
-      projectTeams: {
-        some: {
-          team: {
-            members: {
-              some: { userId: user.userId },
+      OR: [
+        { productOwnerUserId: user.userId },
+        {
+          projectTeams: {
+            some: {
+              team: {
+                members: {
+                  some: { userId: user.userId },
+                },
+              },
             },
           },
         },
-      },
+      ],
     },
   });
   return !!project;
@@ -48,21 +54,8 @@ export const getProjects = async (
     const whereClause: any = { deletedAt: null };
     if (req.user?.role !== 'ADMIN' && req.user?.userId) {
       if (req.user.role === 'BUSINESS_OWNER') {
-        // Business Owners see projects they own OR projects whose team they belong to
-        whereClause.OR = [
-          { productOwnerUserId: req.user.userId },
-          {
-            projectTeams: {
-              some: {
-                team: {
-                  members: {
-                    some: { userId: req.user.userId },
-                  },
-                },
-              },
-            },
-          },
-        ];
+        // Business Owners ONLY see projects they own
+        whereClause.productOwnerUserId = req.user.userId;
       } else {
         whereClause.projectTeams = {
           some: {
@@ -83,6 +76,10 @@ export const getProjects = async (
         createdBy: { select: { username: true } }, // Include creator's name
         productOwner: { select: { userId: true, username: true } }, // Include BO name
         projectTicket: true,
+        productMaintenances: {
+          where: { deletedAt: null },
+          select: { id: true }
+        }
       },
     });
 
@@ -358,12 +355,21 @@ export const deleteProject = async (
         where: { projectId: numericProjectId },
       });
 
+      // Soft delete all related product maintenances
+      await tx.productMaintenance.updateMany({
+        where: { projectId: numericProjectId, deletedAt: null },
+        data: { deletedAt: deletionDate, deletedById: deleterId },
+      });
+
       // Soft delete the project itself
       await tx.project.update({
         where: { id: numericProjectId },
         data: { deletedAt: deletionDate, deletedById: deleterId },
       });
     });
+
+    // Broadcast update for product maintenance since it's affected
+    broadcast({ type: "PRODUCT_MAINTENANCE_UPDATE", action: "deleted_by_project", projectId: numericProjectId });
 
     // Send PROJECT_DELETED notifications to all team members
     if (memberIds.size > 0) {
@@ -757,7 +763,17 @@ export const getAllProjectVersions = async (
   res: Response
 ): Promise<void> => {
   try {
+    const versionWhere: any = {};
+    if (req.user?.role === 'BUSINESS_OWNER') {
+      const ownedProjects = await Prisma.project.findMany({
+        where: { productOwnerUserId: req.user.userId, deletedAt: null },
+        select: { id: true }
+      });
+      versionWhere.projectId = { in: ownedProjects.map(p => p.id) };
+    }
+
     const versions = await Prisma.projectVersion.findMany({
+      where: versionWhere,
       // Order them to make the timeline consistent
       orderBy: [
         {
@@ -884,21 +900,8 @@ export const getTimelineProjects = async (req: Request, res: Response): Promise<
         // Access control for non-admins
         if (req.user?.role !== 'ADMIN' && req.user?.userId) {
             if (req.user.role === 'BUSINESS_OWNER') {
-                // Business Owners see projects they own OR projects whose team they belong to
-                whereClause.OR = [
-                    { productOwnerUserId: req.user.userId },
-                    {
-                        projectTeams: {
-                            some: {
-                                team: {
-                                    members: {
-                                        some: { userId: req.user.userId },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                ];
+                // Business Owners ONLY see projects they own
+                whereClause.productOwnerUserId = req.user.userId;
             } else {
                 whereClause.projectTeams = {
                     some: {

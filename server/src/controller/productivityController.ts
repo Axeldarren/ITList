@@ -18,20 +18,32 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
     const pageNum = parseInt(page || '1', 10);
     const limitNum = parseInt(limit || '10', 10);
     const projectIdNum = projectId ? parseInt(projectId, 10) : undefined;
+    const now = new Date();
 
     try {
-        // Get ALL active users first (we'll paginate after sorting by stats)
+        const loggedInUser = req.user;
+        const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER';
+        const isAdmin = loggedInUser?.role === 'ADMIN';
+
+        // Ensure only Admin or Business Owner can access
+        if (!isAdmin && !isBusinessOwner) {
+            res.status(403).json({ message: "You do not have permission to perform this action." });
+            return;
+        }
+
+        // Under UAT-54, Business Owners can view all project and task metrics
+        // So we don't need to filter by owned projects anymore.
+        // We still support projectId filtering if provided in the query.
+
+        // Get ALL active users
         const users = await prisma.user.findMany({
             where: {
-                deletedAt: null, // Only get active users
+                deletedAt: null,
             },
         });
         
-        const totalUsers = users.length;
-        const now = new Date();
-        
         const stats = await Promise.all(users.map(async (user) => {
-            // Define the date range for the queries
+            // ... (date calculation remains the same)
             let startDate: Date;
             let endDate: Date;
 
@@ -43,17 +55,16 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 startDate = startOfMonth(selectedDate);
                 endDate = endOfMonth(selectedDate);
             } else {
-                // Default to current month if no date is provided
                 startDate = startOfMonth(now);
                 endDate = endOfMonth(now);
             }
 
-            // 1. Calculate Time Logs within the date range (with optional project filter)
+            // 1. Calculate Time Logs - filter by owned projects if BO
             const timeLogWhere: any = {
                 userId: user.userId,
                 task: {
                     deletedAt: null,
-                    ...(projectIdNum && { projectId: projectIdNum })
+                    ...(projectIdNum ? { projectId: projectIdNum } : {})
                 },
                 startTime: { gte: startDate, lte: endDate }
             };
@@ -63,14 +74,14 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
             });
             const totalTimeLogged = timeLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
             
-            // 2. Get all relevant assigned tasks for the user (with optional project filter)
+            // 2. Get all relevant assigned tasks 
             const taskWhere: any = {
                 assignedUserId: user.userId,
                 deletedAt: null,
                 status: { not: 'Archived' },
                 project: {
                     deletedAt: null,
-                    status: { not: 'Cancel' }
+                    status: { not: 'Cancel' },
                 },
                 ...(projectIdNum && { projectId: projectIdNum })
             };
@@ -123,21 +134,25 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
         // Sort all stats by totalTimeLogged (most to least) before pagination
         const sortedStats = stats.sort((a, b) => b.totalTimeLogged - a.totalTimeLogged);
 
+        // Optional: Filter stats if projectId is provided so we only show involved devs
+        const filteredStats = projectIdNum ? sortedStats.filter(s => s.totalTimeLogged > 0 || s.totalTasks > 0) : sortedStats;
+        const finalTotal = filteredStats.length;
+
         // Return paginated response if pagination params provided
         if (page && limit) {
-            const paginatedStats = sortedStats.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+            const paginatedStats = filteredStats.slice((pageNum - 1) * limitNum, pageNum * limitNum);
             res.status(200).json({
                 data: paginatedStats,
                 meta: {
-                    total: totalUsers,
+                    total: finalTotal,
                     page: pageNum,
                     limit: limitNum,
-                    totalPages: Math.ceil(totalUsers / limitNum)
+                    totalPages: Math.ceil(finalTotal / limitNum)
                 }
             });
         } else {
             // Return sorted array for backward compatibility
-            res.status(200).json(sortedStats);
+            res.status(200).json(filteredStats);
         }
 
     } catch (error: any) {

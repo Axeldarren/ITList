@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, NotificationType } from "@prisma/client";
 import { broadcast } from "../websocket";
+import { createNotification, broadcastNotificationUpdate } from "../utils/notificationHelper";
 
 const prisma = new PrismaClient();
 
@@ -10,10 +11,20 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
   const limitNumber = Number(limit);
 
   try {
+    const loggedInUser = req.user;
+    const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER';
+
     // Build where clause
     const whereClause: any = {
       deletedAt: null,
     };
+
+    if (isBusinessOwner) {
+        whereClause.project = {
+            productOwnerUserId: loggedInUser.userId,
+            deletedAt: null
+        };
+    }
 
     if (search) {
       whereClause.OR = [
@@ -43,24 +54,29 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
     // Let's make them global (ignoring filters) but maybe respecting search if present? 
     // Standard approach: Status cards usually show totals across the whole dataset.
     
+    const statsWhere: any = { deletedAt: null };
+    if (isBusinessOwner) {
+        statsWhere.project = { productOwnerUserId: loggedInUser.userId, deletedAt: null };
+    }
+
     const [activeCount, inactiveCount, highPriorityCount, thisMonthCount, totalMaintenances] = await Promise.all([
-        prisma.productMaintenance.count({ where: { status: 'Active', deletedAt: null } }),
-        prisma.productMaintenance.count({ where: { status: 'Inactive', deletedAt: null } }),
+        prisma.productMaintenance.count({ where: { ...statsWhere, status: 'Active' } }),
+        prisma.productMaintenance.count({ where: { ...statsWhere, status: 'Inactive' } }),
         prisma.productMaintenance.count({ 
             where: { 
+                ...statsWhere,
                 OR: [{ priority: 'High' }, { priority: 'Critical' }],
-                deletedAt: null 
             } 
         }),
         prisma.productMaintenance.count({
             where: {
+                ...statsWhere,
                 createdAt: {
                     gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
                 },
-                deletedAt: null
             }
         }),
-        prisma.productMaintenance.count({ where: { deletedAt: null } })
+        prisma.productMaintenance.count({ where: statsWhere })
     ]);
 
     const productMaintenances = await prisma.productMaintenance.findMany({
@@ -175,12 +191,22 @@ export const getProductMaintenances = async (req: Request, res: Response): Promi
 export const getProductMaintenanceById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
-    const productMaintenance = await prisma.productMaintenance.findUnique({
-      where: { 
+    const loggedInUser = req.user;
+    const isBusinessOwner = loggedInUser?.role === 'BUSINESS_OWNER';
+
+    const where: any = { 
         id: Number(id),
         deletedAt: null,
-      },
-  include: {
+    };
+
+    if (isBusinessOwner) {
+        where.project = { productOwnerUserId: loggedInUser.userId, deletedAt: null };
+    }
+
+    // Since findUnique only takes unique fields, we use findFirst for extra where clauses
+    const productMaintenance = await prisma.productMaintenance.findFirst({
+        where,
+        include: {
         project: {
           select: {
             id: true,
@@ -244,17 +270,17 @@ export const getProductMaintenanceById = async (req: Request, res: Response): Pr
     }
 
     // Calculate total time logged for the product maintenance
-    const totalTimeLogged = productMaintenance.maintenanceTasks.reduce((total, task) => {
-      const taskTime = task.timeLogs.reduce((taskTotal, log) => {
+    const totalTimeLogged = productMaintenance.maintenanceTasks.reduce((total: number, task: any) => {
+      const taskTime = task.timeLogs.reduce((taskTotal: number, log: any) => {
         return taskTotal + (log.duration || 0);
       }, 0);
       return total + taskTime;
     }, 0);
 
     // Also calculate total time for each maintenance task
-    const maintenanceTasksWithTotals = productMaintenance.maintenanceTasks.map(task => ({
+    const maintenanceTasksWithTotals = productMaintenance.maintenanceTasks.map((task: any) => ({
       ...task,
-      totalTimeLogged: task.timeLogs.reduce((total, log) => total + (log.duration || 0), 0),
+      totalTimeLogged: task.timeLogs.reduce((total: number, log: any) => total + (log.duration || 0), 0),
     }));
 
     const productMaintenanceWithTotals = {
@@ -286,9 +312,15 @@ export const updateMaintenanceLifecycle = async (req: Request, res: Response): P
   }
 
   try {
-  const pm = await prisma.productMaintenance.findFirst({ where: { id: Number(id), deletedAt: null } });
+    const pm = await prisma.productMaintenance.findFirst({ 
+        where: { 
+            id: Number(id), 
+            deletedAt: null,
+            ...(req.user?.role === 'BUSINESS_OWNER' ? { project: { productOwnerUserId: req.user.userId } } : {})
+        } 
+    });
     if (!pm) {
-      res.status(404).json({ message: "Product maintenance not found" });
+      res.status(404).json({ message: "Product maintenance not found or access denied." });
       return;
     }
 
@@ -433,10 +465,22 @@ export const updateProductMaintenance = async (req: Request, res: Response): Pro
     if (status !== undefined) updateData.status = status;
     if (priority !== undefined) updateData.priority = priority;
 
-    const productMaintenance = await prisma.productMaintenance.update({
+    const productMaintenance = await prisma.productMaintenance.findFirst({
+        where: {
+            id: Number(id),
+            deletedAt: null,
+            ...(req.user?.role === 'BUSINESS_OWNER' ? { project: { productOwnerUserId: req.user.userId } } : {})
+        }
+    });
+
+    if (!productMaintenance) {
+        res.status(404).json({ message: "Product maintenance not found or access denied." });
+        return;
+    }
+
+    const updatedProductMaintenance = await prisma.productMaintenance.update({
       where: { 
         id: Number(id),
-        deletedAt: null,
       },
       data: updateData,
       include: {
@@ -487,10 +531,10 @@ export const updateProductMaintenance = async (req: Request, res: Response): Pro
       type: 'PRODUCT_MAINTENANCE_UPDATE',
       action: 'updated',
       productMaintenanceId: Number(id),
-      data: productMaintenance,
+      data: updatedProductMaintenance,
     });
 
-    res.json(productMaintenance);
+    res.json(updatedProductMaintenance);
   } catch (error: any) {
     res.status(500).json({ message: `Error updating product maintenance: ${error.message}` });
   }
@@ -498,34 +542,149 @@ export const updateProductMaintenance = async (req: Request, res: Response): Pro
 
 export const deleteProductMaintenance = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const userId = req.user?.userId;
+  const loggedInUser = req.user;
+  const numericPmId = Number(id);
 
-  if (!userId) {
+  if (!loggedInUser) {
     res.status(401).json({ message: "User not authenticated" });
     return;
   }
 
   try {
-    await prisma.productMaintenance.update({
+    const isBusinessOwner = loggedInUser.role === 'BUSINESS_OWNER';
+
+    // 1. Fetch the PM and its associated project details (with access check)
+    const pmToDelete = await prisma.productMaintenance.findFirst({
       where: { 
-        id: Number(id),
+        id: numericPmId,
         deletedAt: null,
+        ...(isBusinessOwner ? { project: { productOwnerUserId: loggedInUser.userId } } : {})
       },
-      data: {
-        deletedAt: new Date(),
-        deletedById: userId,
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            projectTeams: {
+              include: {
+                team: {
+                  include: {
+                    members: { select: { userId: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
-    // Broadcast product maintenance deletion
-    broadcast({
-      type: 'PRODUCT_MAINTENANCE_UPDATE',
-      action: 'deleted',
-      productMaintenanceId: Number(id),
+    if (!pmToDelete) {
+      res.status(404).json({ message: "Product maintenance not found or access denied." });
+      return;
+    }
+
+    const projectId = pmToDelete.projectId;
+    const deletionDate = new Date();
+    const deleterId = loggedInUser.userId;
+
+    await prisma.$transaction(async (tx) => {
+      // 2. Soft delete the PM itself
+      await tx.productMaintenance.update({
+        where: { id: numericPmId },
+        data: { deletedAt: deletionDate, deletedById: deleterId },
+      });
+
+      // 3. If there's an associated project, perform full project soft deletion (replicating projectController logic)
+      if (projectId) {
+        const numericProjectId = Number(projectId);
+
+        // Soft delete all tasks, comments, and attachments related to the project tasks
+        const tasksToDelete = await tx.task.findMany({
+          where: { projectId: numericProjectId },
+          select: { id: true },
+        });
+        const taskIdsToDelete = tasksToDelete.map((task) => task.id);
+
+        if (taskIdsToDelete.length > 0) {
+          await tx.comment.updateMany({
+            where: { taskId: { in: taskIdsToDelete } },
+            data: { deletedAt: deletionDate, deletedById: deleterId },
+          });
+
+          await tx.attachment.updateMany({
+            where: { taskId: { in: taskIdsToDelete } },
+            data: { deletedAt: deletionDate, deletedById: deleterId },
+          });
+
+          await tx.taskAssignment.deleteMany({
+            where: { taskId: { in: taskIdsToDelete } },
+          });
+
+          await tx.task.updateMany({
+            where: { id: { in: taskIdsToDelete } },
+            data: { deletedAt: deletionDate, deletedById: deleterId },
+          });
+        }
+
+        // Auto-dismiss stale notifications
+        await tx.notification.updateMany({
+          where: {
+            OR: [
+              { projectId: numericProjectId },
+              ...(taskIdsToDelete.length > 0 ? [{ taskId: { in: taskIdsToDelete } }] : []),
+            ],
+          },
+          data: { isRead: true },
+        });
+
+        // Hard delete join/history tables
+        await tx.projectTeam.deleteMany({ where: { projectId: numericProjectId } });
+        await tx.projectStatusHistory.deleteMany({ where: { projectId: numericProjectId } });
+        await tx.projectVersion.deleteMany({ where: { projectId: numericProjectId } });
+        await tx.projectTicket.deleteMany({ where: { projectId: numericProjectId } });
+
+        // Finally soft delete the project itself
+        await tx.project.update({
+          where: { id: numericProjectId },
+          data: { deletedAt: deletionDate, deletedById: deleterId },
+        });
+      }
     });
 
-    res.json({ message: "Product maintenance deleted successfully" });
+    // 4. Notifications (if project existed)
+    if (pmToDelete.project) {
+        const memberIds = new Set<string>();
+        for (const pt of pmToDelete.project.projectTeams) {
+            for (const m of pt.team.members) {
+                if (m.userId !== loggedInUser.userId) memberIds.add(m.userId);
+            }
+        }
+
+        if (memberIds.size > 0) {
+            await Promise.all(
+                Array.from(memberIds).map((userId) =>
+                    createNotification({
+                        type: NotificationType.PROJECT_DELETED,
+                        title: 'Maintenance & Project deleted',
+                        message: `${loggedInUser.username} has deleted product maintenance "${pmToDelete.name}" and its associated project.`,
+                        userId,
+                    })
+                )
+            );
+            broadcastNotificationUpdate();
+        }
+    }
+
+    // 5. Broadcast updates
+    broadcast({ type: 'PRODUCT_MAINTENANCE_UPDATE', action: 'deleted', productMaintenanceId: numericPmId });
+    if (projectId) {
+        broadcast({ type: "PROJECT_UPDATE" });
+    }
+
+    res.json({ message: "Product maintenance and associated project deleted successfully" });
   } catch (error: any) {
+    console.error("Error deleting product maintenance:", error);
     res.status(500).json({ message: `Error deleting product maintenance: ${error.message}` });
   }
 };

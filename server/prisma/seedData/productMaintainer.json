@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "productMaintenanceId": 1,
+    "userId": 2,
+    "role": "Lead"
+  },
+  {
+    "id": 2,
+    "productMaintenanceId": 1,
+    "userId": 3,
+    "role": "Maintainer"
+  },
+  {
+    "id": 3,
+    "productMaintenanceId": 2,
+    "userId": 4,
+    "role": "Lead"
+  }
+]
