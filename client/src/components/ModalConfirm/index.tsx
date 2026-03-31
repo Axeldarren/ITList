@@ -9,9 +9,10 @@ type Props = {
     title: string;
     message: string;
     isLoading?: boolean;
+    confirmLabel?: string;
 };
 
-const ModalConfirm = ({ isOpen, onClose, onConfirm, title, message, isLoading = false }: Props) => {
+const ModalConfirm = ({ isOpen, onClose, onConfirm, title, message, isLoading = false, confirmLabel = "Delete" }: Props) => {
     if (!isOpen) return null;
 
     return ReactDOM.createPortal(
@@ -54,7 +55,7 @@ const ModalConfirm = ({ isOpen, onClose, onConfirm, title, message, isLoading = 
                         disabled={isLoading}
                         className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                     >
-                        {isLoading ? 'Deleting…' : 'Delete'}
+                        {isLoading ? 'Loading…' : confirmLabel}
                     </button>
                 </div>
             </div>

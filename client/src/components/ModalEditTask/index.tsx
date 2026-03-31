@@ -142,6 +142,7 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
 
   const runningLog = task?.timeLogs?.find(log => log.userId === loggedInUser?.userId && !log.endTime);
 
@@ -324,6 +325,31 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
     Low:     "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400",
     Backlog: "bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400",
   };
+
+  const isOverdue = !!formData.dueDate &&
+    new Date(formData.dueDate) < new Date(new Date().toDateString()) &&
+    formData.status !== Status.Completed;
+
+  const isDirty = !!task && (
+    formData.title !== task.title ||
+    formData.description !== task.description ||
+    formData.status !== task.status ||
+    formData.priority !== task.priority ||
+    formData.assignedUserId !== task.assignedUserId ||
+    formData.points !== task.points ||
+    (formData.tags ?? "") !== (task.tags ?? "") ||
+    (formData.startDate ?? "") !== (task.startDate ? format(new Date(task.startDate), "yyyy-MM-dd") : "") ||
+    (formData.dueDate ?? "") !== (task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : "")
+  );
+
+  const handleClose = () => {
+    if (isDirty) {
+      setIsCloseConfirmOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
   if (!isMounted) return null;
 
   return ReactDOM.createPortal(
@@ -338,6 +364,14 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
         title="Delete Comment"
         message="Are you sure you want to delete this comment? This action cannot be undone."
         isLoading={isDeleting}
+      />
+      <ModalConfirm
+        isOpen={isCloseConfirmOpen}
+        onClose={() => setIsCloseConfirmOpen(false)}
+        onConfirm={onClose}
+        title="Discard Changes?"
+        message="You have unsaved changes that will be lost."
+        confirmLabel="Discard"
       />
       {/* ── Top Bar ── */}
       <div className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3 dark:border-dark-tertiary dark:bg-dark-secondary">
@@ -354,7 +388,7 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
               Save Changes
             </button>
           )}
-          <button onClick={onClose} aria-label="Close" className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-white/10 dark:hover:text-gray-300 transition-colors">
+          <button onClick={handleClose} aria-label="Close" className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-white/10 dark:hover:text-gray-300 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -425,15 +459,34 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
                   </span>
                 )}
                 {(formData.startDate || formData.dueDate) && (
-                  <span className="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                  <span className={`inline-flex items-center gap-1 text-xs ${isOverdue ? "text-red-500 dark:text-red-400 font-medium" : "text-gray-400 dark:text-gray-500"}`}>
                     <Calendar size={12} />
                     {formData.startDate ? new Date(formData.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "?"}{" – "}
                     {formData.dueDate ? new Date(formData.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "?"}
                   </span>
                 )}
+                {isOverdue && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-500/20 px-2.5 py-0.5 text-xs font-semibold text-red-600 dark:text-red-400">
+                    <AlertCircle size={10} /> OVERDUE
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">in list <span className="font-semibold">{task.status}</span></p>
             </div>
+
+            {/* Overdue Banner */}
+            {isOverdue && (
+              <div className="flex items-center gap-3 rounded-xl bg-red-50 dark:bg-red-500/10 px-4 py-3 ring-1 ring-red-200 dark:ring-red-500/20">
+                <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400">This task is overdue</p>
+                  <p className="text-xs text-red-500/80 dark:text-red-400/70">
+                    Due {formData.dueDate ? new Date(formData.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""}
+                    {" · "}Update the due date or mark the task as completed.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Time Tracker Banner (only in worklog tab) */}
             {activeTab === "worklog" && (
@@ -640,21 +693,40 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
                   <div className="space-y-3">
                     {workLogEntries.length === 0 ? (
                       <p className="text-sm italic text-gray-400">No work logged yet.</p>
-                    ) : workLogEntries.map((log) => (
-                      <div key={log.id} className="flex gap-3 items-start rounded-xl border border-gray-200 bg-white p-4 dark:border-dark-tertiary dark:bg-dark-secondary">
-                        <CommentAvatar user={log.user} />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold dark:text-gray-200">{log.user?.username || "User"}</span>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-500/20 px-2 py-0.5 text-[11px] font-semibold text-green-700 dark:text-green-400"><Clock size={10} />{formatLogDuration(log.startTime, log.endTime)}</span>
+                    ) : workLogEntries.map((log) => {
+                      const fullUser = users?.find(u => u.userId === log.userId);
+                      return (
+                        <div key={log.id} className="flex gap-3 items-start rounded-xl border border-gray-200 bg-white p-4 dark:border-dark-tertiary dark:bg-dark-secondary">
+                          <CommentAvatar user={log.user} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between flex-wrap gap-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold dark:text-gray-200">{log.user?.username || "User"}</span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-500/20 px-2 py-0.5 text-[11px] font-semibold text-green-700 dark:text-green-400">
+                                  <Clock size={10} />{formatLogDuration(log.startTime, log.endTime)}
+                                </span>
+                                {fullUser?.role && (
+                                  <span className="inline-flex items-center rounded-full bg-accent-100 dark:bg-accent-500/10 px-2 py-0.5 text-[11px] font-semibold text-accent-600 dark:text-accent-400">
+                                    {fullUser.role}
+                                  </span>
+                                )}
+                                {fullUser?.department && (
+                                  <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-white/5 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-white/10">
+                                    {fullUser.department}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-xs text-gray-400 flex-shrink-0">{formatDistanceToNow(new Date(log.startTime), { addSuffix: true })}</span>
                             </div>
-                            <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(log.startTime), { addSuffix: true })}</span>
+                            {log.comment && (
+                              <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                <MentionHighlighter text={log.comment.text} />
+                              </div>
+                            )}
                           </div>
-                          {log.comment && <div className="mt-1.5 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap"><MentionHighlighter text={log.comment.text} /></div>}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -700,9 +772,12 @@ const ModalEditTask = ({ taskId, onClose, initialTab = "worklog" }: Props) => {
                   className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-400 focus:outline-none dark:border-dark-tertiary dark:bg-dark-bg dark:text-gray-300" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-400 dark:text-gray-500">Due Date</label>
+                <label className={`mb-1 flex items-center gap-1.5 text-xs font-medium ${isOverdue ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}>
+                  {isOverdue && <AlertCircle size={11} />}
+                  Due Date{isOverdue && " · Overdue"}
+                </label>
                 <input type="date" name="dueDate" value={formData.dueDate || ""} onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-400 focus:outline-none dark:border-dark-tertiary dark:bg-dark-bg dark:text-gray-300" />
+                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none transition ${isOverdue ? "border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 focus:border-red-400" : "border-gray-200 bg-gray-50 text-gray-700 focus:border-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-gray-300"}`} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-400 dark:text-gray-500">Tags</label>

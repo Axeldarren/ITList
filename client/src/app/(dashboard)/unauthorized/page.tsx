@@ -1,12 +1,23 @@
 "use client";
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldX } from 'lucide-react';
 import Header from '@/components/Header';
 
+const roleMessages: Record<string, string> = {
+    ADMIN: "This page requires an Admin account.",
+    BUSINESS_OWNER: "This page is restricted to Business Owners.",
+    ADMIN_OR_BO: "This page is restricted to Admins and Business Owners.",
+};
+
 const UnauthorizedPage = () => {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const required = searchParams.get('required');
+    const message = required && roleMessages[required]
+        ? roleMessages[required]
+        : "You don't have permission to view this page. Contact your administrator if you believe this is an error.";
 
     return (
         <div className="p-8">
@@ -17,7 +28,7 @@ const UnauthorizedPage = () => {
                     403 — Unauthorized
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400">
-                    You don&apos;t have permission to access this page.
+                    {message}
                 </p>
                 <button
                     onClick={() => router.push('/home')}

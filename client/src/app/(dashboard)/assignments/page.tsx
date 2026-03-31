@@ -24,7 +24,7 @@ const Assignments = () => {
     useEffect(() => {
         // Only redirect if we are sure the user is NOT an admin
         if (!userDataLoading && activeUser && !isAdmin) {
-            router.push('/unauthorized');
+            router.push('/unauthorized?required=ADMIN');
         }
     }, [activeUser, isAdmin, router, userDataLoading]);
 

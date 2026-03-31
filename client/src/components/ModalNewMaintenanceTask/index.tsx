@@ -118,7 +118,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:placeholder-gray-500 transition-colors"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:focus:bg-dark-bg dark:placeholder-gray-500 transition-colors"
             placeholder="Enter task title…"
             required
           />
@@ -134,7 +134,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:placeholder-gray-500 transition-colors"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:focus:bg-dark-bg dark:placeholder-gray-500 transition-colors"
             placeholder="Describe the task…"
           />
         </div>
@@ -144,14 +144,14 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
           <div>
             <label htmlFor="type" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Task Type</label>
             <select id="type" value={type} onChange={(e) => setType(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors">
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:focus:bg-dark-bg transition-colors">
               {taskTypes.map((taskType) => <option key={taskType} value={taskType}>{taskType}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="priority" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Priority</label>
             <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors">
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:focus:bg-dark-bg transition-colors">
               <option value="Low">Low</option>
               <option value="Medium">Medium</option>
               <option value="High">High</option>
@@ -165,7 +165,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
           <div>
             <label htmlFor="assignedTo" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Assign To</label>
             <select id="assignedTo" value={assignedToId} onChange={(e) => setAssignedToId(e.target.value ?? "")}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors">
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:focus:bg-dark-bg transition-colors">
               <option value="">Unassigned</option>
               {availableAssignees?.map((user) => <option key={user.userId} value={user.userId}>{user.username}</option>)}
             </select>
@@ -173,7 +173,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
           <div>
             <label htmlFor="estimatedHours" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Estimated Hours</label>
             <input type="number" id="estimatedHours" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value ? Number(e.target.value) : "")} min="0" step="0.5"
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:focus:bg-dark-bg transition-colors"
               placeholder="e.g., 4.5" />
           </div>
         </div>
@@ -184,7 +184,7 @@ const ModalNewMaintenanceTask = ({ isOpen, onClose, productMaintenanceId }: Prop
             Ticket {!isAdmin && <span className="text-red-400">*</span>}
           </label>
           <select id="ticketId" value={ticketId} onChange={(e) => setTicketId(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white transition-colors"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:focus:bg-dark-bg transition-colors"
             required={!isAdmin}>
             <option value="">Select a Ticket</option>
             {ticketsOpen?.map((ticket) => (

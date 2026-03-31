@@ -7,6 +7,7 @@ import { selectCurrentUser } from "@/state/authSlice";
 import { useGetUserByIdQuery, useUpdateUserMutation, useUploadProfilePictureMutation, useChangePasswordMutation } from "@/state/api";
 import toast from "react-hot-toast";
 import { Save, Upload, Edit, Mail, BellOff } from "lucide-react";
+import ModalConfirm from "@/components/ModalConfirm";
 
 // Reusable component to display a single setting item
 const SettingItem = ({ label, value }: { label: string; value: string | number | undefined }) => (
@@ -46,6 +47,7 @@ const Settings = () => {
     const [uploadProfilePicture, { isLoading: isUploading }] = useUploadProfilePictureMutation();
     const [isEditMode, setIsEditMode] = useState(false);
     const [profileData, setProfileData] = useState({ username: '', email: '', NIK: '' });
+    const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -91,15 +93,28 @@ const Settings = () => {
         );
     };
 
-    const handleCancelEdit = () => {
+    const doCancel = () => {
         if (currentUser) {
-             setProfileData({
+            setProfileData({
                 username: currentUser.username || '',
                 email: currentUser.email || '',
                 NIK: String(currentUser.NIK || ''),
             });
         }
         setIsEditMode(false);
+    };
+
+    const handleCancelEdit = () => {
+        const isDirty = currentUser && (
+            profileData.username !== (currentUser.username || '') ||
+            profileData.email !== (currentUser.email || '') ||
+            profileData.NIK !== String(currentUser.NIK || '')
+        );
+        if (isDirty) {
+            setIsCancelConfirmOpen(true);
+        } else {
+            doCancel();
+        }
     };
 
     if (userLoading) {
@@ -112,6 +127,15 @@ const Settings = () => {
     }
 
     return (
+        <>
+        <ModalConfirm
+            isOpen={isCancelConfirmOpen}
+            onClose={() => setIsCancelConfirmOpen(false)}
+            onConfirm={() => { setIsCancelConfirmOpen(false); doCancel(); }}
+            title="Discard Changes?"
+            message="Your unsaved profile edits will be lost."
+            confirmLabel="Discard"
+        />
         <div className="min-h-full bg-gray-50/30 dark:bg-transparent p-4 md:p-8 transition-colors duration-500">
             <div className="mx-auto max-w-4xl space-y-8">
                 <Header name="User Settings" />
@@ -296,6 +320,7 @@ const Settings = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

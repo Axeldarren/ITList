@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Bell, CheckCheck, Check, X, ChevronLeft } from "lucide-react";
+import ModalConfirm from "@/components/ModalConfirm";
 import {
     useGetNotificationsQuery,
     useMarkNotificationAsReadMutation,
@@ -41,6 +42,7 @@ function getRelativeTime(dateString: string): string {
 const NotificationsPage = () => {
     const [category, setCategory] = useState<string>("all");
     const [page, setPage] = useState(1);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
     const limit = 20;
 
     const router = useRouter();
@@ -90,6 +92,14 @@ const NotificationsPage = () => {
     };
 
     return (
+        <>
+        <ModalConfirm
+            isOpen={deletingId !== null}
+            onClose={() => setDeletingId(null)}
+            onConfirm={() => { deleteNotification(deletingId!); setDeletingId(null); }}
+            title="Delete Notification"
+            message="This notification will be permanently removed."
+        />
         <div className="flex flex-col gap-6 p-4 md:p-8 max-w-4xl mx-auto w-full">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -216,7 +226,7 @@ const NotificationsPage = () => {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    deleteNotification(notification.id);
+                                                    setDeletingId(notification.id);
                                                 }}
                                                 className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-white/10"
                                                 title="Delete"
@@ -255,6 +265,7 @@ const NotificationsPage = () => {
                 </div>
             )}
         </div>
+        </>
     );
 };
 

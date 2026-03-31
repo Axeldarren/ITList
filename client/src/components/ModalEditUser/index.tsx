@@ -11,7 +11,7 @@ type Props = {
     user: User | null;
 };
 
-const inputStyles = "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:placeholder-gray-500 dark:focus:border-blue-500 transition-colors";
+const inputStyles = "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-dark-tertiary dark:bg-dark-bg dark:text-white dark:placeholder-gray-500 dark:focus:border-blue-500 dark:focus:bg-dark-bg transition-colors";
 const labelStyles = "block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1";
 
 const departmentOptions = [

@@ -15,7 +15,9 @@ import {
   Trash2,
   Edit,
   Paperclip,
-} from "lucide-react"; 
+  ListTodo,
+  SearchX,
+} from "lucide-react";
 import { format, isAfter } from "date-fns";
 import BoardViewSkeleton from "./BoardViewSkeleton";
 import toast from "react-hot-toast";
@@ -80,6 +82,16 @@ const BoardView = ({ id, setIsModalNewTaskOpen, searchTerm, isProjectActive }: B
         An error occurred while fetching tasks.
       </div>
     );
+
+  if (searchTerm && filteredTasks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <SearchX className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
+        <p className="text-gray-500 dark:text-gray-400 font-medium">No tasks match your search</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try different keywords.</p>
+      </div>
+    );
+  }
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -186,6 +198,13 @@ const TaskColumn = ({
             onMenuToggle={onMenuToggle}
           />
         ))}
+
+      {tasksCount === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 dark:border-white/10 py-8 px-4 text-center text-gray-400 dark:text-gray-600">
+          <ListTodo className="h-6 w-6" />
+          <p className="text-xs">No tasks · Drag here or add one</p>
+        </div>
+      )}
     </div>
   );
 };

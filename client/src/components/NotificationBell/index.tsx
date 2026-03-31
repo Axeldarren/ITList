@@ -80,7 +80,7 @@ const NotificationBell = () => {
     const router = useRouter();
 
     const { data: unreadData } = useGetUnreadNotificationCountQuery(undefined, {
-        pollingInterval: 60000, // Poll every 60 seconds as fallback
+        pollingInterval: 15000, // Poll every 15 seconds as fallback
     });
     const { data: notificationsData, isFetching: isNotificationsFetching } = useGetNotificationsQuery(
         { page: 1, limit: 15, category: activeCategory },

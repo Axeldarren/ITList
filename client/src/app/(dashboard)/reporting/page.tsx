@@ -27,7 +27,7 @@ const ReportingPage = () => {
     useEffect(() => {
         // Only redirect if we are sure the user is NOT allowed
         if (!userDataLoading && activeUser && !isAllowed) {
-            router.push('/unauthorized');
+            router.push('/unauthorized?required=ADMIN_OR_BO');
         }
     }, [activeUser, isAllowed, router, userDataLoading]);
 

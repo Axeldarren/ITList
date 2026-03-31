@@ -6,8 +6,9 @@ import { useGetProjectsQuery, useDeleteProjectMutation, useLogoutMutation, useGe
 import {
     BarChartHorizontal, Briefcase, Calendar, ChevronUp, ChevronsLeft, ChevronsRight,
     FolderKanban, HomeIcon, LucideIcon, Settings, Trash2, User, Users, UserCheck, Wrench,
-    Moon, Sun, LogOut,
+    Moon, Sun, LogOut, Plus,
 } from 'lucide-react';
+import ModalNewProject from '@/app/(dashboard)/projects/ModalNewProject';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -49,11 +50,17 @@ const ContextMenu = ({ x, y, onDelete }: ContextMenuProps) => {
 
 const Sidebar = () => {
     const [showProjects, setShowProjects] = useState(true);
+    const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; project: Project } | null>(null);
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
     const [imageError, setImageError] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [profileMenuPos, setProfileMenuPos] = useState({ x: 0, y: 0 });
+    const profileBtnRef = useRef<HTMLButtonElement>(null);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
 
     const { data: projects } = useGetProjectsQuery();
     const [deleteProject, { isLoading: isDeleting }] = useDeleteProjectMutation();
@@ -75,6 +82,29 @@ const Sidebar = () => {
     useEffect(() => {
         if (userData) setImageError(false);
     }, [userData]);
+
+    useEffect(() => { setIsMounted(true); }, []);
+
+    const handleProfileClick = () => {
+        if (profileBtnRef.current) {
+            const rect = profileBtnRef.current.getBoundingClientRect();
+            setProfileMenuPos({ x: rect.left, y: rect.top });
+        }
+        setShowProfileMenu(prev => !prev);
+    };
+
+    useEffect(() => {
+        const handleClick = (e: globalThis.MouseEvent) => {
+            if (
+                profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node) &&
+                profileBtnRef.current && !profileBtnRef.current.contains(e.target as Node)
+            ) {
+                setShowProfileMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
 
     const handleContextMenu = (e: MouseEvent<HTMLDivElement>, project: Project) => {
         e.preventDefault();
@@ -155,6 +185,7 @@ const Sidebar = () => {
                     <ContextMenu x={contextMenu.x} y={contextMenu.y} onDelete={handleDeleteClick} />
                 </div>
             )}
+            <ModalNewProject isOpen={isNewProjectOpen} onClose={() => setIsNewProjectOpen(false)} />
 
             {/* Logo / Brand (sticky top) */}
             <div className={`z-50 flex min-h-[56px] items-center py-3 border-b border-gray-100 dark:border-dark-tertiary flex-shrink-0 ${isSidebarCollapsed ? 'px-2.5' : 'px-5'}`}>
@@ -237,16 +268,25 @@ const Sidebar = () => {
                         </button>
                     </div>
                 ) : (
-                    <button
-                        onClick={() => setShowProjects((prev) => !prev)}
-                        className='flex w-full items-center justify-between px-8 py-3 md:justify-between md:px-6 md:py-2.5 hover:bg-accent-50 dark:hover:bg-white/5 transition-colors rounded-md'
-                    >
-                        <div className='flex items-center gap-3'>
+                    <div className='flex w-full items-center px-6 py-2.5'>
+                        <button
+                            onClick={() => setShowProjects((prev) => !prev)}
+                            className='flex flex-1 items-center gap-3 hover:bg-accent-50 dark:hover:bg-white/5 transition-colors rounded-md py-1'
+                        >
                             <FolderKanban className='h-5 w-5 flex-shrink-0 text-gray-500 dark:text-gray-400' />
                             <span className='text-sm font-medium text-gray-700 dark:text-gray-200'>Projects</span>
-                        </div>
-                        <ChevronUp className={`h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ease-in-out ${showProjects ? '' : 'rotate-180'}`} />
-                    </button>
+                            <ChevronUp className={`ml-auto h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ease-in-out ${showProjects ? '' : 'rotate-180'}`} />
+                        </button>
+                        {(userData?.role === 'ADMIN' || currentUser?.role === 'ADMIN') && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setIsNewProjectOpen(true); }}
+                                className='ml-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-600 dark:hover:text-gray-200 transition-colors'
+                                title='New Project'
+                            >
+                                <Plus className='h-4 w-4' />
+                            </button>
+                        )}
+                    </div>
                 )}
 
                 {/* PROJECTS LIST */}
@@ -323,9 +363,12 @@ const Sidebar = () => {
                     )}
                 </button>
 
-                {/* User Profile + Logout */}
-                <div className={`flex items-center mt-2 rounded-lg ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'}`}>
-                    {/* Avatar */}
+                {/* User Profile — click to open menu */}
+                <button
+                    ref={profileBtnRef}
+                    onClick={handleProfileClick}
+                    className={`flex w-full items-center mt-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'}`}
+                >
                     {userData && userData.profilePictureUrl && !imageError ? (
                         <img
                             src={
@@ -342,23 +385,57 @@ const Sidebar = () => {
                             {userData?.username ? userData.username.substring(0, 2).toUpperCase() : <User size={14} />}
                         </div>
                     )}
-
                     {!isSidebarCollapsed && (
                         <>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 text-left">
                                 <p className="text-sm font-medium text-gray-800 dark:text-white truncate">{userData?.username || 'User'}</p>
                                 <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{currentUser?.role || 'Member'}</p>
                             </div>
-                            <button
-                                onClick={handleLogout}
-                                className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                            <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => { e.stopPropagation(); handleLogout(); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleLogout(); } }}
+                                className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex-shrink-0 cursor-pointer"
                                 aria-label="Logout"
                             >
                                 <LogOut className="h-4 w-4" />
-                            </button>
+                            </div>
                         </>
                     )}
-                </div>
+                </button>
+
+                {/* Profile popup menu */}
+                {isMounted && showProfileMenu && ReactDOM.createPortal(
+                    <div
+                        ref={profileMenuRef}
+                        style={{
+                            position: 'fixed',
+                            bottom: window.innerHeight - profileMenuPos.y + 8,
+                            left: profileMenuPos.x,
+                            zIndex: 9999,
+                        }}
+                        className={`w-48 rounded-xl ring-1 shadow-xl py-1.5 ${isDarkMode ? 'dark bg-dark-secondary ring-white/10' : 'bg-white ring-gray-200'}`}
+                    >
+                        <Link
+                            href="/settings"
+                            onClick={() => setShowProfileMenu(false)}
+                            className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${isDarkMode ? 'text-gray-200 hover:bg-white/5' : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                            <Settings className={`h-4 w-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                            Profile Settings
+                        </Link>
+                        <div className={`my-1 border-t ${isDarkMode ? 'border-dark-tertiary' : 'border-gray-100'}`} />
+                        <button
+                            onClick={() => { setShowProfileMenu(false); handleLogout(); }}
+                            className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${isDarkMode ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50'}`}
+                        >
+                            <LogOut className="h-4 w-4" />
+                            Logout
+                        </button>
+                    </div>,
+                    document.body
+                )}
             </div>
         </div>
     );

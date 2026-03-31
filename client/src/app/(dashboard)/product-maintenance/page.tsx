@@ -30,7 +30,7 @@ const ProductMaintenancePage = () => {
   useEffect(() => {
     // Only redirect if we are sure the user is a business owner
     if (!userDataLoading && activeUser && isBusinessOwner) {
-      router.push('/unauthorized');
+      router.push('/unauthorized?required=ADMIN');
     }
   }, [activeUser, isBusinessOwner, router, userDataLoading]);
 
