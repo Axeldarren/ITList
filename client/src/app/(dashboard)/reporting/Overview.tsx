@@ -78,7 +78,7 @@ const Overview = () => {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header / Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-transform hover:scale-[1.02]">
+                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-shadow hover:shadow-md">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
                             <Briefcase size={20} />
@@ -90,7 +90,7 @@ const Overview = () => {
                     </p>
                 </div>
                 
-                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-transform hover:scale-[1.02]">
+                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-shadow hover:shadow-md">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
                             <ListTodo size={20} />
@@ -102,7 +102,7 @@ const Overview = () => {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-transform hover:scale-[1.02]">
+                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-shadow hover:shadow-md">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
                             <CheckCircle2 size={20} />
@@ -114,7 +114,7 @@ const Overview = () => {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-transform hover:scale-[1.02]">
+                <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-shadow hover:shadow-md">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
                             <TrendingUp size={20} />
@@ -129,9 +129,9 @@ const Overview = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Task Status Distribution */}
-                <div className="col-span-1 rounded-2xl border border-gray-100 bg-white/60 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 group">
+                <div className="col-span-1 rounded-2xl border border-gray-100 bg-white/60 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-dark-secondary/60 transition-shadow hover:shadow-md">
                     <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Task Status Distribution</h3>
-                    <div className="h-[280px] w-full items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                    <div className="h-[280px] w-full items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie

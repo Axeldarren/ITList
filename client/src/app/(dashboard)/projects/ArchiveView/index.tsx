@@ -5,7 +5,19 @@ import { Task, ProjectVersion, useGetProjectVersionHistoryQuery, useGetTasksQuer
 import TaskCard from '@/components/TaskCard';
 import TaskCardSkeleton from '@/components/TaskCardSkeleton';
 import { format } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Archive, Clock } from 'lucide-react';
+
+const statusBadgeColor = (status: string) => {
+    switch (status) {
+        case 'OnProgress': return 'bg-blue-500';
+        case 'Resolve':    return 'bg-yellow-500';
+        case 'Finish':     return 'bg-green-500';
+        case 'Cancel':     return 'bg-red-500';
+        default:           return 'bg-gray-500';
+    }
+};
+
+const statusLabel = (status: string) => status === 'OnProgress' ? 'In Progress' : status;
 
 type Props = {
     projectId: number;
@@ -22,15 +34,26 @@ const VersionSection = ({ projectId, version }: { projectId: number, version: Pr
 
     return (
         <div>
-            <div className="border-b-2 border-blue-primary/30 pb-2 mb-4">
-                <h2 className='text-2xl font-bold dark:text-white'>Version {version.version}</h2>
-                <div className='flex gap-4'>
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
-                        Archived on {format(new Date(version.archivedAt), "MMM d, yyyy")}
-                    </p>
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
-                        Duration: {format(new Date(version.startDate), "MMM d, yyyy")} - {format(new Date(version.endDate), "MMM d, yyyy")}
-                    </p>
+            <div className="flex items-start justify-between bg-gray-50 dark:bg-dark-secondary rounded-xl px-5 py-4 mb-5 border border-gray-200 dark:border-dark-tertiary">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <h2 className='text-xl font-bold dark:text-white'>Version {version.version}</h2>
+                        {version.status && (
+                            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full text-white ${statusBadgeColor(version.status)}`}>
+                                {statusLabel(version.status)}
+                            </span>
+                        )}
+                    </div>
+                    <div className='flex flex-wrap gap-4'>
+                        <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                            <Archive className="h-3.5 w-3.5" />
+                            <span>Archived {format(new Date(version.archivedAt), "MMM d, yyyy")}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>{format(new Date(version.startDate), "MMM d, yyyy")} – {format(new Date(version.endDate), "MMM d, yyyy")}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             {isLoading ? (

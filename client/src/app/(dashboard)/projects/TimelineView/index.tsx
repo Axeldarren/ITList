@@ -137,39 +137,46 @@ const TimelineView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, i
         <ModalViewTask taskId={selectedTaskId} onClose={handleCloseModal} />
       )}
 
-      <div className='flex flex-wrap items-center justify-between gap-4 mb-4'>
-        <h1 className='me-2 text-lg font-bold dark:text-white'>
-          Project Tasks Timeline
+      <div className='flex flex-wrap items-center gap-3 bg-gray-50 dark:bg-dark-secondary rounded-xl px-4 py-3 mb-4 border border-gray-200 dark:border-dark-tertiary'>
+        <h1 className='text-sm font-semibold text-gray-700 dark:text-white mr-1'>
+          Tasks Timeline
         </h1>
-        <div className='flex flex-wrap items-center gap-3'>
-          {/* View Mode Selector */}
-          <div className='relative inline-block'>
-            <label className='text-xs text-gray-600 dark:text-gray-300 block mb-1'>View</label>
-            <select
-              className="focus:shadow-outline block w-32 appearance-none rounded border border-gray-400 bg-white px-3 py-1.5 text-sm leading-tight shadow hover:border-gray-500 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white"
-              value={displayOptions.viewMode}
-              onChange={handleViewModeChange}
-            >
-              <option value={ViewMode.Day}>Day</option>
-              <option value={ViewMode.Week}>Week</option>
-              <option value={ViewMode.Month}>Month</option>
-            </select>
-          </div>
-
-          {/* Task Name Width Selector */}
-          <div className='relative inline-block'>
-            <label className='text-xs text-gray-600 dark:text-gray-300 block mb-1'>Name Width</label>
-            <select
-              className="focus:shadow-outline block w-32 appearance-none rounded border border-gray-400 bg-white px-3 py-1.5 text-sm leading-tight shadow hover:border-gray-500 focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white"
-              value={displayOptions.taskNameWidth === "150px" ? "narrow" : displayOptions.taskNameWidth === "280px" ? "medium" : "wide"}
-              onChange={handleTaskNameWidthChange}
-            >
-              <option value="narrow">Narrow</option>
-              <option value="medium">Medium</option>
-              <option value="wide">Wide</option>
-            </select>
-          </div>
+        <div className="h-4 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+        {/* View Mode Selector */}
+        <div className='flex items-center gap-2'>
+          <label className='text-xs font-medium text-gray-500 dark:text-gray-400'>View:</label>
+          <select
+            className="text-xs rounded-lg border border-gray-200 dark:border-dark-tertiary bg-white dark:bg-dark-tertiary px-2.5 py-1.5 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+            value={displayOptions.viewMode}
+            onChange={handleViewModeChange}
+          >
+            <option value={ViewMode.Day}>Day</option>
+            <option value={ViewMode.Week}>Week</option>
+            <option value={ViewMode.Month}>Month</option>
+          </select>
         </div>
+        {/* Task Name Width Selector */}
+        <div className='flex items-center gap-2'>
+          <label className='text-xs font-medium text-gray-500 dark:text-gray-400'>Width:</label>
+          <select
+            className="text-xs rounded-lg border border-gray-200 dark:border-dark-tertiary bg-white dark:bg-dark-tertiary px-2.5 py-1.5 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+            value={displayOptions.taskNameWidth === "150px" ? "narrow" : displayOptions.taskNameWidth === "280px" ? "medium" : "wide"}
+            onChange={handleTaskNameWidthChange}
+          >
+            <option value="narrow">Narrow</option>
+            <option value="medium">Medium</option>
+            <option value="wide">Wide</option>
+          </select>
+        </div>
+        {isProjectActive && (
+          <button
+            className="flex items-center gap-1.5 ml-auto rounded-lg bg-blue-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors cursor-pointer"
+            onClick={() => setIsModalNewTaskOpen(true)}
+          >
+            <Plus size={14} />
+            Add Task
+          </button>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-md bg-white shadow dark:bg-dark-secondary dark:text-white">
@@ -193,18 +200,6 @@ const TimelineView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, i
           )}
         </div>
         
-        {/* Only show "Add Task" button if the project is active */}
-        {isProjectActive && (
-          <div className="px-4 pb-5 pt-3">
-            <button
-              className="flex items-center gap-2 rounded-md bg-[#0275ff] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
-              onClick={() => setIsModalNewTaskOpen(true)}
-            >
-              <Plus size={18} />
-              Add Task
-            </button>
-          </div>
-        )}
       </div>
 
        {/* Pagination Controls */}

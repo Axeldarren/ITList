@@ -25,8 +25,8 @@ const Header = ({
         <div className={containerClasses}>
         {/* --- NEW: Group for title and title-side components --- */}
                 <div className={`flex items-center ${compact ? 'gap-2' : 'gap-3'}`}>
-                    <h1 
-                        className={`${isSmallText ? "text-base sm:text-lg md:text-xl" : "text-lg sm:text-xl md:text-2xl"} font-semibold text-gray-900 dark:text-white`}
+                    <h1
+                        className={`${isSmallText ? "text-base sm:text-lg md:text-xl font-semibold" : "text-xl sm:text-2xl md:text-3xl font-bold tracking-tight"} text-gray-900 dark:text-white`}
                     >
                 {name}
             </h1>

@@ -59,8 +59,9 @@ const ListView = ({ projectId, version, setIsModalNewTaskOpen, searchTerm, isPro
   return (
       <div className='px-4 pb-8 xl:px-6'>
           <div className='pt-5'>
-              <Header 
+              <Header
                   name='List'
+                  isSmallText
                   buttonComponent={
                       isProjectActive && (
                                 <div className="px-4 pb-5 pt-3">

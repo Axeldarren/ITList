@@ -22,6 +22,23 @@ const getStatusBadgeColor = (status: ProjectStatus | string | undefined) => {
     }
 };
 
+const getStatusBorderColor = (status: ProjectStatus | string | undefined) => {
+    switch (status) {
+        case 'OnProgress': return 'border-l-blue-500';
+        case 'Resolve': return 'border-l-yellow-500';
+        case 'Finish': return 'border-l-green-500';
+        case 'Cancel': return 'border-l-red-500';
+        case 'Start':
+        default:
+            return 'border-l-gray-400';
+    }
+};
+
+const getStatusLabel = (status: ProjectStatus | string | undefined) => {
+    if (status === 'OnProgress') return 'In Progress';
+    return status as string;
+};
+
 const ProjectLifecycleRow = ({ project, versions }: Props) => {
     const router = useRouter();
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
@@ -46,7 +63,7 @@ const ProjectLifecycleRow = ({ project, versions }: Props) => {
     const allVersions = [activeVersion, ...versions].sort((a, b) => b.version - a.version);
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-dark-secondary rounded-lg shadow-sm border border-gray-100 dark:border-dark-tertiary hover:shadow-md transition-shadow duration-300">
+        <div className={`flex flex-col h-full bg-white dark:bg-dark-secondary rounded-lg shadow-sm border border-gray-100 dark:border-dark-tertiary border-l-4 ${getStatusBorderColor(project.status)} hover:shadow-md hover:-translate-y-0.5 transition-all duration-300`}>
             {/* Project Header (Active Version) */}
             <div className="p-5 flex-1 cursor-pointer" onClick={handleProjectClick}>
                 <div className="flex justify-between items-start mb-2">
@@ -96,12 +113,21 @@ const ProjectLifecycleRow = ({ project, versions }: Props) => {
                     </button>
                     
                     {isHistoryExpanded && (
-                        <div className="px-5 pb-4 space-y-3 bg-gray-50/50 dark:bg-white/5 animate-in slide-in-from-top-2 duration-200">
+                        <div className="px-5 pb-4 pt-1 bg-gray-50/50 dark:bg-white/5 animate-in slide-in-from-top-2 duration-200">
+                            <div className="relative border-l-2 border-gray-200 dark:border-gray-700 ml-1 space-y-3 py-2">
                             {allVersions.map((version) => (
-                                <div key={version.id} className="relative pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+                                <div key={version.id} className="relative pl-4">
+                                    {/* Dot on timeline */}
+                                    <div className={`absolute -left-[5px] top-[5px] h-2.5 w-2.5 rounded-full ${
+                                        version.id === -1
+                                            ? 'bg-blue-500 ring-2 ring-blue-200 dark:ring-blue-900/60'
+                                            : 'bg-gray-300 dark:bg-gray-600'
+                                    }`} />
                                     <div className="flex items-center justify-between mb-0.5">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">V{version.version}</span>
+                                            <span className={`text-xs font-semibold ${version.id === -1 ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                V{version.version}
+                                            </span>
                                             {version.id === -1 && (
                                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
                                                     Current
@@ -109,19 +135,20 @@ const ProjectLifecycleRow = ({ project, versions }: Props) => {
                                             )}
                                         </div>
                                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full text-white ${getStatusBadgeColor(version.status)}`}>
-                                            {version.status}
+                                            {getStatusLabel(version.status)}
                                         </span>
                                     </div>
-                                    <div className="text-[10px] text-gray-500 dark:text-gray-500">
-                                        {format(new Date(version.startDate), "MMM d")} - {format(new Date(version.endDate), "MMM d, yyyy")}
+                                    <div className={`text-[10px] ${version.id === -1 ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-600'}`}>
+                                        {format(new Date(version.startDate), "MMM d")} – {format(new Date(version.endDate), "MMM d, yyyy")}
                                     </div>
                                     {version.archivedAt && (
-                                        <div className="text-[10px] text-gray-400 mt-0.5 italic">
-                                            Archived: {format(new Date(version.archivedAt), "MMM d")}
+                                        <div className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5 italic">
+                                            Archived {format(new Date(version.archivedAt), "MMM d, yyyy")}
                                         </div>
                                     )}
                                 </div>
                             ))}
+                            </div>
                         </div>
                     )}
                 </div>

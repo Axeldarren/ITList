@@ -19,7 +19,6 @@ import {
     Clock, BarChart3, MessageSquare, ArrowRight,
     FolderOpen, Wrench, Shield,
 } from 'lucide-react';
-import Header from '@/components/Header';
 import { StatsSkeleton, CardSkeleton } from '@/components/Skeleton';
 import { InlineLoading } from '@/components/LoadingSpinner';
 
@@ -137,15 +136,47 @@ const BusinessOwnerHome = () => {
         return 'bg-gray-400';
     };
 
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+    const boGreetings = [
+        "Here's how your portfolio is performing.",
+        "Your projects are waiting for your review.",
+        "Stay on top of your milestones today.",
+        "Let's see where things stand.",
+    ];
+    const greeting = boGreetings[new Date().getDay() % boGreetings.length];
+
+    const initials = loggedInUser?.username?.substring(0, 1).toUpperCase() || 'B';
+
     return (
         <div className="h-full w-full bg-transparent p-8 page-fade-in">
-            <Header name={`Hi, ${loggedInUser?.username}`} />
+            {/* ─── Greeting Header ── */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center text-xl font-bold hidden md:flex ring-2 ring-emerald-200 dark:ring-emerald-500/30 flex-shrink-0">
+                        {initials}
+                    </div>
+                    <div>
+                        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">{timeOfDay}</p>
+                        <div className="flex items-center gap-2.5 flex-wrap mb-1">
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                                {loggedInUser?.username}
+                            </h1>
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-500/20">
+                                Business Owner
+                            </span>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{greeting}</p>
+                    </div>
+                </div>
+            </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 rounded-lg bg-blue-primary/10 dark:bg-blue-primary/20">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default" style={{ borderTop: '2px solid #7c5cfc' }}>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-primary/10 dark:bg-blue-primary/20 flex-shrink-0">
                             <Briefcase size={20} className="text-blue-primary dark:text-blue-400" />
                         </div>
                         <div>
@@ -153,11 +184,12 @@ const BusinessOwnerHome = () => {
                             <p className="text-xs text-gray-500 dark:text-gray-400">Total Projects</p>
                         </div>
                     </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">{stats.completedProjects} completed</p>
                 </div>
 
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default" style={{ borderTop: '2px solid #10b981' }}>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex-shrink-0">
                             <TrendingUp size={20} className="text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div>
@@ -165,11 +197,12 @@ const BusinessOwnerHome = () => {
                             <p className="text-xs text-gray-500 dark:text-gray-400">Active Projects</p>
                         </div>
                     </div>
+                    <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-3 font-medium">Currently in progress</p>
                 </div>
 
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default" style={{ borderTop: '2px solid #ef4444' }}>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 flex-shrink-0">
                             <AlertTriangle size={20} className="text-red-500 dark:text-red-400" />
                         </div>
                         <div>
@@ -177,16 +210,27 @@ const BusinessOwnerHome = () => {
                             <p className="text-xs text-gray-500 dark:text-gray-400">Projects Overdue</p>
                         </div>
                     </div>
+                    <p className={`text-xs mt-3 font-medium ${stats.atRiskProjects > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {stats.atRiskProjects > 0 ? 'Needs immediate attention' : 'All on track'}
+                    </p>
                 </div>
 
-                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default" style={{ borderTop: '2px solid #a855f7' }}>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
                             <BarChart3 size={20} className="text-purple-600 dark:text-purple-400" />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.avgProgress}%</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">Avg Progress</p>
+                        </div>
+                    </div>
+                    <div className="mt-3">
+                        <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-dark-tertiary overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-purple-500 transition-all duration-700"
+                                style={{ width: `${stats.avgProgress}%` }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -383,9 +427,9 @@ const BusinessOwnerHome = () => {
                     <RecentMilestoneComments projects={myProjects} />
 
                     {/* Quick Project Timeline */}
-                    <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm">
+                    <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-200 dark:border-dark-tertiary p-5 shadow-sm" style={{ borderTop: '2px solid #f59e0b' }}>
                         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <Clock size={16} />
+                            <Clock size={16} className="text-amber-500" />
                             Upcoming Deadlines
                         </h3>
                         <div className="space-y-3">
@@ -426,9 +470,9 @@ const RecentMilestoneComments = ({ projects }: { projects: Project[] }) => {
     const recentComments = comments.slice(0, 5);
 
     return (
-        <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm">
+        <div className="bg-white dark:bg-dark-secondary rounded-xl border border-gray-100 dark:border-dark-tertiary p-5 shadow-sm" style={{ borderTop: '2px solid #60a5fa' }}>
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <MessageSquare size={16} />
+                <MessageSquare size={16} className="text-blue-400" />
                 Recent Comments
             </h3>
             {firstProject && (

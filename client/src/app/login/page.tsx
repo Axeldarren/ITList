@@ -7,6 +7,7 @@ import { setCredentials } from '@/state/authSlice';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import { ButtonSpinner, FullPageLoading } from '@/components/LoadingSpinner';
+import { Mail, Lock, Zap, Shield, Users } from 'lucide-react';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -184,17 +185,17 @@ const LoginPage = () => {
                     {/* Bottom: feature list */}
                     <div className="relative z-10 border-t border-gray-100 dark:border-stroke-dark pt-5">
                         {[
-                            'End-to-end encryption',
-                            'Real-time synchronization',
-                            'Role-based access control',
-                        ].map((label, i) => (
+                            { icon: <Shield size={13} />, label: 'End-to-end encryption' },
+                            { icon: <Zap size={13} />, label: 'Real-time synchronization' },
+                            { icon: <Users size={13} />, label: 'Role-based access control' },
+                        ].map((item, i) => (
                             <div
                                 key={i}
                                 className="flex items-center gap-2.5 mb-2.5 text-gray-400 dark:text-gray-500"
                                 style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
                             >
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
-                                {label}
+                                <span className="text-accent-400 flex-shrink-0">{item.icon}</span>
+                                {item.label}
                             </div>
                         ))}
                     </div>
@@ -206,6 +207,12 @@ const LoginPage = () => {
 
                         {/* Header */}
                         <div className="lg-a1 mb-10">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-50 dark:bg-accent-500/10 border border-accent-100 dark:border-accent-500/20 mb-4">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" style={{ boxShadow: '0 0 5px rgba(16,185,129,0.8)' }} />
+                                <span className="text-accent-600 dark:text-accent-400" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.08em' }}>
+                                    ITLIST · SECURE LOGIN
+                                </span>
+                            </div>
                             <h1
                                 className="text-gray-900 dark:text-white mb-1.5"
                                 style={{ fontFamily: 'var(--font-bebas)', fontSize: '36px', letterSpacing: '0.04em' }}
@@ -214,9 +221,9 @@ const LoginPage = () => {
                             </h1>
                             <p
                                 className="text-gray-400 dark:text-gray-500"
-                                style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.1em' }}
+                                style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.08em' }}
                             >
-                                AUTHENTICATE TO CONTINUE
+                                SIGN IN TO YOUR WORKSPACE
                             </p>
                         </div>
 
@@ -232,18 +239,23 @@ const LoginPage = () => {
                                 >
                                     EMAIL ADDRESS
                                 </label>
-                                <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    placeholder="you@example.com"
-                                    required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-accent-400/50 focus:bg-white dark:focus:bg-white/5 transition-all"
-                                    style={{ caretColor: '#7c5cfc' }}
-                                />
+                                <div className="relative">
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none">
+                                        <Mail size={15} />
+                                    </span>
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        placeholder="you@example.com"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-accent-400/50 focus:bg-white dark:focus:bg-white/5 transition-all"
+                                        style={{ caretColor: '#7c5cfc' }}
+                                    />
+                                </div>
                             </div>
 
                             {/* Password */}
@@ -256,6 +268,9 @@ const LoginPage = () => {
                                     PASSWORD
                                 </label>
                                 <div className="relative">
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none">
+                                        <Lock size={15} />
+                                    </span>
                                     <input
                                         id="password"
                                         name="password"
@@ -265,7 +280,7 @@ const LoginPage = () => {
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-gray-50 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 rounded-xl px-4 py-3 pr-11 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-accent-400/50 focus:bg-white dark:focus:bg-white/5 transition-all"
+                                        className="w-full bg-gray-50 dark:bg-white/5 ring-1 ring-gray-200 dark:ring-white/10 rounded-xl pl-10 pr-11 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-accent-400/50 focus:bg-white dark:focus:bg-white/5 transition-all"
                                         style={{ caretColor: '#7c5cfc' }}
                                     />
                                     <button
@@ -317,7 +332,7 @@ const LoginPage = () => {
                                 className="text-gray-300 dark:text-gray-600"
                                 style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.05em' }}
                             >
-                                Authorized personnel only · ITList v2.0
+                                Access is restricted to team members · ITList v2.0
                             </p>
                         </div>
 

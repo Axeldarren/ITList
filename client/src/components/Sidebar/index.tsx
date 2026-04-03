@@ -83,12 +83,25 @@ const Sidebar = () => {
         if (userData) setImageError(false);
     }, [userData]);
 
-    useEffect(() => { setIsMounted(true); }, []);
+    useEffect(() => {
+        setIsMounted(true);
+        // Always start with sidebar closed on mobile
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            dispatch(setIsSidebarCollapsed(true));
+        }
+    }, [dispatch]);
+
+    // Auto-close drawer on mobile when route changes
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768 && !isSidebarCollapsed) {
+            dispatch(setIsSidebarCollapsed(true));
+        }
+    }, [pathname, dispatch, isSidebarCollapsed]);
 
     const handleProfileClick = () => {
         if (profileBtnRef.current) {
             const rect = profileBtnRef.current.getBoundingClientRect();
-            setProfileMenuPos({ x: rect.left, y: rect.top });
+            setProfileMenuPos({ x: rect.left, y: rect.top });   
         }
         setShowProfileMenu(prev => !prev);
     };
@@ -163,10 +176,23 @@ const Sidebar = () => {
     const sidebarClassNames = `fixed flex flex-col h-full
         transition-all duration-300 ease-in-out z-40 bg-white dark:bg-dark-bg
         border-r border-gray-100 dark:border-dark-tertiary overflow-hidden whitespace-nowrap
-        ${isSidebarCollapsed ? 'w-0 md:w-[60px]' : 'w-full md:w-64'}
+        w-[280px] md:w-auto
+        ${isSidebarCollapsed
+            ? '-translate-x-full md:translate-x-0 md:w-[60px]'
+            : 'translate-x-0 md:w-64'
+        }
     `;
 
     return (
+        <>
+        {/* Mobile backdrop overlay — dims content when drawer is open */}
+        {isMounted && !isSidebarCollapsed && (
+            <div
+                className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-30 md:hidden"
+                onClick={() => dispatch(setIsSidebarCollapsed(true))}
+                aria-hidden="true"
+            />
+        )}
         <div className={sidebarClassNames}>
             {/* Confirmation Modal */}
             {projectToDelete && (
@@ -438,6 +464,7 @@ const Sidebar = () => {
                 )}
             </div>
         </div>
+        </>
     );
 };
 
@@ -454,14 +481,21 @@ const SidebarLink = ({
     label,
     isSelected = false,
 }: SidebarLinkProps) => {
+    const dispatch = useAppDispatch();
     const pathname = usePathname();
     const isActive = href === '/'
         ? pathname === href
         : (pathname === href || pathname.startsWith(href + '/')) || isSelected;
     const isSidebarCollapsed = useAppSelector((state) => state.global.isSidebarCollapsed);
 
+    const handleClick = () => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            dispatch(setIsSidebarCollapsed(true));
+        }
+    };
+
     return (
-        <Link href={href} className="w-full">
+        <Link href={href} onClick={handleClick} className="w-full">
             <div
                 className={`relative flex cursor-pointer items-center gap-3 transition-all duration-150 
                     ${isActive

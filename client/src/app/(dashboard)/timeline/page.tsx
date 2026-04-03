@@ -13,7 +13,7 @@ import { useAppSelector } from '@/app/redux';
 // UI & Icon Imports
 import { Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, GitBranch } from 'lucide-react';
 
 type TaskTypeItems = "task" | "milestone" | "project";
 
@@ -147,7 +147,13 @@ const Timeline = () => {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                     </div>
                 ) : projects.length === 0 ? (
-                    <p className="text-center text-gray-500 dark:text-gray-400 py-8">No projects found.</p>
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="h-16 w-16 rounded-full bg-gray-100 dark:bg-dark-tertiary flex items-center justify-center mb-4">
+                            <GitBranch className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-200 font-semibold">No projects found</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try adjusting your search or filters.</p>
+                    </div>
                 ) : (
                    <div key={view} className="animate-in slide-in-from-right-5 fade-in duration-300">
                         {view === 'roadmap' ? (
@@ -180,28 +186,44 @@ const Timeline = () => {
             </div>
 
             {/* Pagination Controls */}
-            {meta && (
-                <div className="flex justify-center items-center mt-8 gap-4">
+            {meta && meta.totalPages > 1 && (
+                <div className="flex justify-center items-center mt-8 gap-1.5">
                     <button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page === 1 || isLoading || isFetching}
-                        className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-dark-secondary dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-dark-secondary dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
-                        <ChevronLeft size={16} />
-                        Previous
+                        <ChevronLeft size={15} />
                     </button>
-                    
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Page {page} of {meta.totalPages}
-                    </span>
+
+                    {(() => {
+                        const total = meta.totalPages;
+                        const windowSize = 5;
+                        let start = Math.max(1, page - Math.floor(windowSize / 2));
+                        const end = Math.min(total, start + windowSize - 1);
+                        if (end - start < windowSize - 1) start = Math.max(1, end - windowSize + 1);
+                        return Array.from({ length: end - start + 1 }, (_, i) => start + i).map(p => (
+                            <button
+                                key={p}
+                                onClick={() => setPage(p)}
+                                disabled={isLoading || isFetching}
+                                className={`w-9 h-9 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                                    p === page
+                                        ? 'bg-blue-primary text-white shadow-sm'
+                                        : 'text-gray-600 dark:text-gray-300 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                {p}
+                            </button>
+                        ));
+                    })()}
 
                     <button
                         onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
                         disabled={page === meta.totalPages || isLoading || isFetching}
-                        className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-dark-secondary dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-dark-secondary dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
-                        Next
-                        <ChevronRight size={16} />
+                        <ChevronRight size={15} />
                     </button>
                 </div>
             )}

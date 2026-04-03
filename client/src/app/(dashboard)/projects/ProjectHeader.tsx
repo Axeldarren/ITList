@@ -164,39 +164,40 @@ const ProjectHeader = ({
                             </div>
                     }
                 />
-                <div className="mt-2 flex flex-wrap items-center space-x-2 sm:space-x-4 text-xs sm:text-sm gap-y-2">
-                    {/* Status Badge */}
-                    <div className={`flex items-center gap-1 sm:gap-2 rounded-full px-2 sm:px-3 py-1 text-white text-xs font-semibold ${statusProps.color}`}>
-                        {statusProps.icon}
-                        <span>{statusProps.text}</span>
-                    </div>
-                    {/* Wrap adjacent conditionals in a fragment to fix ESLint error */}
-                    <>
+                <div className="mt-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Status Badge */}
+                        <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-white text-xs font-semibold ${statusProps.color}`}>
+                            {statusProps.icon}
+                            <span>{statusProps.text}</span>
+                        </div>
                         {teamName && (
-                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                                <Grid3X3 className="h-4 w-4" />
-                                <span>Team: {teamName}</span>
+                            <div className="flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                <Grid3X3 className="h-3.5 w-3.5 text-gray-400" />
+                                <span>{teamName}</span>
                             </div>
                         )}
                         {ticketNumber && (
-                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                                <List className="h-4 w-4" />
-                                <span>Ticket: {ticketNumber}</span>
+                            <div className="flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                <List className="h-3.5 w-3.5 text-gray-400" />
+                                <span>#{ticketNumber}</span>
                             </div>
                         )}
-                    </>
-                    <p className='max-w-2xl text-gray-500 dark:text-gray-400'>{description || "No description."}</p>
-                    {version != null && (
-                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                            <GitBranch className="h-4 w-4" />
-                            <span>Version {version}</span>
-                        </div>
+                        {version != null && (
+                            <div className="flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                <GitBranch className="h-3.5 w-3.5 text-gray-400" />
+                                <span>v{version}</span>
+                            </div>
+                        )}
+                    </div>
+                    {description && (
+                        <p className='text-xs text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed'>{description}</p>
                     )}
                 </div>
             </div>
 
-            <div className='flex flex-wrap-reverse gap-2 border-y border-gray-200 pb-[8px] pt-2 dark:border-stroke-dark md:items-center'>
-                <div className='flex flex-1 items-center gap-1 sm:gap-2 md:gap-4 overflow-x-auto'>
+            <div className='flex flex-wrap-reverse gap-x-0 gap-y-2 border-b border-gray-200 dark:border-stroke-dark md:items-center mt-1'>
+                <div className='flex flex-1 items-center overflow-x-auto'>
                     {loggedInUser?.role !== 'DEVELOPER' && (
                         <TabButton name="Overview" icon={<Eye className='size-5' />} setActiveTab={setActiveTab} activeTab={activeTab} />
                     )}
@@ -214,14 +215,14 @@ const ProjectHeader = ({
                 <div className='flex items-center gap-2'>
                     {activeTab !== 'History' && activeTab !== 'Overview' && (
                         <div className='relative'>
-                            <input 
-                                type='text' 
-                                placeholder='Search Task' 
-                                className='rounded-md border py-1 pl-8 sm:pl-10 pr-2 sm:pr-4 text-xs sm:text-sm w-32 sm:w-auto focus:outline-none dark:border-dark-secondary dark:bg-dark-secondary dark:text-white'
+                            <input
+                                type='text'
+                                placeholder='Search tasks...'
+                                className='rounded-lg border border-gray-200 py-1.5 pl-9 pr-3 text-xs sm:text-sm w-36 sm:w-44 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 dark:border-dark-tertiary dark:bg-dark-secondary dark:text-white transition-all'
                                 value={localSearchTerm}
                                 onChange={(e) => setLocalSearchTerm(e.target.value)}
                             />
-                            <Search className='absolute left-2 sm:left-3 top-1/2 h-3 w-3 sm:h-4 sm:w-4 -translate-y-1/2 text-gray-400 dark:text-neutral-500' />
+                            <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 dark:text-neutral-500' />
                         </div>
                     )}
                 </div>
@@ -242,10 +243,10 @@ const TabButton = ({ name, icon, setActiveTab, activeTab }: TabButtonProps) => {
 
     return (
         <button
-            className={`relative flex items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm transition-colors rounded-lg whitespace-nowrap ${
-                isActive 
-                    ? "bg-blue-primary/10 text-blue-primary dark:bg-blue-primary/20 dark:text-accent-300 font-semibold" 
-                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-tertiary"
+            className={`relative flex items-center gap-1 sm:gap-2 px-3 py-2.5 text-xs sm:text-sm transition-all whitespace-nowrap border-b-2 -mb-px cursor-pointer ${
+                isActive
+                    ? "border-blue-primary text-blue-primary dark:border-accent-300 dark:text-accent-300 font-semibold"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600"
             }`}
             onClick={() => setActiveTab(name)}
         >

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppSelector } from './redux';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { Zap, ShieldCheck, Users, FolderKanban, Clock, CheckCircle2 } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -216,20 +217,26 @@ export default function HomePage() {
           </div>
 
           {/* ── Feature Cards ── */}
-          <div className="hp-a6 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          <div className="hp-a6 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             {[
               {
-                icon: '⚡',
+                icon: <Zap size={18} />,
+                color: '#7c5cfc',
+                colorBg: 'rgba(124,92,252,0.1)',
                 title: 'Real-Time Sync',
                 desc: 'WebSocket-powered updates propagate to your whole team instantly.',
               },
               {
-                icon: '🔒',
+                icon: <ShieldCheck size={18} />,
+                color: '#10b981',
+                colorBg: 'rgba(16,185,129,0.1)',
                 title: 'End-to-End Encrypted',
                 desc: 'Application-layer encryption keeps all sensitive project data secure.',
               },
               {
-                icon: '🎯',
+                icon: <Users size={18} />,
+                color: '#60a5fa',
+                colorBg: 'rgba(96,165,250,0.1)',
                 title: 'Role-Based Access',
                 desc: 'Fine-grained admin and developer permissions per project and team.',
               },
@@ -237,10 +244,29 @@ export default function HomePage() {
               <div
                 key={i}
                 className="hp-card bg-white dark:bg-dark-secondary rounded-xl p-5 ring-1 ring-gray-200 dark:ring-white/10 shadow-sm"
+                style={{ borderTop: `2px solid ${card.color}` }}
               >
-                <div className="text-2xl mb-3">{card.icon}</div>
+                <div className="mb-3 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: card.colorBg, color: card.color }}>
+                  {card.icon}
+                </div>
                 <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-1.5">{card.title}</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{card.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Trust Stats Bar ── */}
+          <div className="hp-a6 mb-8 flex flex-wrap items-center justify-center gap-6 md:gap-10 py-4 px-6 rounded-xl bg-white dark:bg-dark-secondary ring-1 ring-gray-100 dark:ring-white/5">
+            {[
+              { icon: <FolderKanban size={14} />, value: 'Projects', label: 'Fully Tracked' },
+              { icon: <Clock size={14} />, value: 'Time Logs', label: 'Per Task' },
+              { icon: <CheckCircle2 size={14} />, value: 'Multi-View', label: 'Board · List · Timeline' },
+              { icon: <Users size={14} />, value: 'Teams', label: 'With Role Guards' },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <span style={{ color: '#7c5cfc' }}>{s.icon}</span>
+                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{s.value}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">{s.label}</span>
               </div>
             ))}
           </div>

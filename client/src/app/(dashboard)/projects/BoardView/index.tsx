@@ -150,6 +150,13 @@ const TaskColumn = ({
     Completed: "#000000",
   };
 
+  const statusBadgeStyle: Record<string, string> = {
+    "To Do": "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+    "Work In Progress": "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+    "Under Review": "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+    "Completed": "bg-gray-100 text-gray-700 dark:bg-gray-600/40 dark:text-gray-300",
+  };
+
   return (
     <div
       ref={(instance) => {
@@ -163,15 +170,15 @@ const TaskColumn = ({
           style={{ backgroundColor: statusColor[status] }}
         />
         <div className="dark:bg-dark-secondary flex w-full items-center justify-between rounded-e-lg bg-white px-5 py-4">
-          <h3 className="flex items-center text-lg font-semibold dark:text-white">
-            {status}{" "}
-            <span className="dark:bg-dark-tertiary ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 p-1 text-center text-sm leading-none">
+          <h3 className="flex items-center text-base font-semibold dark:text-white">
+            {status}
+            <span className={`ml-2 flex h-6 min-w-[24px] px-1.5 items-center justify-center rounded-full text-xs font-bold leading-none ${statusBadgeStyle[status]}`}>
               {tasksCount}
             </span>
           </h3>
           <div className="flex items-center gap-1">
             <button
-              className="dark:bg-dark-tertiary flex size-6 items-center justify-center rounded bg-gray-200 dark:text-white"
+              className="dark:bg-dark-tertiary flex size-7 items-center justify-center rounded-md bg-gray-100 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
               onClick={() => setIsModalNewTaskOpen(true)}
             >
               <Plus size={16} />
@@ -321,7 +328,7 @@ const Task = ({ task, openMenuId, onMenuToggle, isProjectActive }: TaskProps) =>
           drag(instance);
         }}
         onClick={handleCardClick} // <-- Open modal on card click
-        className={`relative dark:bg-dark-secondary mb-4 rounded-md bg-white shadow hover:shadow-xl ${isDragging ? "opacity-50" : "opacity-100"} ${isProjectActive ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : ''}`}
+        className={`relative dark:bg-dark-secondary mb-4 rounded-md bg-white shadow transition-all duration-200 ${isDragging ? "opacity-50 scale-[1.02]" : "opacity-100"} ${isProjectActive ? "cursor-grab active:cursor-grabbing hover:shadow-lg hover:-translate-y-0.5" : "cursor-pointer hover:shadow-md"} ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : ''}`}
       >
         {/* Overdue Stamp */}
         {isOverdue && (

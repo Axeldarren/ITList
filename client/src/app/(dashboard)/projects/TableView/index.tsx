@@ -89,7 +89,8 @@ const TableView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }
   }, [tasks, searchTerm]);
 
   return (
-    <div className='h-[540px] w-full px-4 pb-8 xl:px-6'>
+    <div className='w-full px-4 pb-8 xl:px-6 overflow-x-auto'>
+      <div className='h-[540px] min-w-[640px]'>
         <div className='pt-5'>
             <Header
                 name="Table"
@@ -113,9 +114,9 @@ const TableView = ({ tasks, setIsModalNewTaskOpen, searchTerm, isProjectActive }
             rows={filteredTasks || []}
             columns={columns}
             sx={dataGridSxStyles(isDarkMode)}
-            // Show a message if no rows are available after filtering
             localeText={{ noRowsLabel: searchTerm ? 'No tasks match your search' : 'No tasks to display' }}
         />
+      </div>
     </div>
   )
 }

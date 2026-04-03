@@ -107,28 +107,32 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
                     </h1>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <label className="text-xs text-gray-500 text-nowrap dark:text-gray-400">From:</label>
-                        <input 
-                            type="date" 
-                            className="text-xs rounded border border-gray-300 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-tertiary dark:bg-dark-secondary dark:text-white"
-                            value={startDate} 
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-tertiary border border-gray-200 dark:border-dark-tertiary rounded-lg px-3 py-1.5">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 text-nowrap">From</label>
+                        <input
+                            type="date"
+                            className="text-xs bg-transparent focus:outline-none dark:text-white cursor-pointer"
+                            value={startDate}
                             max={endDate}
-                            onChange={handleStartDateChange} 
+                            onChange={handleStartDateChange}
                         />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <label className="text-xs text-gray-500 text-nowrap dark:text-gray-400">To:</label>
-                        <input 
-                            type="date" 
-                            className="text-xs rounded border border-gray-300 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-tertiary dark:bg-dark-secondary dark:text-white"
-                            value={endDate} 
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-tertiary border border-gray-200 dark:border-dark-tertiary rounded-lg px-3 py-1.5">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 text-nowrap">To</label>
+                        <input
+                            type="date"
+                            className="text-xs bg-transparent focus:outline-none dark:text-white cursor-pointer"
+                            value={endDate}
                             min={startDate}
-                            onChange={handleEndDateChange} 
+                            onChange={handleEndDateChange}
                         />
                     </div>
-                    {meta && <div className="text-xs text-gray-500 ml-2">Total: {meta.total}</div>}
+                    {meta && (
+                        <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg px-3 py-1.5 text-xs font-semibold">
+                            {meta.total} {meta.total === 1 ? 'event' : 'events'}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -171,21 +175,22 @@ const ActivityView = ({ projectId, searchTerm = '' }: Props) => {
                                                 <ActivityIcon type={activity.type} />
                                             </span>
                                         </div>
-                                        <div className="min-w-0 flex-1 pt-3">
-                                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                <span className="font-semibold text-gray-900 dark:text-white">{activity.user.username}</span> <MentionHighlighter text={activity.description} />
-                                            </p>
-                                            {activity.task && (
-                                                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                                                    Task: {activity.task.title}
+                                        <div className="min-w-0 flex-1 pt-1">
+                                            <div className="bg-white dark:bg-dark-secondary rounded-xl px-4 py-3 border border-gray-100 dark:border-dark-tertiary shadow-sm">
+                                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                    <span className="font-semibold text-gray-900 dark:text-white">{activity.user.username}</span>{' '}
+                                                    <MentionHighlighter text={activity.description} />
                                                 </p>
-                                            )}
-                                            <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-2">
-                                                <span>{formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}</span>
-                                                <span className="text-gray-300 dark:text-gray-600">•</span>
-                                                <span className="font-medium">
-                                                    {format(new Date(activity.createdAt), 'EEEE, MMM dd')}
-                                                </span>
+                                                {activity.task && (
+                                                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5 font-medium">
+                                                        {activity.task.title}
+                                                    </p>
+                                                )}
+                                                <div className="mt-2 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-2">
+                                                    <span>{formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}</span>
+                                                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                                                    <span>{format(new Date(activity.createdAt), 'EEE, MMM d')}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Search, Briefcase, CheckSquare, Menu } from "lucide-react";
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Briefcase, CheckSquare, Menu, X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { setIsSidebarCollapsed } from '@/state';
 import { useRouter } from 'next/navigation';
@@ -108,17 +108,31 @@ const Navbar = () => {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const isSidebarCollapsed = useAppSelector(state => state.global.isSidebarCollapsed);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+    const mobileSearchRef = useRef<HTMLDivElement>(null);
+
+    // Close mobile search on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
+                setMobileSearchOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     const handleGlobalSearch = (query: string) => {
         router.push(`/search?q=${query}`);
+        setMobileSearchOpen(false);
     };
 
     return (
-        <div className='flex items-center justify-between bg-white/80 dark:bg-dark-bg/80 backdrop-blur-sm border-b border-gray-100 dark:border-dark-tertiary px-3 md:px-6 py-2.5 relative z-30'>
-            <div className='flex items-center gap-3 md:gap-6 flex-1'>
+        <div className='sticky top-0 z-30 flex items-center justify-between bg-white/90 dark:bg-dark-bg/90 backdrop-blur-sm border-b border-gray-100 dark:border-dark-tertiary px-3 md:px-6 py-2.5'>
+            <div className='flex items-center gap-3 md:gap-6 flex-1 min-w-0'>
                 {/* Mobile Sidebar Toggle */}
                 <button
-                    className="block md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors md:hidden cursor-pointer"
                     onClick={() => dispatch(setIsSidebarCollapsed(!isSidebarCollapsed))}
                     aria-label="Toggle sidebar"
                 >
@@ -129,7 +143,35 @@ const Navbar = () => {
             </div>
 
             <div className='flex items-center gap-2 md:gap-3'>
-                <AutocompleteSearch onSearch={handleGlobalSearch} />
+                {/* Desktop search — always visible */}
+                <div className="hidden sm:block">
+                    <AutocompleteSearch onSearch={handleGlobalSearch} />
+                </div>
+
+                {/* Mobile search — icon toggles an expanding bar */}
+                <div className="relative sm:hidden" ref={mobileSearchRef}>
+                    {mobileSearchOpen ? (
+                        <div className="flex items-center gap-1 animate-in slide-in-from-right-2 duration-200">
+                            <AutocompleteSearch onSearch={handleGlobalSearch} />
+                            <button
+                                onClick={() => setMobileSearchOpen(false)}
+                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0 cursor-pointer"
+                                aria-label="Close search"
+                            >
+                                <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setMobileSearchOpen(true)}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                            aria-label="Open search"
+                        >
+                            <Search className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                        </button>
+                    )}
+                </div>
+
                 <NotificationBell />
             </div>
         </div>

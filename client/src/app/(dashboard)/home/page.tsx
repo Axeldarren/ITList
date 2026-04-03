@@ -649,6 +649,8 @@ const HomePage = () => {
   if (isLoading) return <CentralizedLoading />;
   if (isBusinessOwner) return <BusinessOwnerHome />;
 
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const greetings = [
     "It's giving boss energy. Go get that bread!",
     "Let's crush those tasks today!",
@@ -676,13 +678,21 @@ const HomePage = () => {
             </div>
           )}
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              Hello, {fullCurrentUser?.username} <span className="inline-block animate-[wave_2s_ease-in-out_infinite] origin-[70%_70%]">👋</span>
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{greeting}</p>
+            <p className="text-xs font-medium text-accent-500 uppercase tracking-wider mb-1">{timeOfDay}</p>
+            <div className="flex items-center gap-2.5 flex-wrap mb-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                {fullCurrentUser?.username}
+              </h1>
+              {loggedInUser?.role && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 ring-1 ring-accent-200 dark:ring-accent-500/20">
+                  {loggedInUser.role === 'ADMIN' ? 'Admin' : 'Developer'}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{greeting}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 mt-4 md:mt-0">
+        <div className="flex items-center gap-3 mt-4 md:mt-0">
           {loggedInUser?.role === 'ADMIN' && (
             <button
               className="flex items-center gap-2 rounded-xl bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-accent-600 hover:shadow-lg hover:shadow-accent-500/25"
@@ -693,6 +703,8 @@ const HomePage = () => {
           )}
         </div>
       </div>
+
+      <RunningTimerCard />
 
       {/* ─── Running Projects ─────────────────────────────────────── */}
       <div className="mb-6">
@@ -716,21 +728,33 @@ const HomePage = () => {
           <LayoutDashboard size={18} className="text-accent-500" /> Task Overview
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 p-4 flex items-center gap-3 hover:shadow-sm transition-shadow">
+          <div className="rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 p-4 flex items-center gap-3 hover:shadow-md cursor-default transition-shadow" style={{ borderTop: '2px solid #ef4444' }}>
             <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30"><AlertTriangle size={18} className="text-red-500" /></div>
-            <div><p className="text-xs font-medium text-red-600/70 dark:text-red-400/70">Critical</p><p className="text-2xl font-bold text-red-600 dark:text-red-400">{tasksOverdue.length}</p></div>
+            <div>
+              <p className="text-xs font-medium text-red-600/70 dark:text-red-400/70">Overdue Tasks</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{tasksOverdue.length}</p>
+            </div>
           </div>
-          <div className="rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 p-4 flex items-center gap-3 hover:shadow-sm transition-shadow">
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 p-4 flex items-center gap-3 hover:shadow-md cursor-default transition-shadow" style={{ borderTop: '2px solid #3b82f6' }}>
             <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30"><ListTodo size={18} className="text-blue-500" /></div>
-            <div><p className="text-xs font-medium text-blue-600/70 dark:text-blue-400/70">To Do</p><p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{tasksTodo.length}</p></div>
+            <div>
+              <p className="text-xs font-medium text-blue-600/70 dark:text-blue-400/70">To Do</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{tasksTodo.length}</p>
+            </div>
           </div>
-          <div className="rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 p-4 flex items-center gap-3 hover:shadow-sm transition-shadow">
+          <div className="rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 p-4 flex items-center gap-3 hover:shadow-md cursor-default transition-shadow" style={{ borderTop: '2px solid #f59e0b' }}>
             <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30"><Clock size={18} className="text-amber-500" /></div>
-            <div><p className="text-xs font-medium text-amber-600/70 dark:text-amber-400/70">In Progress</p><p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{tasksInProgress.length}</p></div>
+            <div>
+              <p className="text-xs font-medium text-amber-600/70 dark:text-amber-400/70">In Progress</p>
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{tasksInProgress.length}</p>
+            </div>
           </div>
-          <div className="rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/20 p-4 flex items-center gap-3 hover:shadow-sm transition-shadow">
+          <div className="rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/20 p-4 flex items-center gap-3 hover:shadow-md cursor-default transition-shadow" style={{ borderTop: '2px solid #f97316' }}>
             <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30"><CalendarDays size={18} className="text-orange-500" /></div>
-            <div><p className="text-xs font-medium text-orange-600/70 dark:text-orange-400/70">Overdue</p><p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{overdueProjects.length}</p></div>
+            <div>
+              <p className="text-xs font-medium text-orange-600/70 dark:text-orange-400/70">Late Projects</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{overdueProjects.length}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -739,8 +763,6 @@ const HomePage = () => {
       <div className="mb-6">
         <TeamMembersSection allTasks={allTasks} />
       </div>
-
-      <RunningTimerCard />
 
       {/* ─── Tasks Section (Azira-style tabs + filters + calendar toggle) */}
       <div className="rounded-xl bg-white dark:bg-dark-secondary p-5 shadow-sm mb-6">
@@ -817,8 +839,10 @@ const HomePage = () => {
 
         {/* Content: List or Calendar */}
         {taskView === 'list' ? (
-          <div style={{ height: 500, width: "100%" }}>
-            <DataGrid rows={filteredTasksForGrid} columns={taskColumns} loading={tasksLoading} onRowClick={handleRowClick} sx={dataGridSxStyles(isDarkMode)} />
+          <div className="overflow-x-auto w-full">
+            <div className="min-w-[640px]" style={{ height: 500 }}>
+              <DataGrid rows={filteredTasksForGrid} columns={taskColumns} loading={tasksLoading} onRowClick={handleRowClick} sx={dataGridSxStyles(isDarkMode)} />
+            </div>
           </div>
         ) : (
           <TaskCalendar tasks={tasksForGrid} />
