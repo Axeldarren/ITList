@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import ReactDOM from "react-dom";
 import { useGetUsersQuery, User } from "@/state/api";
 import { getProfilePictureSrc } from "@/lib/profilePicture";
 
@@ -31,6 +32,7 @@ const MentionInput = ({
     const [mentionQuery, setMentionQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
+    const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +47,33 @@ const MentionInput = ({
                 u.userId && u.username?.toLowerCase().includes(mentionQuery.toLowerCase())
         )
         .slice(0, 8); // Limit to 8 suggestions
+
+    // Compute dropdown portal position based on textarea rect
+    const updateDropdownPosition = useCallback(() => {
+        if (!textareaRef.current) return;
+        const rect = textareaRef.current.getBoundingClientRect();
+        const DROPDOWN_HEIGHT = 192; // max-h-48 = 12rem = 192px (estimate)
+        const GAP = 4;
+
+        if (dropdownPosition === "above") {
+            setDropdownStyle({
+                position: "fixed",
+                left: rect.left,
+                width: Math.min(256, rect.width),
+                bottom: window.innerHeight - rect.top + GAP,
+                zIndex: 9999,
+            });
+        } else {
+            setDropdownStyle({
+                position: "fixed",
+                left: rect.left,
+                width: Math.min(256, rect.width),
+                top: rect.bottom + GAP,
+                zIndex: 9999,
+                maxHeight: Math.min(DROPDOWN_HEIGHT, window.innerHeight - rect.bottom - GAP),
+            });
+        }
+    }, [dropdownPosition]);
 
     // Detect @ trigger while typing
     const handleChange = useCallback(
@@ -63,6 +92,7 @@ const MentionInput = ({
                 if (!/\s/.test(textAfterAt)) {
                     setMentionQuery(textAfterAt);
                     setMentionStartPos(lastAtIndex);
+                    updateDropdownPosition();
                     setShowDropdown(true);
                     setSelectedIndex(0);
                     return;
@@ -72,7 +102,7 @@ const MentionInput = ({
             setShowDropdown(false);
             setMentionStartPos(null);
         },
-        [onChange]
+        [onChange, updateDropdownPosition]
     );
 
     // Handle keyboard navigation in dropdown
@@ -152,6 +182,18 @@ const MentionInput = ({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Re-position dropdown on scroll/resize while open
+    useEffect(() => {
+        if (!showDropdown) return;
+        const handleReposition = () => updateDropdownPosition();
+        window.addEventListener("scroll", handleReposition, true);
+        window.addEventListener("resize", handleReposition);
+        return () => {
+            window.removeEventListener("scroll", handleReposition, true);
+            window.removeEventListener("resize", handleReposition);
+        };
+    }, [showDropdown, updateDropdownPosition]);
+
     // Scroll selected item into view
     useEffect(() => {
         if (showDropdown && dropdownRef.current) {
@@ -162,6 +204,49 @@ const MentionInput = ({
 
     const defaultClassName =
         "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-dark-tertiary bg-gray-50 dark:bg-dark-tertiary text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-shadow";
+
+    const dropdown =
+        showDropdown && filteredUsers.length > 0
+            ? ReactDOM.createPortal(
+                  <div
+                      ref={dropdownRef}
+                      style={dropdownStyle}
+                      className="w-64 max-h-48 overflow-y-auto rounded-lg shadow-xl ring-1 ring-black/5 dark:ring-white/10 bg-white dark:bg-dark-secondary"
+                  >
+                      {filteredUsers.map((user, index) => (
+                          <button
+                              key={user.userId}
+                              onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  selectUser(user);
+                              }}
+                              className={`
+                                w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors
+                                ${
+                                    index === selectedIndex
+                                        ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
+                                }
+                            `}
+                          >
+                              {user.profilePictureUrl ? (
+                                  <img
+                                      src={getProfilePictureSrc(user.profilePictureUrl)!}
+                                      alt={user.username}
+                                      className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                  />
+                              ) : (
+                                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
+                                      {user.username?.charAt(0)?.toUpperCase() || "?"}
+                                  </div>
+                              )}
+                              <span className="truncate font-medium">{user.username}</span>
+                          </button>
+                      ))}
+                  </div>,
+                  document.body
+              )
+            : null;
 
     return (
         <div className="relative">
@@ -175,46 +260,7 @@ const MentionInput = ({
                 onKeyDown={handleKeyDown}
                 disabled={disabled}
             />
-
-            {/* Mention Dropdown */}
-            {showDropdown && filteredUsers.length > 0 && (
-                <div
-                    ref={dropdownRef}
-                    className={`absolute left-0 w-64 max-h-48 overflow-y-auto rounded-lg shadow-xl ring-1 ring-black/5 dark:ring-white/10 bg-white dark:bg-dark-secondary z-50 ${
-                        dropdownPosition === "above" ? "bottom-full mb-1" : "top-full mt-1"
-                    }`}
-                >
-                    {filteredUsers.map((user, index) => (
-                        <button
-                            key={user.userId}
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                selectUser(user);
-                            }}
-                            className={`
-                                w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors
-                                ${index === selectedIndex
-                                    ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
-                                }
-                            `}
-                        >
-                            {user.profilePictureUrl ? (
-                                <img
-                                    src={getProfilePictureSrc(user.profilePictureUrl)!}
-                                    alt={user.username}
-                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-                                />
-                            ) : (
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
-                                    {user.username?.charAt(0)?.toUpperCase() || "?"}
-                                </div>
-                            )}
-                            <span className="truncate font-medium">{user.username}</span>
-                        </button>
-                    ))}
-                </div>
-            )}
+            {dropdown}
         </div>
     );
 };

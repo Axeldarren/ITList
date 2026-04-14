@@ -118,6 +118,59 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 return dueDate < now;
             }).length;
 
+            // ── Per-project breakdown ────────────────────────────────────────
+            // Time logs grouped by project
+            const timeLogsForBreakdown = await prisma.timeLog.findMany({
+                where: {
+                    userId: user.userId,
+                    task: { deletedAt: null },
+                    startTime: { gte: startDate, lte: endDate },
+                },
+                select: {
+                    duration: true,
+                    task: {
+                        select: {
+                            projectId: true,
+                            project: { select: { id: true, name: true } },
+                        },
+                    },
+                },
+            });
+
+            // Tasks grouped by project (within date range)
+            const tasksForBreakdown = await prisma.task.findMany({
+                where: {
+                    assignedUserId: user.userId,
+                    deletedAt: null,
+                    status: { not: 'Archived' },
+                    project: { deletedAt: null, status: { not: 'Cancel' } },
+                    createdAt: { gte: startDate, lte: endDate },
+                },
+                select: {
+                    projectId: true,
+                    project: { select: { id: true, name: true } },
+                    status: true,
+                },
+            });
+
+            const breakdownMap = new Map<number, { projectId: number; projectName: string; timeLogged: number; completedTasks: number }>();
+
+            timeLogsForBreakdown.forEach(log => {
+                if (!log.task) return;
+                const { projectId, project } = log.task;
+                const entry = breakdownMap.get(projectId) ?? { projectId, projectName: project?.name ?? 'Unknown', timeLogged: 0, completedTasks: 0 };
+                entry.timeLogged += log.duration ?? 0;
+                breakdownMap.set(projectId, entry);
+            });
+
+            tasksForBreakdown.forEach(task => {
+                const entry = breakdownMap.get(task.projectId) ?? { projectId: task.projectId, projectName: task.project?.name ?? 'Unknown', timeLogged: 0, completedTasks: 0 };
+                if (task.status === 'Completed') entry.completedTasks++;
+                breakdownMap.set(task.projectId, entry);
+            });
+
+            const projectBreakdown = Array.from(breakdownMap.values()).sort((a, b) => b.timeLogged - a.timeLogged);
+
             return {
                 userId: user.userId,
                 username: user.username,
@@ -128,6 +181,7 @@ export const getDeveloperStats = async (req: Request, res: Response) => {
                 totalStoryPoints,
                 completedStoryPoints,
                 role: user.role,
+                projectBreakdown,
             };
         }));
 

@@ -502,3 +502,4 @@ enum NotificationType {
   TASK_DELETED
   PROJECT_DELETED
 }
+

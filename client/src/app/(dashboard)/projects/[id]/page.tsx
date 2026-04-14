@@ -303,7 +303,6 @@ const Project = ({ params }: { params: Promise<{ id: string }> }) => {
             { activeTab === "Activity" && <ActivityView projectId={Number(id)} searchTerm={localSearchTerm} /> }
             { activeTab === "History" && <ArchiveView projectId={Number(id)} /> }
             { activeTab === "Overview" && currentProject && <OverviewView projectId={Number(id)} version={currentProject?.version || 1} project={currentProject} /> }
-
             {/* Existing views */}
             { activeTab !== "History" && activeTab !== "Activity" && activeTab !== "Overview" && (
                 <>

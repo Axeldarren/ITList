@@ -243,6 +243,13 @@ export interface Suggestion {
     text: string;
     type: 'Project' | 'Task';
 }
+export interface ProjectBreakdown {
+    projectId: number;
+    projectName: string;
+    timeLogged: number;   // seconds
+    completedTasks: number;
+}
+
 export interface DeveloperStats {
     userId: string;
     username: string;
@@ -253,7 +260,9 @@ export interface DeveloperStats {
     totalStoryPoints: number;
     completedStoryPoints: number;
     role?: string;
+    projectBreakdown?: ProjectBreakdown[];
 }
+
 
 export interface DeveloperStatsResponse {
     data: DeveloperStats[];
@@ -1552,6 +1561,7 @@ export const api = createApi({
             }),
             invalidatesTags: [{ type: 'Notifications', id: 'LIST' }],
         }),
+
     }),
 });
 
@@ -1637,5 +1647,5 @@ export const {
     useMarkAllNotificationsAsReadMutation,
     useDeleteNotificationMutation,
     useCreateStandaloneCommentMutation,
-    useGetTaskCommentsQuery
+    useGetTaskCommentsQuery,
 } = api;

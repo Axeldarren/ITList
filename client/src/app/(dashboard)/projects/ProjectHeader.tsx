@@ -4,9 +4,9 @@ import { useAppSelector } from '@/app/redux';
 import Header from '@/components/Header';
 import { ProjectStatus } from '@/state/api'; // Import your ProjectStatus enum/type
 import { selectCurrentUser } from '@/state/authSlice';
-import { 
-    Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History, 
-    FileDown, Play, Check, XCircle, Zap, Power, CheckCircle, 
+import {
+    Clock, Edit, GitBranch, Grid3X3, List, Table, Search, Archive, History,
+    FileDown, Play, Check, XCircle, Zap, Power, CheckCircle,
     ActivityIcon, Eye
 } from 'lucide-react';
 import React from 'react';

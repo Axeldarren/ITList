@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useGetDeveloperStatsPaginatedQuery, useGetDeveloperStatsQuery, useGetUsersQuery, useGetTimeLogsQuery, useGetAllRunningTimeLogsQuery, useGetProjectsQuery } from '@/state/api';
 
-import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User, ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react';
+import { FileDown, Clock, CheckCircle, AlertTriangle, Target, User, ChevronLeft, ChevronRight, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { exportProductivityToPDF } from '@/lib/productivityReportGenerator';
 import { format } from 'date-fns';
 import { getProfilePictureSrc } from '@/lib/profilePicture';
@@ -13,6 +13,33 @@ import MonthPicker from '@/components/MonthPicker';
 import LiveTimerDisplay from '@/components/LiveTimerDisplay';
 
 const DEVELOPERS_PER_PAGE = 10;
+
+// ── Project Breakdown Sub-table ───────────────────────────────────────────────
+const ProjectBreakdownTable = ({ breakdown }: { breakdown: import('@/state/api').ProjectBreakdown[] }) => {
+    if (!breakdown || breakdown.length === 0) {
+        return <p className="text-xs text-gray-400 dark:text-gray-500 italic px-4 py-2">No project data in this period.</p>;
+    }
+    return (
+        <table className="w-full text-xs">
+            <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <th className="px-4 py-2 text-left font-semibold text-gray-500 dark:text-gray-400">Project</th>
+                    <th className="px-4 py-2 text-right font-semibold text-gray-500 dark:text-gray-400">Time Logged</th>
+                    <th className="px-4 py-2 text-right font-semibold text-gray-500 dark:text-gray-400">Tasks Done</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                {breakdown.map((p) => (
+                    <tr key={p.projectId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                        <td className="px-4 py-1.5 text-gray-700 dark:text-gray-300 font-medium">{p.projectName}</td>
+                        <td className="px-4 py-1.5 text-right font-mono text-purple-600 dark:text-purple-400">{formatDuration(p.timeLogged)}</td>
+                        <td className="px-4 py-1.5 text-right text-green-600 dark:text-green-400 font-semibold">{p.completedTasks}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
+};
 
 const formatDuration = (seconds: number): string => {
     if (!seconds || seconds < 0) return '0:00:00';
@@ -41,6 +68,7 @@ const DeveloperProductivity = () => {
     // Modal states
     const [timeLogsModal, setTimeLogsModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; role?: string } } | null>(null);
     const [completedTasksModal, setCompletedTasksModal] = useState<{ isOpen: boolean; developer: { userId: string; username: string; profilePictureUrl?: string; role?: string } } | null>(null);
+    const [openBreakdownId, setOpenBreakdownId] = useState<string | null>(null);
 
     const { data: statsResponse, isLoading } = useGetDeveloperStatsPaginatedQuery({ 
         startMonth,
@@ -363,6 +391,34 @@ const DeveloperProductivity = () => {
                                         </p>
                                     </div>
                                 </div>
+
+                                {/* Project Breakdown accordion */}
+                                {dev.projectBreakdown && dev.projectBreakdown.length > 0 && (
+                                    <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+                                        <button
+                                            onClick={() => setOpenBreakdownId(openBreakdownId === dev.userId ? null : dev.userId)}
+                                            className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-dark-bg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <FolderOpen size={14} className="text-gray-400" />
+                                                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                                    Project Breakdown
+                                                </span>
+                                                <span className="rounded-full bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                                                    {dev.projectBreakdown.length}
+                                                </span>
+                                            </div>
+                                            {openBreakdownId === dev.userId
+                                                ? <ChevronUp size={14} className="text-gray-400" />
+                                                : <ChevronDown size={14} className="text-gray-400" />}
+                                        </button>
+                                        {openBreakdownId === dev.userId && (
+                                            <div className="bg-white dark:bg-dark-secondary">
+                                                <ProjectBreakdownTable breakdown={dev.projectBreakdown} />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
