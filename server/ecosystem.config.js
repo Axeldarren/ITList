@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'pm-app-backend',
       script: 'dist/src/index.js',
-      cwd: '/var/www/bmrapi/tf_itlist_dev/server',
-      instances: 'max',  // Use all CPU cores
+      cwd: '/var/www/bmrapi/tf_itlist_new/server',
+      instances: 1,
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'production',

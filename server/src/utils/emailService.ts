@@ -43,6 +43,9 @@ export async function sendNotificationEmail(
     title: string,
     message: string
 ): Promise<void> {
+    // Temporarily disable email notifications for production
+    return;
+
     if (!process.env.RESEND_API_KEY) {
         // Silently skip if Resend is not configured (dev environment)
         return;
